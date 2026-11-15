@@ -68,6 +68,14 @@ report that there is no server.
 next client finds it refusing connections and reports `no server running on <socket>`, or
 removes it when it starts a new server. (Checked on tmux 3.8.)
 
+**Attaching (E15):** as in tmux, the client reads its own terminal's terminfo entry and sends
+the capabilities to the server as `name=value` strings (tmux's `MSG_IDENTIFY_TERMINFO`), with
+`TERM`, the size and the environment. The server builds the terminal's description from them as
+tmux's `tty_term_create` does: `terminal-features`, `COLORTERM`, `terminal-overrides`, and the
+VT100-like features. Everything the terminal is sent, the start and stop sequences included, goes
+to the client in `Output` frames; the client only switches its terminal to raw mode before the
+first one and back after the last, and prints the reason it detached.
+
 ---
 
 ## 3. Packages
@@ -501,4 +509,5 @@ properly):
 | E9 | `imux-core -V` prints `imux-core X.Y.Z (tmux 3.8 compatible)`; `#{version}` is `3.8` | i-mux gates features on tmux's version; the engine declares the level it implements. 3.8, not 3.6: i-mux handles 3.7's and 3.8's changes, and its e2e suite passes on 3.8 but not on 3.6 (decided by the owner on 2026-11-15) |
 | E10 | `internal/vt` is our own port of tmux 3.8's `input.c`, `screen-write.c` and `grid.c`, not an existing Go emulator package | The candidates lack the line wrap flag and tmux's reflow, and parse 11 to 40 times slower than the port (§8) |
 | E11 | Unix PTYs and process information through `golang.org/x/sys/unix` and, on macOS, libSystem's `proc_pidinfo` without cgo; no `github.com/creack/pty` | x/sys is needed anyway (`tcgetpgrp`, `ioctl`s, signals); opening a PTY is a few `ioctl`s per system; no cgo keeps cross-compiled release builds simple. Shown by C0.6's test on macOS and Linux |
+| E15 | The client reads terminfo with our own reader of compiled terminfo files (the legacy and the 32-bit formats, with extended capabilities), from the places ncurses looks; parameters are expanded by our own `tparm`. A built-in `xterm-256color` description, generated from ncurses' entry, is used when there is no terminfo (Windows) | No cgo and no ncurses dependency; tmux itself only needs the capabilities as strings, which is what crosses the socket. The reader and `tparm` are checked against tmux's own view of the terminal (`show-messages -T`) |
 | E14 | On Windows, `run-shell` and `if-shell` shell commands run in `cmd.exe /d /s /c`; i-mux's own calls use an engine extension, the argv form (`["prog", "arg", …]`, formats expanded in each element, no shell), and pane programs go as separate arguments | i-mux builds POSIX lines (`'<imux>' … >/dev/null 2>&1 \|\| true`, `rm -f`) that no Windows shell runs; quoting them for PowerShell or `cmd.exe` would bring its own bugs, while an argv needs none. macOS and Linux stay unchanged (C9.3) |

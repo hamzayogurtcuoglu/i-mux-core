@@ -584,7 +584,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     them.
   - Terminal capabilities: from `TERM`'s terminfo where available, plus `terminal-features`
     (`RGB`, `extkeys`, `Sync`, …) and `terminal-overrides`, as tmux does.
-  - The client's `TERM`, size and environment go into `Hello`.
+  - The client's `TERM`, size and environment go into `Hello`, and its terminfo capabilities
+    (ARCHITECTURE.md §2, E15).
+  - The terminal description (capabilities after features and overrides) matches what tmux
+    shows for the same terminal with `show-messages -T`.
 - **Acceptance:**
   - An attach and detach cycle in a test PTY restores every mode (checked by feeding the client
     output to `vt` and comparing modes before and after).
