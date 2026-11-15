@@ -561,7 +561,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - An empty command list behaves like tmux's (`new-session`).
   - Runs fine when stdin is not a terminal, which is how i-mux calls it.
 - **Acceptance:** difftest of a set of basic commands (`list-sessions` with no server,
-  `new-session -d -P -F`, `has-session`, `display-message -p`) is identical.
+  `new-session -d -P -F`, `has-session`, `display-message -p`) is identical. The ones that
+  print formats (`-P -F`, `display-message -p`, `list-sessions` with a server) need the format
+  engine and are checked with C3.5 and C3.6.
 - **Depends on:** C2.3, C3.2 (for the command table: build a minimal one first and grow it).
 
 ### [ ] C2.7 The attached client (Unix)
