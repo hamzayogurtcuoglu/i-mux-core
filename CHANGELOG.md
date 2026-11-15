@@ -18,3 +18,5 @@ All notable changes to i-mux-core are listed here. The format follows
 - The terminal emulator's parser, ported from tmux 3.8's `input.c` (E10).
 - PTYs on macOS and Linux, and a pane's foreground command and working directory, without cgo
   (E11).
+- `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
+  programs which ignore SIGHUP (K4).

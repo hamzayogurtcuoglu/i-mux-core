@@ -25,6 +25,7 @@ lint: ## golangci-lint, and go vet for every system the engine runs on
 	GOOS=linux $(GO) vet $(PKGS)
 	GOOS=darwin $(GO) vet $(PKGS)
 	GOOS=windows $(GO) vet $(PKGS)
+	GOOS=linux golangci-lint run ./...
 	GOOS=windows golangci-lint run ./...
 
 fmt: ## Format with gofumpt via golangci-lint

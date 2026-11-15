@@ -18,6 +18,7 @@ linters:
     errcheck:
       exclude-functions:
         - (*os.File).Close
+        - golang.org/x/sys/unix.Close
         - (io.Closer).Close
         - (net.Conn).Close
         - os.Remove

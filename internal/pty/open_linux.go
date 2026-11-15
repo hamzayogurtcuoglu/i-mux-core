@@ -7,26 +7,27 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// open opens a new PTY: /dev/ptmx, unlocked, and its slave.
-func open() (master, slave *os.File, err error) {
-	m, err := os.OpenFile("/dev/ptmx", os.O_RDWR|unix.O_NOCTTY|unix.O_CLOEXEC, 0)
+// open opens a new PTY: /dev/ptmx, unlocked, and its slave. The master is non-blocking, so
+// that Go's poller reads it and Close stops a pending Read; fd is its descriptor, for ioctls
+// (os.File.Fd would make the file blocking again).
+func open() (master *os.File, fd int, slave *os.File, err error) {
+	fd, err = unix.Open("/dev/ptmx", unix.O_RDWR|unix.O_NOCTTY|unix.O_CLOEXEC|unix.O_NONBLOCK, 0)
 	if err != nil {
-		return nil, nil, err
+		return nil, -1, nil, err
 	}
-	fd := int(m.Fd())
 	if err := unix.IoctlSetPointerInt(fd, unix.TIOCSPTLCK, 0); err != nil {
-		m.Close()
-		return nil, nil, err
+		unix.Close(fd)
+		return nil, -1, nil, err
 	}
 	n, err := unix.IoctlGetUint32(fd, unix.TIOCGPTN)
 	if err != nil {
-		m.Close()
-		return nil, nil, err
+		unix.Close(fd)
+		return nil, -1, nil, err
 	}
 	s, err := os.OpenFile("/dev/pts/"+strconv.FormatUint(uint64(n), 10), os.O_RDWR|unix.O_NOCTTY|unix.O_CLOEXEC, 0)
 	if err != nil {
-		m.Close()
-		return nil, nil, err
+		unix.Close(fd)
+		return nil, -1, nil, err
 	}
-	return m, s, nil
+	return os.NewFile(uintptr(fd), "/dev/ptmx"), fd, s, nil
 }

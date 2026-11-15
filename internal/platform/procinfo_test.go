@@ -13,25 +13,25 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 )
 
-func startSh(t *testing.T, script string) *pty.Proc {
+func startSh(t *testing.T, script string) pty.Proc {
 	t.Helper()
-	p, err := pty.Start([]string{"/bin/sh", "-c", script}, []string{"PATH=/usr/bin:/bin"}, "/", 80, 24)
+	p, err := pty.New().Start(pty.Spec{Argv: []string{"/bin/sh", "-c", script}, Env: []string{"PATH=/usr/bin:/bin"}, Dir: "/", Cols: 80, Rows: 24})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		_ = p.KillGroup(syscall.SIGKILL)
-		_ = p.Cmd.Wait()
-		p.Master.Close()
+		_ = syscall.Kill(-p.Pid(), syscall.SIGKILL)
+		_, _ = p.Wait()
+		_ = p.Close()
 	})
-	go io.Copy(io.Discard, p.Master)
+	go io.Copy(io.Discard, p)
 	return p
 }
 
 // waitFor polls the PTY's foreground command and path until they are cmd and path.
-func waitFor(t *testing.T, p *pty.Proc, cmd, path string) {
+func waitFor(t *testing.T, p pty.Proc, cmd, path string) {
 	t.Helper()
-	fd := int(p.Master.Fd())
+	fd := p.Fd()
 	var gotCmd, gotPath string
 	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
 		gotCmd, gotPath = platform.ForegroundCommand(fd), platform.CurrentPath(fd)
@@ -61,7 +61,7 @@ func TestForegroundIsTheGroupLeader(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := startSh(t, "cd /tmp && sleep 5")
-	fd := int(p.Master.Fd())
+	fd := p.Fd()
 	// Once the directory has changed, sleep has started (or is about to).
 	for deadline := time.Now().Add(5 * time.Second); platform.CurrentPath(fd) != tmp; time.Sleep(10 * time.Millisecond) {
 		if time.Now().After(deadline) {

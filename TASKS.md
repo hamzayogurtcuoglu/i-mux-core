@@ -222,7 +222,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 
 ## Phase 1: PTY and terminal emulator
 
-### [ ] C1.1 Unix PTY
+### [x] C1.1 Unix PTY
 - **Goal:** panes can run programs on macOS and Linux.
 - **Details:**
   - `internal/pty` implements the `PTY` and `Proc` interfaces (ARCHITECTURE.md §6) for Unix, per
