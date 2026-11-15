@@ -295,10 +295,14 @@ type Listener interface { /* Listen, Dial, PeerUser */ }
 The server runs every command it receives as its user, so **only that user may connect**.
 
 **Unix:**
-- The socket dir is created `0700` and must be owned by the user, as tmux checks: wrong owner or
-  mode means refuse to start, with a clear error. The socket itself is `0600`.
-- Every connection's peer is checked: `SO_PEERCRED` on Linux, `getpeereid` /
-  `LOCAL_PEERCRED` on macOS. Another uid is closed at once, without a reply.
+- The socket dir (`$TMUX_TMPDIR` or `/tmp`, resolved, then `imux-core-<uid>`) is created
+  `0700`. It must be a directory owned by the user with no group or other access; otherwise the
+  client refuses to use it, with tmux's messages (`couldn't create directory …`, `… is not a
+  directory`, `directory … has unsafe permissions`). This is stricter than tmux, which refuses
+  only other users' access (o+rwx) and allows the group's. The socket itself is `0600`.
+- Every connection's peer is checked: `SO_PEERCRED` on Linux, `LOCAL_PEERCRED` on macOS.
+  Another uid, root included, is closed at once, without a reply. tmux's default server access
+  also lets root in; the engine has no `server-access` (a non-goal), so only the owner gets in.
 
 **Windows:**
 - The socket or pipe is created with a DACL that allows only the current user's SID (and
