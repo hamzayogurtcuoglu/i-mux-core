@@ -10,7 +10,7 @@ PKGS      ?= ./...
 
 export CGO_ENABLED = 0
 
-.PHONY: all build test lint fmt tmux difftest contract contract-record fuzz bench ci clean
+.PHONY: all build test lint fmt tmux difftest vt-fixtures vt-fixtures-check contract contract-record fuzz bench ci clean
 
 all: lint test build
 
@@ -39,9 +39,23 @@ TMUX_PINNED ?= $(CURDIR)/.cache/tmux/3.8/bin/tmux
 tmux: ## Build the pinned tmux 3.8 into .cache/tmux
 	./scripts/build-tmux.sh
 
-difftest: build ## Differential tests against the pinned tmux
+difftest: build vt-fixtures-check ## Differential tests against the pinned tmux
 	IMUX_CORE_BIN=$(CURDIR)/bin/$(BINARY) IMUX_DIFFTEST_TMUX=$(TMUX_PINNED) \
 		$(GO) test -count=1 -tags difftest ./internal/difftest/...
+
+# The VT fixtures' expected screens come from the pinned tmux (cmd/vtfixture).
+vt-fixtures: ## Regenerate testdata/vt/*.screen from the pinned tmux
+	$(GO) build -o bin/vtfixture ./cmd/vtfixture
+	./bin/vtfixture -tmux $(TMUX_PINNED)
+
+vt-fixtures-check: ## Check that the pinned tmux still gives testdata/vt/*.screen
+	@if [ -x "$(TMUX_PINNED)" ]; then \
+		$(GO) build -o bin/vtfixture ./cmd/vtfixture && ./bin/vtfixture -check -tmux $(TMUX_PINNED); \
+	elif [ "$$IMUX_DIFFTEST_REQUIRE" = 1 ]; then \
+		echo "vt-fixtures-check: the pinned tmux is not built"; exit 1; \
+	else \
+		echo "vt-fixtures-check: the pinned tmux is not built (make tmux): fixtures NOT checked"; \
+	fi
 
 # The contract (TASKS.md C0.3): contract-record runs i-mux's e2e suite with a
 # recording tmux and writes contract/recorded.json (slow, needs ../i-mux and

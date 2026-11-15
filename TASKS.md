@@ -261,7 +261,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - A split-at-every-byte test gives the same actions as a single write.
 - **Depends on:** C0.5.
 
-### [ ] C1.3 Screen, cells and width
+### [x] C1.3 Screen, cells and width
 - **Goal:** the data model every other part reads.
 - **Details:**
   - Cells, lines (with a wrapped flag) and the grid, per ARCHITECTURE.md §8.

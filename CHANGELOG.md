@@ -19,5 +19,9 @@ All notable changes to i-mux-core are listed here. The format follows
   for strings that never end.
 - PTYs on macOS and Linux, and a pane's foreground command and working directory, without cgo
   (E11).
+- The emulator's screen, ported from tmux 3.8 (`grid.c`, `grid-view.c`, `screen-write.c`,
+  `utf8-combined.c`): cells, wide characters, combining, tabs, wrapping, history and
+  `capture-pane`, with tmux's widths from the pinned utf8proc 2.12.0.
+- VT fixtures whose expected screens come from the pinned tmux (`make vt-fixtures`).
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
