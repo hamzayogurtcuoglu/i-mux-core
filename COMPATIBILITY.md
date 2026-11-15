@@ -376,7 +376,8 @@ tmux, and in `%COMSPEC% /d /s /c` on Windows (E14).
 | K6 | Floating panes (tmux 3.8's `new-pane`) do not exist; `select-layout` refuses a version 2 layout with a floating pane (`"z"`): `floating panes are not supported by imux-core` | i-mux does not use them; tested by `internal/layout`'s parse tests |
 | K7 | `select-layout` with text that is not JSON at all reports `invalid json`; tmux names the position of the syntax error | Only broken strings differ; i-mux restores the strings tmux wrote; tested by `internal/layout`'s parse tests |
 
-| K8 | Windows: a pane's program that asks for mouse reporting (1000, 1002, 1003, 1006) is not seen asking: ConPTY consumes the request. So mouse events are not forwarded into that pane, where tmux would forward them | ConPTY's own behaviour (E12); shown by the C0.7 spike's evidence (`spikes/conpty/EVIDENCE.md`) |
-| K9 | Windows: an OSC 8 hyperlink from a pane's program carries an `id=` ConPTY added | ConPTY's own behaviour (E12); shown by the C0.7 evidence |
+| K8 | Windows: a pane's program that asks for mouse reporting (1000, 1002, 1003, 1006) is not seen asking: ConPTY consumes the request. So mouse events are not forwarded into that pane, where tmux would forward them | ConPTY's own behaviour (E12); shown by the C0.7 spike's evidence (`spikes/conpty/EVIDENCE-26100.md`, `-20348.md`) |
+| K9 | Windows 11 24H2 and later: an OSC 8 hyperlink from a pane's program carries an `id=` ConPTY added | ConPTY's own behaviour (E12); shown by the C0.7 evidence |
+| K10 | Windows builds older than 26100 (seen on 20348): ConPTY consumes a program's alternate screen request (1049) and drops underline styles, so the pane does not switch screens and its history fills with full-screen output | ConPTY's own behaviour on those builds (E12); shown by `spikes/conpty/EVIDENCE-20348.md` |
 
 New rows are added only with a test showing the difference and a reason.

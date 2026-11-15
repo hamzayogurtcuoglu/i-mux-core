@@ -190,9 +190,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Decisions **E12** (ConPTY use and minimum Windows build) and **E13** (IPC transport and
     its security) are recorded with the evidence tables.
   - The spike's test runs on `windows-latest`.
-- **Status:** done. The first CI run's evidence is in `spikes/conpty/EVIDENCE.md`; E12 and E13
-  are in ARCHITECTURE.md (§5, §6, §7 and the decisions), with K8 and K9 in COMPATIBILITY.md.
-  The spike also runs on `windows-2022` (build 20348), to keep an older build in view.
+- **Status:** done. The evidence of builds 26100 and 20348 is in `spikes/conpty/EVIDENCE-*.md`;
+  E12 and E13 are in ARCHITECTURE.md (§5, §6, §7 and the decisions), with K8 to K10 in
+  COMPATIBILITY.md.
 - **Depends on:** C0.2.
 
 ### [x] C0.8 Spike: shell commands on Windows
