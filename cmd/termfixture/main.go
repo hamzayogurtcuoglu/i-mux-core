@@ -39,6 +39,10 @@ type Case struct {
 	Describe     []string `json:"describe"`            // show-messages -T, without its header
 	Flags        string   `json:"flags"`               // the header's flags=
 	TermFeatures string   `json:"termfeatures"`        // #{client_termfeatures}
+	// Enter is what tmux sent the terminal on attach before it first drew: the start sequence
+	// and the queries. Leave is what it sent on detach-client, before the client's message.
+	Enter string `json:"enter"`
+	Leave string `json:"leave"`
 }
 
 func main() {
@@ -204,7 +208,44 @@ func record(bin, terminfo string, c *Case) error {
 		return err
 	}
 	c.TermFeatures = strings.TrimSpace(out)
+
+	// The attach output up to the end of its queries (tmux's tty_send_requests), else up to the
+	// first redraw (a terminal not like the VT100 is sent no queries).
+	all := drawn.String()
+	if i := strings.Index(all, "\033]11;?\033\\"); i >= 0 {
+		c.Enter = all[:i+len("\033]11;?\033\\")]
+	} else {
+		c.Enter = all
+	}
+	// Detach once tmux has stopped drawing, and keep what follows.
+	quiet(&drawn)
+	before := len(drawn.String())
+	if _, err := run("detach-client", "-t", client); err != nil {
+		return err
+	}
+	deadline = time.Now().Add(10 * time.Second)
+	for !strings.Contains(drawn.String()[before:], "[detached") {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("no detach message; got %q", drawn.String()[before:])
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	leave := drawn.String()[before:]
+	c.Leave = leave[:strings.Index(leave, "[detached")]
 	return nil
+}
+
+// quiet waits until nothing has been written for 300 ms.
+func quiet(b *safeBuffer) {
+	last := len(b.String())
+	for {
+		time.Sleep(300 * time.Millisecond)
+		n := len(b.String())
+		if n == last {
+			return
+		}
+		last = n
+	}
 }
 
 // safeBuffer is a buffer written by one goroutine and read by another.

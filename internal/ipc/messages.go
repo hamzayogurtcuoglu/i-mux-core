@@ -56,8 +56,10 @@ type Hello struct {
 	Size          Size              `json:"size"`
 	StdinTTY      bool              `json:"stdin_tty"`
 	StdoutTTY     bool              `json:"stdout_tty"`
-	UTF8          bool              `json:"utf8"` // -u
+	UTF8          bool              `json:"utf8"` // -u, or a UTF-8 locale
 	Pid           int               `json:"pid"`
+	TTYName       string            `json:"tty_name,omitempty"` // stdin's terminal (#{client_name})
+	Terminfo      []string          `json:"terminfo,omitempty"` // TERM's capabilities, name=value (E15)
 }
 
 // Command is a command list from the client: each element is one command's words.

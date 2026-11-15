@@ -205,7 +205,7 @@ A per-client ticker (at most every 16 ms, and right away after input) then:
 
   | Message | Direction | Content |
   | --- | --- | --- |
-  | `Hello` | client → server | protocol version, client version, argv, cwd, the environment i-mux needs (`TERM`, `COLORTERM`, `LANG`/`LC_*`, `TERM_PROGRAM`, `PATH`, `HOME`, `IMUX_*`, `-u`), terminal size, whether stdin/stdout are terminals, client pid |
+  | `Hello` | client → server | protocol version, client version, argv, cwd, the environment i-mux needs (`TERM`, `COLORTERM`, `LANG`/`LC_*`, `TERM_PROGRAM`, `PATH`, `HOME`, `IMUX_*`, `-u`), terminal size, whether stdin/stdout are terminals, client pid; for a terminal, its path (`#{client_name}`) and its terminfo capabilities (E15) |
   | `Command` | client → server | the command list (already split into argv lists, or the raw string for `source-file`-style input) |
   | `Result` | server → client | stdout, stderr, exit code |
   | `Attach` | server → client | the client switches to attached mode |

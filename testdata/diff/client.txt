@@ -1,6 +1,16 @@
 # The command client (C2.6): how a command line splits at ";", and the exit codes.
 run has-session
+run attach-session
 run new-session -d -s a 'exec sleep 100'
+run attach-session -t a
+run attach-session -t nope
+run attach -d
+run detach-client
+run detach-client -t /dev/nope
+run detach-client -s nope
+run detach-client -a
+run new-session -s b 'exec sleep 100'
+run has-session -t b
 run has-session ;
 run ; has-session
 run 'has-session;' 'has-session\;'

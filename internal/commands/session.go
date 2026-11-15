@@ -108,11 +108,11 @@ func newSession(it *Item) error {
 			return fmt.Errorf("new-session -%c: not implemented by imux-core yet", f)
 		}
 	}
-	if !a.Has('d') && it.Client != nil {
-		if !it.Client.TTY {
-			return errors.New("open terminal failed: not a terminal")
+	attach := !a.Has('d') && it.Client != nil
+	if attach {
+		if err := it.checkAttach(); err != nil {
+			return err
 		}
-		return errors.New("new-session: attaching is not implemented by imux-core yet")
 	}
 	t := it.Host.Tree()
 	sname, named := a.Get('s')
@@ -154,7 +154,126 @@ func newSession(it *Item) error {
 		t.RemoveSession(s)
 		return fmt.Errorf("create window failed: %v", err)
 	}
+	if attach {
+		it.Client.AttachTo = s
+	}
 	return nil
+}
+
+// checkAttach is what stops a client attaching: no terminal, or already inside a session.
+func (it *Item) checkAttach() error {
+	if it.Client.Env["TMUX"] != "" && it.Client.TTY {
+		return errors.New("sessions should be nested with care, unset $TMUX to force")
+	}
+	if !it.Client.TTY {
+		return errors.New("open terminal failed: not a terminal")
+	}
+	return nil
+}
+
+// attachSession is attach-session: the client attaches to the target session (by default
+// the best one), and with -d the session's other clients are detached.
+func attachSession(it *Item) error {
+	a := it.Cmd.Args
+	for _, f := range []byte("cErxf") {
+		if a.Has(f) {
+			return fmt.Errorf("attach-session -%c: not implemented by imux-core yet", f)
+		}
+	}
+	t := it.Host.Tree()
+	if t.Empty() {
+		return errors.New("no sessions")
+	}
+	if it.Client == nil {
+		return nil
+	}
+	if it.Client.Env["TMUX"] != "" && it.Client.TTY {
+		return errors.New("sessions should be nested with care, unset $TMUX to force")
+	}
+	s, err := targetSession(it)
+	if err != nil {
+		return err
+	}
+	if !it.Client.TTY {
+		return errors.New("open terminal failed: not a terminal")
+	}
+	if a.Has('d') {
+		for _, c := range it.Host.Clients() {
+			if c.Session == s && c.Name != it.Client.Name {
+				it.Host.Detach(c.Name)
+			}
+		}
+	}
+	it.Client.AttachTo = s
+	return nil
+}
+
+// detachClient is detach-client: -t a client (by default the most recently active), -s every
+// client of a session, -a every client but the target.
+func detachClient(it *Item) error {
+	a := it.Cmd.Args
+	for _, f := range []byte("EP") {
+		if a.Has(f) {
+			return fmt.Errorf("detach-client -%c: not implemented by imux-core yet", f)
+		}
+	}
+	// The target client is found first, as tmux does for commands with CMD_CLIENT_TFLAG;
+	// -s's session may be missing (CMD_FIND_CANFAIL).
+	clients := it.Host.Clients()
+	target, err := findClient(clients, a)
+	if err != nil {
+		return err
+	}
+	if a.Has('s') {
+		s, err := findSession(it.Host.Tree(), mustGet(a, 's'), true)
+		if err != nil {
+			return nil
+		}
+		for _, c := range clients {
+			if c.Session == s {
+				it.Host.Detach(c.Name)
+			}
+		}
+		return nil
+	}
+	if a.Has('a') {
+		for _, c := range clients {
+			if c.Name != target.Name {
+				it.Host.Detach(c.Name)
+			}
+		}
+		return nil
+	}
+	it.Host.Detach(target.Name)
+	return nil
+}
+
+func mustGet(a *Args, f byte) string {
+	v, _ := a.Get(f)
+	return v
+}
+
+// findClient resolves -t as a client: its name, or without -t the most recently active one.
+func findClient(clients []ClientInfo, a *Args) (ClientInfo, error) {
+	name, given := a.Get('t')
+	if !given {
+		var best ClientInfo
+		for _, c := range clients {
+			if best.Name == "" || c.Activity.After(best.Activity) {
+				best = c
+			}
+		}
+		if best.Name == "" {
+			return best, errors.New("no current client")
+		}
+		return best, nil
+	}
+	for _, c := range clients {
+		if c.Name == name || strings.TrimPrefix(c.Name, "/dev/") == name {
+			return c, nil
+		}
+	}
+	return ClientInfo{}, fmt.Errorf("can't find client: %s", name)
 }
 
 // size reads -x or -y: 1 to 65535, or "-" for the default (there is no client size here).

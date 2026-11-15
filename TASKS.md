@@ -568,7 +568,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Status:** done (the client itself came with C2.3). `testdata/diff/client.txt` and
   `TestEmptyCommandLine` check splitting at `;`, exit codes and a command line with no command.
 
-### [ ] C2.7 The attached client (Unix)
+### [x] C2.7 The attached client (Unix)
 - **Goal:** a terminal attaches, shows the session and gives it back clean.
 - **Details:**
   - Console:
@@ -593,10 +593,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     output to `vt` and comparing modes before and after).
   - The enter and leave sequences match tmux's.
 - **Depends on:** C2.6.
-- **Status:** in progress. Done: terminal descriptions (`internal/termout`: terminfo reader,
-  `tparm`, features, overrides), matching tmux's `show-messages -T` for 12 recorded terminals
-  (`cmd/termfixture`, `testdata/term`). Left: console, attach and detach, the start and stop
-  sequences.
+- **Status:** done. `internal/termout` builds a client terminal's description and its start,
+  stop and query sequences as tmux 3.8 does; for 12 recorded terminals (`cmd/termfixture`,
+  `testdata/term`) the descriptions and the attach and detach sequences match tmux's byte for
+  byte, and `TestAttachDetach` runs the whole cycle through a PTY (terminal modes and termios
+  restored). `attach-session`, `detach-client` and `new-session` without `-d` attach and
+  detach; a client ends with tmux's messages (`[detached (from session a)]`, `[exited]`,
+  `[server exited]`). Drawing comes with C2.8, keys with C2.10, extended keys with C2.11, sizes
+  with C2.12.
 
 ### [ ] C2.8 Renderer
 - **Goal:** each client sees its session drawn correctly, with minimal output.

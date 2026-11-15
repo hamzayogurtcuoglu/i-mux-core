@@ -22,6 +22,8 @@ type termCase struct {
 	Describe     []string `json:"describe"`
 	Flags        string   `json:"flags"`
 	TermFeatures string   `json:"termfeatures"`
+	Enter        string   `json:"enter"`
+	Leave        string   `json:"leave"`
 }
 
 func TestTermFixtures(t *testing.T) {
@@ -67,6 +69,21 @@ func TestTermFixtures(t *testing.T) {
 			}
 			if names := FeatureNames(feat.Enabled); names != c.TermFeatures {
 				t.Errorf("features %q, tmux %q", names, c.TermFeatures)
+			}
+
+			// What the terminal is sent on attach, before the first frame, and on detach, for
+			// a UTF-8 client of 80x24 (tmux's tty_start_tty, tty_invalidate,
+			// tty_send_requests and tty_stop_tty).
+			tty := NewTTY(term, 80, 24)
+			tty.UTF8 = true
+			tty.Start()
+			tty.SendRequests()
+			if got := string(tty.Take()); got != c.Enter {
+				t.Errorf("enter:\ntmux:      %q\nimux-core: %q", c.Enter, got)
+			}
+			tty.Stop(24)
+			if got := string(tty.Take()); got != c.Leave {
+				t.Errorf("leave:\ntmux:      %q\nimux-core: %q", c.Leave, got)
 			}
 		})
 	}

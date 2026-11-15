@@ -110,10 +110,22 @@ func (s *Server) handle(c net.Conn) {
 	}
 	_ = c.SetReadDeadline(time.Time{})
 
-	client := &commands.Client{Cwd: hello.Cwd, Env: hello.Env, TTY: hello.StdinTTY}
+	client := &commands.Client{Cwd: hello.Cwd, Env: hello.Env, TTY: hello.StdinTTY, Name: hello.TTYName}
 	var res commands.Result
+	var att *attachedClient
+	queue := ipc.NewQueue(0, 0)
 	ran := make(chan struct{})
-	if !s.post(func() { res = commands.Run(s, client, cmd.Commands); close(ran) }) {
+	if !s.post(func() {
+		defer close(ran)
+		res = commands.Run(s, client, cmd.Commands)
+		if client.AttachTo == nil || res.Failed || s.tree.Session(client.AttachTo.ID) != client.AttachTo {
+			return
+		}
+		var err error
+		if att, err = s.attach(&hello, client.AttachTo, queue); err != nil {
+			res = commands.Result{Stderr: "open terminal failed: " + err.Error() + "\n", Failed: true}
+		}
+	}) {
 		return
 	}
 	select {
@@ -125,6 +137,10 @@ func (s *Server) handle(c net.Conn) {
 		default:
 			return
 		}
+	}
+	if att != nil {
+		s.serveAttached(c, r, att)
+		return
 	}
 	out := ipc.Result{Stdout: res.Stdout, Stderr: res.Stderr}
 	if res.Failed {

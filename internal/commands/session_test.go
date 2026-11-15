@@ -19,6 +19,8 @@ type fakeHost struct {
 	specs    []pty.Spec
 	spawnErr error
 	killed   bool
+	clients  []ClientInfo
+	detached []string
 }
 
 func newFakeHost() *fakeHost { return &fakeHost{tree: model.NewTree()} }
@@ -34,8 +36,10 @@ func (h *fakeHost) KillServer()                    { h.killed = true }
 func (h *fakeHost) Environ() []string {
 	return []string{"HOME=/home/u", "SHELL=/bin/sh", "TMUX=old", "PATH=/bin"}
 }
-func (h *fakeHost) SocketPath() string { return "/tmp/s" }
-func (h *fakeHost) Pid() int           { return 42 }
+func (h *fakeHost) Clients() []ClientInfo { return h.clients }
+func (h *fakeHost) Detach(name string)    { h.detached = append(h.detached, name) }
+func (h *fakeHost) SocketPath() string    { return "/tmp/s" }
+func (h *fakeHost) Pid() int              { return 42 }
 
 func run(h Host, words ...string) Result {
 	return Run(h, &Client{Cwd: testCwd}, [][]string{words})

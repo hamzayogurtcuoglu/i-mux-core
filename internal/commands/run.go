@@ -25,13 +25,27 @@ type Host interface {
 	Environ() []string
 	SocketPath() string
 	Pid() int
+	// Clients lists the attached clients; Detach detaches one.
+	Clients() []ClientInfo
+	Detach(name string)
+}
+
+// ClientInfo is an attached client, as the commands see it.
+type ClientInfo struct {
+	Name     string // its terminal (#{client_name})
+	Session  *model.Session
+	Activity time.Time
 }
 
 // Client is the client a command list came from; nil for the config file.
 type Client struct {
-	Cwd string
-	Env map[string]string
-	TTY bool // its stdin is a terminal
+	Cwd  string
+	Env  map[string]string
+	TTY  bool   // its stdin is a terminal
+	Name string // its terminal's path (#{client_name})
+	// AttachTo is set by attach-session and new-session: the client attaches to it once its
+	// commands are done.
+	AttachTo *model.Session
 }
 
 // Item is one command being run.
@@ -50,11 +64,13 @@ type execFunc func(*Item) error
 // implemented are the commands the engine runs so far; the rest of tmux's table is known (for
 // lookup and argument errors) but not run yet. The command table grows in task C3.2.
 var implemented = map[string]execFunc{
-	"new-session":  newSession,
-	"has-session":  hasSession,
-	"kill-session": killSession,
-	"kill-server":  killServer,
-	"start-server": func(*Item) error { return nil },
+	"new-session":    newSession,
+	"has-session":    hasSession,
+	"kill-session":   killSession,
+	"kill-server":    killServer,
+	"start-server":   func(*Item) error { return nil },
+	"attach-session": attachSession,
+	"detach-client":  detachClient,
 }
 
 // Result is what a command list gave: its output, its errors and whether it failed.

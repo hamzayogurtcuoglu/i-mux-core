@@ -49,9 +49,10 @@ type Server struct {
 	panes   map[*model.Pane]*paneState
 	exiting bool
 
-	clients int  // connected clients (in the loop)
-	held    bool // HoldForClient, until the first client
-	killed  bool // kill-server
+	clients  int               // connected clients (in the loop)
+	attached []*attachedClient // the attached ones, in the order they attached
+	held     bool              // HoldForClient, until the first client
+	killed   bool              // kill-server
 
 	connMu sync.Mutex
 	conns  map[net.Conn]struct{}
@@ -296,6 +297,7 @@ func (s *Server) RemovePane(p *model.Pane) {
 		sess := w.Session()
 		if s.tree.RemoveWindow(w) {
 			s.tree.RemoveSession(sess)
+			s.sessionGone(sess)
 		}
 	}
 	s.checkExit()
@@ -309,8 +311,10 @@ func (s *Server) checkExit() {
 	}
 }
 
-// shutdown kills every pane's program (in the loop).
+// shutdown tells the attached clients the server is going and kills every pane's program (in
+// the loop).
 func (s *Server) shutdown() {
+	s.shutdownClients()
 	for p := range s.panes {
 		_ = p.Proc.Kill()
 		_ = p.Proc.Close()
