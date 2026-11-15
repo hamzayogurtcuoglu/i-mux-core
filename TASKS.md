@@ -345,8 +345,11 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - XTVERSION (`CSI > q`).
   - Window-size queries (`CSI 14 t`, `16 t`, `18 t`) where tmux answers them.
   - The kitty keyboard query `CSI ? u`: answer exactly as tmux 3.8 does.
-  - A **probe program** (`testdata/probe`) sends each query and prints the reply, hex-encoded.
-    The difftest runs it in tmux and in i-mux-core.
+  - A **probe**: `testdata/vt/replies.txt` lists the queries (with any state they need set up
+    first). `cmd/vtfixture`'s `__probe` mode sends them in order on a tmux pane, each followed
+    by DSR 5 as a barrier, and records tmux's answers in `replies.out`; a unit test plays the
+    same queries on the emulator and compares. Once the server exists (C2.6), the difftest runs
+    the probe in i-mux-core's panes too.
 - **Acceptance:** every probe reply is identical, or the difference is recorded in
   COMPATIBILITY.md §13 with a reason.
 - **Depends on:** C1.7, C2.6 (for the difftest run; the unit part can come earlier).

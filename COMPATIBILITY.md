@@ -278,6 +278,13 @@ modifyOtherKeys).
   makes; `copy-pipe-and-cancel` to buffer and clipboard; wheel scrolling in and out of it, and
   `pane_in_mode`.
 
+### Replies to programs
+
+The engine answers a program's queries exactly as tmux 3.8 does, including how it names itself:
+DA1 `ESC [ ? 1 ; 2 c`, DA2 `ESC [ > 84 ; 0 ; 0 c` and XTVERSION `ESC P > | tmux 3.8 ESC \`, so
+programs that adapt to tmux adapt the same way. `testdata/vt/replies.txt` lists every query
+checked, and `replies.out` tmux's answers.
+
 ## 9. Environment of panes
 
 | Variable | Value |
