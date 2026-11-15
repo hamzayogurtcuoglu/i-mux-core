@@ -148,7 +148,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - The spike code is deleted or moved into `internal/vt` as the starting point.
 - **Depends on:** C0.1.
 
-### [ ] C0.6 Spike: Unix PTY and process information
+### [x] C0.6 Spike: Unix PTY and process information
 - **Goal:** settle the Unix PTY library, and how `pane_current_command` / `pane_current_path`
   are read.
 - **Details:**

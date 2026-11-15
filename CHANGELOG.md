@@ -16,3 +16,5 @@ All notable changes to i-mux-core are listed here. The format follows
 - The differential test harness (`make difftest`): scripts in `testdata/diff` run against tmux
   and i-mux-core, and every command's output, exit code and captured screen is compared.
 - The terminal emulator's parser, ported from tmux 3.8's `input.c` (E10).
+- PTYs on macOS and Linux, and a pane's foreground command and working directory, without cgo
+  (E11).
