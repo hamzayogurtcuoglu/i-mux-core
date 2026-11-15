@@ -196,4 +196,7 @@ var Specs = map[string]string{
 		"\x1b_apc title\x1b\\d" +
 		"\x1b[22;0t\x1b]2;a\\b\x07\x1b[22;0t\x1b]2;tab\there\x07\x1b[23;0t\x1b[23;0t\x1b[23;0t" +
 		"\x1b]7;file://h/tmp/x%20y\x07\x1b]9;9;C:\\x\x07e",
+
+	// C1.4: sequences tmux 3.8 does not act on (HPR, VPR, CHT, DECSTR, LNM): nothing moves.
+	"csi-ignored@12x4.in": "ab\x1b[3acd\x1b[2eef\r\n\x1b[2Igh\x1b[!pij\x1b[20h\nkl",
 }
