@@ -10,8 +10,8 @@
 # libutf8proc-dev bison pkg-config).
 set -eu
 
-TMUX_VERSION=3.6
-TMUX_SHA256=136db80cfbfba617a103401f52874e7c64927986b65b1b700350b6058ad69607
+TMUX_VERSION=3.8
+TMUX_SHA256=e79c699c7e949dccd0a4a125e17b8d1261e311b16979dbc8eb34542f3966d82e
 URL="https://github.com/tmux/tmux/releases/download/$TMUX_VERSION/tmux-$TMUX_VERSION.tar.gz"
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -63,8 +63,9 @@ if command -v brew >/dev/null; then
 fi
 
 # utf8proc on every system, so wide characters and emoji get the same widths on
-# macOS and Linux (Homebrew builds tmux with it too).
-CFLAGS="$cflags" CPPFLAGS="$cflags" LDFLAGS="$ldflags" ./configure --prefix="$prefix" --enable-utf8proc >"$work/configure.log" 2>&1 || {
+# macOS and Linux (Homebrew builds tmux with it too). jemalloc only changes
+# memory allocation, and configure on macOS asks for a choice.
+CFLAGS="$cflags" CPPFLAGS="$cflags" LDFLAGS="$ldflags" ./configure --prefix="$prefix" --enable-utf8proc --disable-jemalloc >"$work/configure.log" 2>&1 || {
 	cat "$work/configure.log" >&2
 	exit 1
 }

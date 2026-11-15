@@ -30,12 +30,12 @@ lint: ## golangci-lint, and go vet for every system the engine runs on
 fmt: ## Format with gofumpt via golangci-lint
 	golangci-lint fmt ./...
 
-# The differential tests compare i-mux-core with the pinned tmux (3.6) that
+# The differential tests compare i-mux-core with the pinned tmux (3.8) that
 # `make tmux` builds. They skip, and say so, when it has not been built; CI
 # sets IMUX_DIFFTEST_REQUIRE=1 so they never skip there.
-TMUX_PINNED ?= $(CURDIR)/.cache/tmux/3.6/bin/tmux
+TMUX_PINNED ?= $(CURDIR)/.cache/tmux/3.8/bin/tmux
 
-tmux: ## Build the pinned tmux 3.6 into .cache/tmux
+tmux: ## Build the pinned tmux 3.8 into .cache/tmux
 	./scripts/build-tmux.sh
 
 difftest: build ## Differential tests against the pinned tmux

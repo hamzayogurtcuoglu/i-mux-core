@@ -54,7 +54,7 @@ jobs:
           version: v2.15.0
 
   difftest:
-    name: Difftest vs tmux 3.6 (${{ matrix.os }})
+    name: Difftest vs tmux 3.8 (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
