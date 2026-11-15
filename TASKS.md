@@ -37,7 +37,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Goal:** a buildable, lintable, testable repository from day one.
 - **Details:**
   - Module `github.com/hamzayogurtcuoglu/i-mux-core`, with the same Go version as `../i-mux/go.mod`.
-  - `cmd/imux-core/main.go`. `imux-core -V` prints `imux-core 0.0.0-dev (tmux 3.6 compatible)` (E9).
+  - `cmd/imux-core/main.go`. `imux-core -V` prints `imux-core 0.0.0-dev (tmux 3.8 compatible)` (E9).
   - The package directories from ARCHITECTURE.md §3, each with a `doc.go` stating what it owns.
   - Makefile targets:
     - `build`, `test` (with `-race`), `lint`, `fmt`;
@@ -59,7 +59,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - A GitHub Actions workflow with a matrix of `ubuntu-latest`, `macos-latest` and `windows-latest`:
     build, vet and unit tests on each.
   - Lint runs on Linux for `GOOS=linux`, `GOOS=darwin` and `GOOS=windows`.
-  - The difftest job runs on Linux and macOS against a **pinned tmux 3.6**, built on both by
+  - The difftest job runs on Linux and macOS against a **pinned tmux 3.8**, built on both by
     `scripts/build-tmux.sh` from the release tarball, checked against its SHA-256, configured
     with `--enable-utf8proc` (so widths agree on both systems) and cached. Homebrew is not used
     for tmux itself: it ships only the newest tmux, so it cannot be pinned. The script checks the
@@ -331,7 +331,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - DSR 5 and 6, DECXCPR.
   - XTVERSION (`CSI > q`).
   - Window-size queries (`CSI 14 t`, `16 t`, `18 t`) where tmux answers them.
-  - The kitty keyboard query `CSI ? u`: answer exactly as tmux 3.6 does.
+  - The kitty keyboard query `CSI ? u`: answer exactly as tmux 3.8 does.
   - A **probe program** (`testdata/probe`) sends each query and prints the reply, hex-encoded.
     The difftest runs it in tmux and in i-mux-core.
 - **Acceptance:** every probe reply is identical, or the difference is recorded in
@@ -538,7 +538,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - On attach, set up the terminal as tmux does:
     - smcup;
     - keypad, bracketed paste, focus events and mouse modes per the options;
-    - extended keys enabled the way tmux 3.6 does for terminals with `extkeys`.
+    - extended keys enabled the way tmux 3.8 does for terminals with `extkeys`.
   - On detach, undo all of it.
   - Record the exact enter and leave sequences tmux sends (difftest through a PTY) and match
     them.
@@ -692,7 +692,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     - the options the default status line needs (`status-left`, `window-status-format`,
       `display-time`, `status-interval`, `base-index`, `default-shell`, `remain-on-exit`,
       `word-separators`, …);
-    - tmux 3.6's defaults for each.
+    - tmux 3.8's defaults for each.
   - Scopes and inheritance; user options at every scope.
   - Flags: `-g -u -q -p -w -s -t -a -F -o`.
   - Arrays (`status-format[N]`, `terminal-features`, `terminal-overrides`).
@@ -749,7 +749,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - The prefix key and the `prefix` table.
   - `switch-client -T` one-key tables: an unbound key leaves the table and is looked up in
     `root`.
-  - tmux 3.6's default bindings for the keys i-mux leaves unbound (`list-keys` in the
+  - tmux 3.8's default bindings for the keys i-mux leaves unbound (`list-keys` in the
     difftest).
   - Key name parsing and printing match tmux's.
   - `list-keys` is implemented for tests.
@@ -869,7 +869,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Goal:** the default status line's window list matches tmux.
 - **Details:**
   - `window-status-format`, `window-status-current-format`, the separator and the styles, with
-    tmux 3.6 defaults.
+    tmux 3.8 defaults.
 - **Acceptance:** frame difftest with 1, 3 and 12 windows, including the current and last-window
   markers.
 - **Depends on:** C4.2.
@@ -1003,8 +1003,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     `SecondClick`, `DoubleClick` and `TripleClick` with tmux's timing.
   - `mouse_*` formats.
   - `-t =` resolves to the place under the mouse.
-  - tmux 3.6's behaviour for a second press after the pane under it changed. i-mux handles 3.7's
-    newer behaviour with `@imux_moved`; match 3.6.
+  - tmux 3.8's behaviour for a second press after the pane under it changed (from 3.7 it is a
+    new press); i-mux handles it with `@imux_moved`.
 - **Acceptance:** engine tests that send SGR mouse bytes through a headless client and record
   which binding ran and what `=` resolved to, for every mouse key in COMPATIBILITY.md §7.
   Results match tmux (difftest, using bindings that log).
@@ -1013,7 +1013,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 ### [ ] C5.2 Default mouse bindings
 - **Goal:** the mouse does what tmux's defaults do where i-mux doesn't override it.
 - **Details:**
-  - tmux 3.6's default root mouse bindings:
+  - tmux 3.8's default root mouse bindings:
     - selecting a pane on press;
     - resizing on border drag;
     - wheel to copy mode;
@@ -1159,7 +1159,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
 ### [ ] C7.3 Engine detection and versions
 - **Goal:** i-mux knows which engine it talks to, and its feature level.
 - **Details:**
-  - `ParseVersion` accepts `imux-core X.Y.Z (tmux 3.6 compatible)` and maps it to tmux 3.6
+  - `ParseVersion` accepts `imux-core X.Y.Z (tmux 3.8 compatible)` and maps it to tmux 3.8
     features, plus an `Engine` field.
   - `imux doctor` shows the engine and its version.
   - `imux doctor` warns when an i-mux-core older than i-mux's minimum is found.

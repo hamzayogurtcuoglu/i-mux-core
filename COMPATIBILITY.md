@@ -12,9 +12,11 @@ anything listed here is a bug, unless §12 records it as a known difference.
 2. It adds the generated `tmux.conf` and every command string i-mux builds.
 3. It compares the result with this file. Anything missing is added here.
 
-**Reference version.** The reference is **tmux 3.6**, the newest behaviour i-mux handles. i-mux
-also supports tmux 3.2 to 3.5, but i-mux-core only needs to behave like 3.6 and report itself
-as 3.6 (ARCHITECTURE.md E9).
+**Reference version.** The reference is **tmux 3.8**, the newest behaviour i-mux handles (i-mux
+has code for 3.7's and 3.8's changes, such as a double click's second press and display-message's
+strftime) and the version i-mux's e2e suite passes on: on tmux 3.6, `TestPaneKeys` and
+`TestSidebarDoubleClick` fail. i-mux also supports tmux 3.2 to 3.7, but i-mux-core only needs to
+behave like 3.8 and report itself as 3.8 (ARCHITECTURE.md E9).
 
 ---
 
@@ -56,7 +58,7 @@ These substrings must appear, in lower case, in stderr for these cases:
 
 ## 3. Commands and flags
 
-Every flag listed must work as in tmux 3.6. Aliases i-mux uses are in brackets.
+Every flag listed must work as in tmux 3.8. Aliases i-mux uses are in brackets.
 
 | Command | Flags i-mux uses | Notes |
 | --- | --- | --- |
@@ -74,7 +76,7 @@ Every flag listed must work as in tmux 3.6. Aliases i-mux uses are in brackets.
 | `select-pane` | `-t -T -L -R -U -D` | `-T` sets the title; `-L/-R/-U/-D` from key bindings |
 | `swap-pane` | `-d -s -t` | |
 | `kill-pane` | `-t` | |
-| `respawn-pane` | `-k -c -l -t` + command | `-l`? Check in C0.3 (tmux 3.6 has no `-l` on respawn-pane; i-mux may pass it to another command) |
+| `respawn-pane` | `-k -c -l -t` + command | `-l`? Check in C0.3 (tmux has no `-l` on respawn-pane; i-mux may pass it to another command) |
 | `resize-pane` | `-t -x -L -R -U -D N`, `-Z` (check) | |
 | `select-layout` | `-t <layout string>` | Restores a saved `#{window_layout}` |
 | `list-panes` | `-a -s -t -F` | |

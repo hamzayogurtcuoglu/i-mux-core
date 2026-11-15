@@ -407,7 +407,7 @@ Measured by benchmarks in Phase 6, each against tmux on the same machine:
    - the full rendered frame of a headless attached client: the client's output is fed into a
      `vt.Screen` and compared cell by cell.
 
-   tmux's version is pinned (3.6, built from its release tarball by `scripts/build-tmux.sh`),
+   tmux's version is pinned (3.8, built from its release tarball by `scripts/build-tmux.sh`),
    in CI and locally (`make tmux`).
 4. **i-mux's e2e suite** (`../i-mux/e2e`, 105 tests) run with `IMUX_TMUX_BIN=imux-core`. This
    is the final measure of parity.
@@ -431,4 +431,4 @@ Measured by benchmarks in Phase 6, each against tmux on the same machine:
 | E6 | i-mux-core speaks tmux's command language for the subset i-mux uses | i-mux runs on it with `IMUX_TMUX_BIN`, with no code changes, and stays able to fall back to tmux |
 | E7 | Differences from tmux are bugs unless written in COMPATIBILITY.md | Parity is measurable; nothing drifts silently |
 | E8 | Windows work starts after parity on macOS and Linux (Phase 8) | The hard part, the emulator and the command surface, is proven where tmux can check it |
-| E9 | `imux-core -V` prints `imux-core X.Y.Z (tmux 3.6 compatible)`; `#{version}` is `3.6` | i-mux gates features on tmux's version; the engine declares the level it implements |
+| E9 | `imux-core -V` prints `imux-core X.Y.Z (tmux 3.8 compatible)`; `#{version}` is `3.8` | i-mux gates features on tmux's version; the engine declares the level it implements. 3.8, not 3.6: i-mux handles 3.7's and 3.8's changes, and its e2e suite passes on 3.8 but not on 3.6 (decided by the owner on 2026-11-15) |
