@@ -50,15 +50,23 @@ One binary, `imux-core` (`imux-core.exe` on Windows), plays three roles, as tmux
 | **Attached client** | `imux-core -L imux attach-session -t =name` (or `new-session` without `-d`) | Puts the terminal into raw mode, then forwards input to the server and draws what the server sends, until it detaches or the session ends. |
 | **Server** | Started by a client when there is no server and the command needs one (`new-session`) | Owns every session, window, pane, PTY, option, binding and hook. Runs in the background, detached from any terminal. |
 
-**Server start (E1):**
-1. The client runs itself again as `imux-core __server -L <name> [-f conf]`, fully detached:
-   `setsid`, stdio on the null device, and on Windows `DETACHED_PROCESS |
-   CREATE_NEW_PROCESS_GROUP`.
-2. It waits up to 5 s for the socket to accept a connection.
-3. The server loads the `-f` config before it accepts its first command, as tmux does.
+**Server start (E1):** only the commands tmux marks as starting a server do so
+(`new-session`, `attach-session`, `start-server`, `list-commands`, `list-keys`); the others
+report that there is no server.
+1. The client takes the lock file `<socket>.lock`, as tmux does, so that two clients starting at
+   once start one server: the one that waits for the lock tries to connect again afterwards. A
+   socket that refuses connections (left by a server that is gone) is removed under the lock.
+2. It runs itself again as `imux-core __server -S <socket> [-f conf]`, fully detached: `setsid`,
+   stdio on the null device, and on Windows `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP`. The
+   server gets the client's environment, as tmux's forked server does.
+3. The server loads the `-f` config, then listens, then says so on a pipe the client passed it
+   (or writes why it could not start). The client waits up to 5 s for that, then connects and
+   sends its command.
 
-**Server end:** the server exits when its last session closes (tmux's `exit-empty on`). On exit
-it removes its socket.
+**Server end:** the server exits when it has no session and no client is connected (tmux's
+`exit-empty on`), and on `kill-server` or SIGTERM. Like tmux, it leaves its socket behind: the
+next client finds it refusing connections and reports `no server running on <socket>`, or
+removes it when it starts a new server. (Checked on tmux 3.8.)
 
 ---
 

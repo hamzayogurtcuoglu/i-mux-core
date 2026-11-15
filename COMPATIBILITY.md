@@ -47,10 +47,15 @@ These substrings must appear, in lower case, in stderr for these cases:
 
 | Case | Must contain |
 | --- | --- |
-| No server | `no server running on <socket path>` (also matched: `error connecting to`, `server exited`, `lost server`) |
+| No server | `no server running on <socket path>` (also matched: `error connecting to`, `server exited`, `lost server`) ‡ |
 | No session | `can't find session: <name>` |
 | No pane or window | `can't find pane: <id>` / `can't find window: <id>` |
 | No client | `can't find client: <name>` / `no current client` |
+
+‡ tmux 3.8 prints `no server running on <socket path>` when the socket file exists but nothing
+listens (a server that exited leaves its socket), and `error connecting to <socket path> (No such
+file or directory)` when there is no socket file. Both exit 1, and i-mux-core prints the same
+in the same cases (`TestNoServer` in internal/difftest).
 
 `display-message` is the exception: with `-t` naming a pane or window that does not exist, or
 `-c` naming no client, it does not fail; it expands its format with no pane (`#{pane_id}` is

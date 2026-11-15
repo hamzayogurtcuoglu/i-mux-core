@@ -486,14 +486,20 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - `imux-core __server` is started by the client, detached (`setsid`, null stdio).
   - The client waits for the socket with a timeout.
   - The server loads `-f` before accepting commands.
-  - The server exits when the last session closes, and removes its socket.
+  - The server exits when the last session closes and no client is connected. It leaves its
+    socket, as tmux does (ARCHITECTURE.md §2).
   - A socket left by a dead server (connection refused) is removed and a new server started, as
-    tmux does.
-  - Commands that need a server, when there is none, print `no server running on <path>` with
-    exit code 1.
+    tmux does, under tmux's lock file so that clients starting at once start one server.
+  - Commands that need a server, when there is none, print tmux's errors with exit code 1:
+    `no server running on <path>` when a socket is left, `error connecting to <path> (No such
+    file or directory)` when there is none.
+  - Until the command table (C3.2), the server runs a minimal set: `new-session -d`,
+    `has-session`, `kill-session`, `kill-server`, `start-server`, with tmux's command lookup and
+    argument errors.
 - **Acceptance:**
-  - Tests: start; second client reuses the server; last session closes and the server exits; a
-    stale socket is replaced; no-server errors match tmux (difftest).
+  - Tests: start; second client reuses the server; clients starting at once start one server;
+    last session closes and the server exits; a stale socket is replaced; no-server errors match
+    tmux (difftest).
 - **Depends on:** C2.2, C2.4.
 
 ### [x] C2.4 Model and server loop
