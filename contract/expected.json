@@ -1,0 +1,1167 @@
+{
+  "cli": [
+    "-L",
+    "-S",
+    "-V",
+    "-f",
+    "-u"
+  ],
+  "commands": {
+    "attach-session": [
+      "-t"
+    ],
+    "bind-key": [
+      "-T",
+      "-n",
+      "alias bind"
+    ],
+    "capture-pane": [
+      "-J",
+      "-S",
+      "-e",
+      "-p",
+      "-t"
+    ],
+    "command-prompt": [
+      "-I",
+      "-p",
+      "-t"
+    ],
+    "copy-mode": [
+      "-H"
+    ],
+    "delete-buffer": [
+      "-b"
+    ],
+    "detach-client": [
+      "-a",
+      "-t"
+    ],
+    "display-menu": [
+      "-M",
+      "-O",
+      "-T",
+      "-c",
+      "-t",
+      "-x",
+      "-y",
+      "item disabled",
+      "item separator"
+    ],
+    "display-message": [
+      "-c",
+      "-d",
+      "-p",
+      "-t"
+    ],
+    "display-popup": [
+      "-E",
+      "-c",
+      "-d",
+      "-h",
+      "-t",
+      "-w",
+      "-x",
+      "-y"
+    ],
+    "has-session": [
+      "-t"
+    ],
+    "if-shell": [
+      "-F",
+      "-t",
+      "alias if"
+    ],
+    "kill-pane": [
+      "-t"
+    ],
+    "kill-server": [],
+    "kill-session": [
+      "-t"
+    ],
+    "kill-window": [
+      "-t"
+    ],
+    "list-buffers": [
+      "-F"
+    ],
+    "list-clients": [
+      "-F"
+    ],
+    "list-keys": [
+      "-T"
+    ],
+    "list-panes": [
+      "-F",
+      "-a",
+      "-s",
+      "-t"
+    ],
+    "list-sessions": [
+      "-F"
+    ],
+    "list-windows": [
+      "-F",
+      "-t"
+    ],
+    "load-buffer": [
+      "-b"
+    ],
+    "new-session": [
+      "-F",
+      "-P",
+      "-c",
+      "-d",
+      "-s",
+      "-x",
+      "-y"
+    ],
+    "new-window": [
+      "-F",
+      "-P",
+      "-a",
+      "-c",
+      "-t"
+    ],
+    "paste-buffer": [
+      "-b",
+      "-d",
+      "-p",
+      "-t"
+    ],
+    "refresh-client": [
+      "-S"
+    ],
+    "rename-window": [
+      "-t"
+    ],
+    "resize-pane": [
+      "-D",
+      "-L",
+      "-R",
+      "-U",
+      "-Z",
+      "-t",
+      "-x"
+    ],
+    "respawn-pane": [
+      "-c",
+      "-k",
+      "-t"
+    ],
+    "run-shell": [
+      "-C",
+      "-b",
+      "-d",
+      "-t",
+      "alias run"
+    ],
+    "select-layout": [
+      "-t"
+    ],
+    "select-pane": [
+      "-t"
+    ],
+    "select-window": [
+      "-t"
+    ],
+    "send-keys": [
+      "-M",
+      "-X",
+      "-l",
+      "-t",
+      "alias send"
+    ],
+    "set-buffer": [
+      "-b",
+      "-w"
+    ],
+    "set-hook": [
+      "-g"
+    ],
+    "set-option": [
+      "-F",
+      "-a",
+      "-g",
+      "-p",
+      "-q",
+      "-s",
+      "-t",
+      "-u",
+      "-w",
+      "alias set"
+    ],
+    "show-buffer": [],
+    "show-options": [
+      "-g",
+      "-p",
+      "-q",
+      "-t",
+      "-v"
+    ],
+    "source-file": [
+      "-q"
+    ],
+    "split-window": [
+      "-F",
+      "-P",
+      "-b",
+      "-c",
+      "-d",
+      "-f",
+      "-h",
+      "-l",
+      "-t",
+      "-v"
+    ],
+    "swap-pane": [
+      "-d",
+      "-s",
+      "-t"
+    ],
+    "switch-client": [
+      "-T",
+      "-c",
+      "-t"
+    ],
+    "unbind-key": [
+      "-T",
+      "-q"
+    ]
+  },
+  "values": {
+    "attach-session -t": [
+      "str"
+    ],
+    "bind-key -T": [
+      "str"
+    ],
+    "capture-pane -S": [
+      "-N"
+    ],
+    "capture-pane -t": [
+      "str"
+    ],
+    "command-prompt -I": [
+      "empty",
+      "fmt",
+      "str"
+    ],
+    "command-prompt -p": [
+      "str"
+    ],
+    "command-prompt -t": [
+      "str"
+    ],
+    "detach-client -t": [
+      "str"
+    ],
+    "display-menu -T": [
+      "str"
+    ],
+    "display-menu -c": [
+      "str"
+    ],
+    "display-menu -t": [
+      "str"
+    ],
+    "display-menu -x": [
+      "fmt",
+      "str"
+    ],
+    "display-menu -y": [
+      "fmt",
+      "str"
+    ],
+    "display-message -c": [
+      "str"
+    ],
+    "display-message -d": [
+      "N"
+    ],
+    "display-message -t": [
+      "str"
+    ],
+    "display-popup -c": [
+      "str"
+    ],
+    "display-popup -d": [
+      "str"
+    ],
+    "display-popup -h": [
+      "N",
+      "N%"
+    ],
+    "display-popup -t": [
+      "str"
+    ],
+    "display-popup -w": [
+      "N",
+      "N%"
+    ],
+    "display-popup -x": [
+      "str"
+    ],
+    "display-popup -y": [
+      "str"
+    ],
+    "has-session -t": [
+      "str"
+    ],
+    "if-shell -t": [
+      "str"
+    ],
+    "kill-pane -t": [
+      "str"
+    ],
+    "kill-session -t": [
+      "str"
+    ],
+    "kill-window -t": [
+      "str"
+    ],
+    "list-buffers -F": [
+      "fmt"
+    ],
+    "list-clients -F": [
+      "fmt"
+    ],
+    "list-keys -T": [
+      "str"
+    ],
+    "list-panes -F": [
+      "fmt"
+    ],
+    "list-panes -t": [
+      "str"
+    ],
+    "list-sessions -F": [
+      "fmt"
+    ],
+    "list-windows -F": [
+      "fmt"
+    ],
+    "list-windows -t": [
+      "str"
+    ],
+    "load-buffer -b": [
+      "str"
+    ],
+    "new-session -F": [
+      "fmt"
+    ],
+    "new-session -c": [
+      "str"
+    ],
+    "new-session -s": [
+      "str"
+    ],
+    "new-session -x": [
+      "N"
+    ],
+    "new-session -y": [
+      "N"
+    ],
+    "new-window -F": [
+      "fmt"
+    ],
+    "new-window -c": [
+      "str"
+    ],
+    "new-window -t": [
+      "str"
+    ],
+    "paste-buffer -b": [
+      "str"
+    ],
+    "paste-buffer -t": [
+      "str"
+    ],
+    "rename-window -t": [
+      "str"
+    ],
+    "resize-pane -D": [
+      "N"
+    ],
+    "resize-pane -L": [
+      "N"
+    ],
+    "resize-pane -R": [
+      "N"
+    ],
+    "resize-pane -U": [
+      "N"
+    ],
+    "resize-pane -t": [
+      "str"
+    ],
+    "resize-pane -x": [
+      "N"
+    ],
+    "respawn-pane -c": [
+      "str"
+    ],
+    "respawn-pane -t": [
+      "str"
+    ],
+    "run-shell -d": [
+      "N.N"
+    ],
+    "run-shell -t": [
+      "str"
+    ],
+    "select-layout -t": [
+      "str"
+    ],
+    "select-pane -t": [
+      "str"
+    ],
+    "select-window -t": [
+      "str"
+    ],
+    "send-keys -t": [
+      "str"
+    ],
+    "set-buffer -b": [
+      "str"
+    ],
+    "set-option -t": [
+      "str"
+    ],
+    "show-options -t": [
+      "str"
+    ],
+    "split-window -F": [
+      "fmt"
+    ],
+    "split-window -c": [
+      "str"
+    ],
+    "split-window -l": [
+      "N"
+    ],
+    "split-window -t": [
+      "str"
+    ],
+    "swap-pane -s": [
+      "str"
+    ],
+    "swap-pane -t": [
+      "str"
+    ],
+    "switch-client -T": [
+      "str"
+    ],
+    "switch-client -c": [
+      "str"
+    ],
+    "switch-client -t": [
+      "str"
+    ],
+    "unbind-key -T": [
+      "str"
+    ]
+  },
+  "variables": [
+    "@imux_agent",
+    "@imux_appearance",
+    "@imux_c_*",
+    "@imux_collapsed",
+    "@imux_commit_ask",
+    "@imux_cwd",
+    "@imux_done_at",
+    "@imux_fallback",
+    "@imux_flag",
+    "@imux_fold",
+    "@imux_hook",
+    "@imux_hook_at",
+    "@imux_label",
+    "@imux_last",
+    "@imux_lim_antigravity",
+    "@imux_lim_claude",
+    "@imux_lim_codex",
+    "@imux_lim_copilot",
+    "@imux_lim_opencode",
+    "@imux_loaded",
+    "@imux_lock",
+    "@imux_moved",
+    "@imux_name",
+    "@imux_press",
+    "@imux_remote",
+    "@imux_reveal",
+    "@imux_role",
+    "@imux_scm_sort",
+    "@imux_scm_view",
+    "@imux_seen",
+    "@imux_sidebar_off",
+    "@imux_sidebar_pid",
+    "@imux_start",
+    "@imux_state",
+    "@imux_state_at",
+    "@imux_status",
+    "@imux_sync",
+    "@imux_tab",
+    "@imux_tab_auto",
+    "@imux_tab_state",
+    "@imux_terminal",
+    "@imux_trail",
+    "@imux_view",
+    "buffer_name",
+    "client_activity",
+    "client_control_mode",
+    "client_flags",
+    "client_height",
+    "client_key_table",
+    "client_name",
+    "client_session",
+    "client_termname",
+    "client_tty",
+    "client_width",
+    "mouse_any_flag",
+    "mouse_pane",
+    "mouse_status_range",
+    "pane-border-format",
+    "pane_active",
+    "pane_bg",
+    "pane_bottom",
+    "pane_current_command",
+    "pane_current_path",
+    "pane_dead",
+    "pane_dead_signal",
+    "pane_dead_status",
+    "pane_height",
+    "pane_id",
+    "pane_in_mode",
+    "pane_left",
+    "pane_right",
+    "pane_title",
+    "pane_top",
+    "pane_width",
+    "pid",
+    "popup_pane_left",
+    "popup_pane_top",
+    "remain-on-exit",
+    "session_activity",
+    "session_attached",
+    "session_name",
+    "session_path",
+    "session_windows",
+    "socket_path",
+    "start_time",
+    "status",
+    "status-format[0]",
+    "status-format[1]",
+    "status-position",
+    "window_active",
+    "window_id",
+    "window_index",
+    "window_layout",
+    "window_width",
+    "window_zoomed_flag"
+  ],
+  "modifiers": [
+    "!=",
+    "&&",
+    "==",
+    "E",
+    "P",
+    "T",
+    "W",
+    "e|+",
+    "e|<",
+    "m",
+    "p/fmt/",
+    "||"
+  ],
+  "aliases": [
+    "#I",
+    "#W"
+  ],
+  "styles": [
+    "align=left",
+    "align=right",
+    "bg=#rrggbb",
+    "bg=default",
+    "bg=fmt",
+    "bold",
+    "default",
+    "dim",
+    "fg=#rrggbb",
+    "fg=colourN",
+    "fg=fmt",
+    "nobold",
+    "nodim",
+    "norange",
+    "noreverse",
+    "pane-colours=#rrggbb",
+    "range=user",
+    "range=window",
+    "reverse"
+  ],
+  "strftime": [
+    "%H",
+    "%M"
+  ],
+  "options": {
+    "automatic-rename-format": [
+      "set global window"
+    ],
+    "default-shell": [
+      "show global session"
+    ],
+    "default-terminal": [
+      "set server"
+    ],
+    "escape-time": [
+      "set server"
+    ],
+    "extended-keys": [
+      "set server"
+    ],
+    "focus-events": [
+      "set server"
+    ],
+    "history-limit": [
+      "set global session"
+    ],
+    "menu-border-style": [
+      "-u",
+      "set global window"
+    ],
+    "menu-selected-style": [
+      "-u",
+      "set global window"
+    ],
+    "menu-style": [
+      "-u",
+      "set global window"
+    ],
+    "message-command-style": [
+      "-u",
+      "set global session"
+    ],
+    "message-style": [
+      "-u",
+      "set global session"
+    ],
+    "mode-style": [
+      "-u",
+      "set global window"
+    ],
+    "mouse": [
+      "set global session"
+    ],
+    "pane-active-border-style": [
+      "-u",
+      "set global window",
+      "show global window"
+    ],
+    "pane-border-format": [
+      "set global window"
+    ],
+    "pane-border-status": [
+      "set global window"
+    ],
+    "pane-border-style": [
+      "-u",
+      "set global window"
+    ],
+    "pane-colours": [
+      "-u",
+      "set global window",
+      "set global window [N]",
+      "show global window [N]"
+    ],
+    "popup-border-style": [
+      "-u",
+      "set global window"
+    ],
+    "popup-style": [
+      "-u",
+      "set global window"
+    ],
+    "prefix": [
+      "show global session"
+    ],
+    "remain-on-exit": [
+      "set pane"
+    ],
+    "status": [
+      "set global session",
+      "show global session"
+    ],
+    "status-format": [
+      "-u",
+      "set global session [N]"
+    ],
+    "status-left-length": [
+      "set global session"
+    ],
+    "status-position": [
+      "set global session",
+      "show global session"
+    ],
+    "status-right": [
+      "set global session"
+    ],
+    "status-right-length": [
+      "set global session"
+    ],
+    "status-style": [
+      "set global session"
+    ],
+    "terminal-features": [
+      "-a",
+      "set server"
+    ],
+    "terminal-overrides": [
+      "-a",
+      "set server"
+    ],
+    "window-active-style": [
+      "-u",
+      "set global window"
+    ],
+    "window-style": [
+      "-u",
+      "set global window",
+      "show global window"
+    ]
+  },
+  "user_options": {
+    "@imux_agent": [
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_appearance": [
+      "read in a format",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_auto_cwd": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_browser": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_c_*": [
+      "read in a format",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_collapsed": [
+      "-u",
+      "read in a format",
+      "set window"
+    ],
+    "@imux_commit_ask": [
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_compare": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_cwd": [
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_done_at": [
+      "-q",
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_fallback": [
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_file": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_file_clip": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_file_name": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_file_root": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_flag": [
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_fold": [
+      "read in a format",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_git": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_hook": [
+      "-q",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_hook_at": [
+      "-q",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_keys": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_label": [
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_last": [
+      "read in a format",
+      "set window"
+    ],
+    "@imux_lim_antigravity": [
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_lim_claude": [
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_lim_codex": [
+      "-u",
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_lim_copilot": [
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_lim_opencode": [
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_loaded": [
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_lock": [
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_moved": [
+      "-u",
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_name": [
+      "-u",
+      "read in a format",
+      "set pane",
+      "show pane"
+    ],
+    "@imux_name_client": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_name_key": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_name_pane": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_name_value": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_press": [
+      "-F",
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_remote": [
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_rename": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_rename_pane": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_reveal": [
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_role": [
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_scm_arg": [
+      "-u",
+      "set global session"
+    ],
+    "@imux_scm_cwd": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_scm_sort": [
+      "read in a format"
+    ],
+    "@imux_scm_view": [
+      "read in a format"
+    ],
+    "@imux_seen": [
+      "-q",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_sidebar_off": [
+      "-u",
+      "read in a format",
+      "set window"
+    ],
+    "@imux_sidebar_pid": [
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_skill": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_skill_pane": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_skill_root": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_skill_text": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_start": [
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_state": [
+      "-q",
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_state_at": [
+      "-q",
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_status": [
+      "-q",
+      "read in a format",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_sync": [
+      "read in a format",
+      "set global session"
+    ],
+    "@imux_tab": [
+      "read in a format",
+      "set window"
+    ],
+    "@imux_tab_auto": [
+      "-q",
+      "read in a format",
+      "set window"
+    ],
+    "@imux_tab_state": [
+      "-q",
+      "read in a format",
+      "set window"
+    ],
+    "@imux_terminal": [
+      "read in a format",
+      "show global session"
+    ],
+    "@imux_trail": [
+      "-q",
+      "-u",
+      "read in a format",
+      "set pane"
+    ],
+    "@imux_view": [
+      "read in a format",
+      "set window"
+    ],
+    "@imux_vscode_ipc": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_web_client": [
+      "set global session"
+    ],
+    "@imux_web_pane": [
+      "set global session"
+    ],
+    "@imux_web_url": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_wt_agent": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_wt_branch": [
+      "-u",
+      "set global session",
+      "show global session"
+    ],
+    "@imux_wt_client": [
+      "set global session",
+      "show global session"
+    ],
+    "@imux_wt_pane": [
+      "set global session",
+      "show global session"
+    ]
+  },
+  "hooks": {
+    "after-kill-pane": [
+      "-g"
+    ],
+    "after-split-window": [
+      "-g"
+    ],
+    "client-attached": [
+      "-g"
+    ],
+    "client-dark-theme": [
+      "-g"
+    ],
+    "client-light-theme": [
+      "-g"
+    ],
+    "pane-died": [
+      "-g"
+    ],
+    "pane-exited": [
+      "-g"
+    ],
+    "pane-focus-in": [
+      "-g"
+    ],
+    "window-pane-changed": [
+      "-g"
+    ]
+  },
+  "tables": [
+    "imux-resize",
+    "prefix",
+    "root"
+  ],
+  "keys": [
+    ",",
+    "-",
+    "?",
+    "C-\\",
+    "C-p",
+    "C-v",
+    "DoubleClick1Pane",
+    "Down",
+    "Enter",
+    "Escape",
+    "H",
+    "J",
+    "K",
+    "L",
+    "Left",
+    "M-v",
+    "MouseDown1Pane",
+    "MouseDown1Status",
+    "MouseDown3Border",
+    "MouseUp1Status",
+    "Right",
+    "S",
+    "S-Down",
+    "S-Left",
+    "S-Right",
+    "S-Up",
+    "SecondClick1Pane",
+    "TripleClick1Pane",
+    "Up",
+    "a",
+    "b",
+    "c",
+    "h",
+    "j",
+    "k",
+    "l",
+    "q",
+    "r",
+    "v"
+  ],
+  "sent_keys": [
+    "(text)",
+    "C-\\",
+    "C-p",
+    "C-v",
+    "Enter",
+    "M-v",
+    "[",
+    "]",
+    "g",
+    "q"
+  ],
+  "copy_commands": [
+    "copy-pipe-and-cancel",
+    "select-line",
+    "select-word"
+  ],
+  "targets": [
+    "%N",
+    "= (mouse)",
+    "=name",
+    "=session:window",
+    "@N",
+    "client tty",
+    "name",
+    "session:window",
+    "tty",
+    "{last}"
+  ],
+  "unknown": []
+}

@@ -73,7 +73,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     both points then.
 - **Depends on:** C0.1.
 
-### [ ] C0.3 Record the contract from i-mux
+### [x] C0.3 Record the contract from i-mux
 - **Goal:** COMPATIBILITY.md lists exactly what i-mux uses: nothing missing, no guesses.
 - **Details:**
   - `scripts/contract.sh` runs i-mux's e2e suite (`../i-mux`, `go test -tags e2e ./e2e/...`)

@@ -11,3 +11,5 @@ All notable changes to i-mux-core are listed here. The format follows
 - The repository skeleton: `imux-core -V`, the package layout, and `make ci`.
 - CI on Linux, macOS and Windows, and the pinned tmux 3.8 (`make tmux`) the differential tests
   compare against.
+- The contract recorded from i-mux (`make contract-record`, `make contract`): COMPATIBILITY.md now
+  lists exactly what i-mux uses of tmux 3.8, with `contract/expected.json` as its data.

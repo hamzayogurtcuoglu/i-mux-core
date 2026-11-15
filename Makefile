@@ -10,7 +10,7 @@ PKGS      ?= ./...
 
 export CGO_ENABLED = 0
 
-.PHONY: all build test lint fmt tmux difftest fuzz bench ci clean
+.PHONY: all build test lint fmt tmux difftest contract contract-record fuzz bench ci clean
 
 all: lint test build
 
@@ -41,6 +41,15 @@ tmux: ## Build the pinned tmux 3.8 into .cache/tmux
 difftest: build ## Differential tests against the pinned tmux
 	IMUX_CORE_BIN=$(CURDIR)/bin/$(BINARY) IMUX_DIFFTEST_TMUX=$(TMUX_PINNED) \
 		$(GO) test -count=1 -tags difftest ./internal/difftest/...
+
+# The contract (TASKS.md C0.3): contract-record runs i-mux's e2e suite with a
+# recording tmux and writes contract/recorded.json (slow, needs ../i-mux and
+# its e2e prerequisites); contract compares it with contract/expected.json.
+contract: ## Report what i-mux uses that the contract lacks (and what it lists unused)
+	$(GO) run ./cmd/contract check
+
+contract-record: ## Record the contract from i-mux's e2e suite (slow)
+	./scripts/contract.sh
 
 fuzz: ## Run every fuzz target for FUZZTIME (default 10s)
 	FUZZTIME=$(FUZZTIME) ./scripts/fuzz-short.sh
