@@ -115,7 +115,7 @@ command or flag is used.
 | `resize-pane` | `-t -x -L -R -U -D`, `-Z` † | In tmux 3.8, `-L -R -U -D` take their count as an optional value (`-R 2`) |
 | `respawn-pane` | `-k -c -t` + shell command | |
 | `run-shell` [`run`] | `-b -C -d -t` + command | `-C` runs a tmux command; `-d` delays, in seconds with fractions (`-d0.3`, `-d 0.5`), with or without a command |
-| `select-layout` | `-t` + layout | Restores a saved `#{window_layout}` |
+| `select-layout` | `-t` + layout | Restores a saved `#{window_layout}`, of either version (see below) |
 | `select-pane` | `-t` | |
 | `select-window` | `-t` | |
 | `send-keys` [`send`] | `-t -M -X`, `-l` † + keys | `-M` forwards the mouse event; `-X` runs a copy-mode command |
@@ -129,6 +129,19 @@ command or flag is used.
 | `swap-pane` | `-d -s -t` | |
 | `switch-client` | `-c -t -T` | `-T table` switches key table; `-t =` the clicked session; `-t =name` |
 | `unbind-key` | `-q -T` | |
+
+### Layout strings
+
+tmux 3.8's `#{window_layout}` is JSON, version 2:
+`{"V":2,"L":{"t":"h","w":80,"h":24,"x":0,"y":0,"c":[…]}}`, where `t` is `h` (side by side),
+`v` (stacked) or `p` (a pane), and a pane has `"a":true` (active) or `"l":N` (its place in the
+last-panes list), `"i"` (its index) and `"I":"%id"`. Older tmux wrote version 1,
+`csum,WxH,X,Y{…}` (`[ ]` for stacked cells, the pane id after a pane's offsets), and tmux 3.8
+still writes it for control clients. A layout i-mux saved with an older tmux is version 1, so
+`select-layout` takes both, as tmux 3.8 does. With version 2 it also restores the active pane and
+the last-panes list, and assigns panes by `"i"`; with version 1 it assigns them in tree order.
+A window with a size from `resize-window` goes back to that size after `select-layout`.
+(Checked on tmux 3.8 by the scenarios in `testdata/layout`, see TASKS.md C2.5.)
 
 ### Copy-mode commands (via `send -X`)
 
@@ -346,5 +359,8 @@ tmux, and in `%COMSPEC% /d /s /c` on Windows (E14).
 | K3 | No control mode | Non-goal |
 | K4 | Killing a pane (`kill-pane`, `kill-window`, `kill-session`, `respawn-pane -k`) sends SIGHUP and then, after a grace period, SIGKILL to the pane's process group and its terminal's foreground group. tmux only closes the PTY, so a program that ignores SIGHUP outlives its pane | An agent left running after its pane is gone keeps working unseen; tested by `internal/pty`'s kill test |
 | K5 | A program's OSC 52 query (`ESC ] 52 ; c ; ?`) gets no answer. tmux answers it with the newest paste buffer when `set-clipboard` is `on`; with i-mux's setting, tmux's default `external`, tmux ignores OSC 52 from programs altogether, as the engine does | A program must not read the clipboard through the engine (ARCHITECTURE.md §7) |
+
+| K6 | Floating panes (tmux 3.8's `new-pane`) do not exist; `select-layout` refuses a version 2 layout with a floating pane (`"z"`): `floating panes are not supported by imux-core` | i-mux does not use them; tested by `internal/layout`'s parse tests |
+| K7 | `select-layout` with text that is not JSON at all reports `invalid json`; tmux names the position of the syntax error | Only broken strings differ; i-mux restores the strings tmux wrote; tested by `internal/layout`'s parse tests |
 
 New rows are added only with a test showing the difference and a reason.

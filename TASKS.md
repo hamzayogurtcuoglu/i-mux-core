@@ -536,10 +536,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - `#{window_layout}` strings, including tmux's checksum, and `select-layout <string>` to
     restore one. i-mux saves and restores these, so they must be byte-identical to tmux's.
   - Window resize distributes space as tmux does.
-- **Acceptance:** difftest scenarios (the i-mux layouts: sidebar `-h -b -f -l 30`, agent splits,
+  - `#{window_layout}` is JSON (version 2) in tmux 3.8; version 1 is still read, for layouts
+    saved by older tmux (COMPATIBILITY.md §3, Layout strings).
+- **Acceptance:** scenarios (the i-mux layouts: sidebar `-h -b -f -l 30`, agent splits,
   nested splits, kill in the middle, resize, swap, zoom, save and restore) produce identical
   `list-panes -F '#{pane_id} #{pane_left} #{pane_top} #{pane_width} #{pane_height}'` and
-  `#{window_layout}` output.
+  `#{window_layout}` output. Until the commands exist (C3.6), `cmd/layoutfixture` runs each
+  scenario (`testdata/layout/*.txt`) on the pinned tmux and records every step (`.golden`), and
+  the tree replays them; C3.6 adds the same scenarios as difftest scripts.
 - **Depends on:** C2.4.
 
 ### [ ] C2.6 The command client
@@ -757,6 +761,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     `split-window`, `select-pane`, `swap-pane`, `kill-pane`, `respawn-pane`, `resize-pane`,
     `select-layout`, `list-panes`, `capture-pane`, `switch-client`, `detach-client`.
   - Implement every flag i-mux uses for each.
+  - Turn the layout scenarios of C2.5 (`testdata/layout`) into difftest scripts.
 - **Acceptance:** a difftest script per command, covering every flag i-mux uses and the error
   cases.
 - **Depends on:** C3.5, C2.5.
