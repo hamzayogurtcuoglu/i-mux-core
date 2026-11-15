@@ -446,7 +446,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 
 ## Phase 2: Server, client, panes
 
-### [ ] C2.1 IPC protocol
+### [x] C2.1 IPC protocol
 - **Goal:** client and server talk safely and simply.
 - **Details:**
   - `internal/ipc`, per ARCHITECTURE.md §5:

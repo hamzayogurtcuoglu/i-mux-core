@@ -23,6 +23,8 @@ jobs:
             package: ./internal/format/
           - target: FuzzParse
             package: ./internal/cmdlang/
+          - target: FuzzReader
+            package: ./internal/ipc/
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
