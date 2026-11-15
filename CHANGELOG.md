@@ -13,3 +13,5 @@ All notable changes to i-mux-core are listed here. The format follows
   compare against.
 - The contract recorded from i-mux (`make contract-record`, `make contract`): COMPATIBILITY.md now
   lists exactly what i-mux uses of tmux 3.8, with `contract/expected.json` as its data.
+- The differential test harness (`make difftest`): scripts in `testdata/diff` run against tmux
+  and i-mux-core, and every command's output, exit code and captured screen is compared.

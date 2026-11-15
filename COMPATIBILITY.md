@@ -52,6 +52,11 @@ These substrings must appear, in lower case, in stderr for these cases:
 | No pane or window | `can't find pane: <id>` / `can't find window: <id>` |
 | No client | `can't find client: <name>` / `no current client` |
 
+`display-message` is the exception: with `-t` naming a pane or window that does not exist, or
+`-c` naming no client, it does not fail; it expands its format with no pane (`#{pane_id}` is
+empty) and exits 0. A session that does not exist (`-t =name`) is still an error. (Checked on
+tmux 3.8 by `testdata/diff/sample.txt`.)
+
 ## 2. Targets
 
 | Form | Where i-mux uses it |

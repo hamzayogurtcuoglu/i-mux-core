@@ -1,0 +1,152 @@
+//go:build difftest
+
+package difftest
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// The differential tests: `make difftest` runs them with IMUX_DIFFTEST_TMUX (the pinned tmux)
+// and IMUX_CORE_BIN (imux-core). Without the pinned tmux they skip and say why, unless
+// IMUX_DIFFTEST_REQUIRE=1 (CI), where they fail.
+
+func tmuxEngine(t *testing.T) *Binary {
+	t.Helper()
+	p := os.Getenv("IMUX_DIFFTEST_TMUX")
+	b, err := NewBinary("tmux", p)
+	if p == "" || err != nil {
+		msg := "the pinned tmux is not built (make tmux), so the differential tests did not run"
+		if p != "" {
+			msg += ": " + err.Error()
+		}
+		if os.Getenv("IMUX_DIFFTEST_REQUIRE") == "1" {
+			t.Fatal(msg)
+		}
+		t.Skip(msg)
+	}
+	return b
+}
+
+func coreEngine(t *testing.T) *Binary {
+	t.Helper()
+	b, err := NewBinary("imux-core", os.Getenv("IMUX_CORE_BIN"))
+	if err != nil {
+		t.Fatalf("IMUX_CORE_BIN: %v (run through make difftest)", err)
+	}
+	return b
+}
+
+func scripts(t *testing.T) []string {
+	t.Helper()
+	paths, err := filepath.Glob("../../testdata/diff/*.txt")
+	if err != nil || len(paths) == 0 {
+		t.Fatalf("no scripts in testdata/diff: %v", err)
+	}
+	return paths
+}
+
+func report(t *testing.T, diffs []Difference) {
+	t.Helper()
+	for _, d := range diffs {
+		t.Error(d.String())
+	}
+}
+
+// TestScripts compares i-mux-core with tmux on every script.
+func TestScripts(t *testing.T) {
+	ref, core := tmuxEngine(t), coreEngine(t)
+	for _, p := range scripts(t) {
+		t.Run(strings.TrimSuffix(filepath.Base(p), ".txt"), func(t *testing.T) {
+			diffs, skipped, err := RunPair(context.Background(), p, ref, core)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if skipped != "" {
+				t.Skip(skipped)
+			}
+			report(t, diffs)
+		})
+	}
+}
+
+// TestScriptsDeterministic runs every script on tmux twice: a script whose two runs differ needs
+// more normalize lines, or it would report differences that are not i-mux-core's.
+func TestScriptsDeterministic(t *testing.T) {
+	ref := tmuxEngine(t)
+	again := &Binary{Label: "tmux again", Path: ref.Path}
+	for _, p := range scripts(t) {
+		t.Run(strings.TrimSuffix(filepath.Base(p), ".txt"), func(t *testing.T) {
+			diffs, _, err := RunPair(context.Background(), p, ref, again)
+			if err != nil {
+				t.Fatal(err)
+			}
+			report(t, diffs)
+		})
+	}
+}
+
+// replay is a stub engine that answers what tmux answered in tr; plant may change an answer.
+func replay(name string, tr *Transcript, plant func(step Step, r Result) Result) *Func {
+	answers := map[string]Result{}
+	for _, e := range tr.Entries {
+		r := e.Result
+		if e.Step.Kind == "wait" {
+			_, _, value, _ := parseWait(e.Step.Args)
+			r = Result{Stdout: value + "\n"}
+		}
+		if plant != nil {
+			r = plant(e.Step, r)
+		}
+		answers[strings.Join(e.Args, "\x00")] = r
+	}
+	return &Func{Label: name, Fn: func(args []string) Result {
+		if r, ok := answers[strings.Join(args, "\x00")]; ok {
+			return r
+		}
+		return Result{Stderr: "stub: no answer for " + strings.Join(args, " "), Code: 1}
+	}}
+}
+
+// TestHarnessAgainstTmux checks the harness itself on the sample script: tmux against a stub
+// that gives tmux's own answers agrees, and a planted difference is reported at its line.
+func TestHarnessAgainstTmux(t *testing.T) {
+	ref := tmuxEngine(t)
+	p := "../../testdata/diff/sample.txt"
+	s, err := ParseScript(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr, err := Execute(context.Background(), s, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tr.Entries) == 0 || tr.Entries[0].Result.Code != 0 {
+		t.Fatalf("tmux did not run the sample: %+v", tr.Entries)
+	}
+	diffs, _, err := RunPair(context.Background(), p, ref, replay("stub", tr, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	report(t, diffs)
+
+	planted := replay("planted", tr, func(st Step, r Result) Result {
+		if st.Kind == "capture" {
+			r.Stdout = strings.Replace(r.Stdout, "hello", "HELLO", 1)
+		}
+		return r
+	})
+	diffs, _, err = RunPair(context.Background(), p, ref, planted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(diffs) != 1 || diffs[0].Step.Kind != "capture" || diffs[0].What != "stdout" {
+		t.Fatalf("planted difference: got %v", diffs)
+	}
+	if !strings.Contains(diffs[0].String(), "sample.txt:") || !strings.Contains(diffs[0].B, "HELLO") {
+		t.Fatalf("message: %s", diffs[0])
+	}
+}

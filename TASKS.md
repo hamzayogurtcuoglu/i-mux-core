@@ -103,7 +103,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - The tool has unit tests on a small synthetic record file.
 - **Depends on:** C0.1. Needs tmux and i-mux's e2e prerequisites installed.
 
-### [ ] C0.4 Differential test harness
+### [x] C0.4 Differential test harness
 - **Goal:** one script runs against real tmux and against i-mux-core, and the results are
   compared.
 - **Details:**

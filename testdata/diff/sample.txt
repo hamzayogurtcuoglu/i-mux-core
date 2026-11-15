@@ -1,0 +1,19 @@
+# The harness's own sample (C0.4): sessions, a split, formats, errors and a pane's screen.
+# Panes run fixed commands, never an interactive shell: prompts differ between systems.
+skip-if-engine imux-core the server does not exist yet (Phase 2)
+size 100x30
+normalize 'pid=[0-9]+' 'pid=N'
+run new-session -d -s main -P -F '#{pane_id} #{window_width}x#{window_height}' 'printf "hello\033[1mbold\033[0m\n"; exec cat'
+run split-window -h -t %0 -P -F '#{pane_id} #{pane_width}x#{pane_height}' 'exec cat'
+run list-panes -t =main -F '#{pane_index} #{pane_id} #{pane_width}x#{pane_height} #{pane_active}'
+run display-message -p -t %1 'pid=#{pid} panes=#{window_panes} #{?pane_active,active,inactive}'
+run has-session -t =nope
+run send-keys -t %9 x
+# tmux 3.8: display-message with a pane that does not exist does not fail.
+run display-message -p -t %9 '[#{pane_id}]'
+run set-option -g @sample 'a b' ; show-options -gv @sample
+wait -t %0 '#{pane_current_command}' == cat
+wait -t %0 '#{cursor_y}' == 1
+capture %0
+run kill-session -t =main
+run has-session -t =main
