@@ -129,7 +129,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - It has unit tests.
 - **Depends on:** C0.1.
 
-### [ ] C0.5 Spike: the terminal emulator
+### [x] C0.5 Spike: the terminal emulator
 - **Goal:** decide whether to build `internal/vt` on an existing Go package or write it.
 - **Details:**
   - Time-box it.
