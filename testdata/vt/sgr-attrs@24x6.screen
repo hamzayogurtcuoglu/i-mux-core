@@ -1,0 +1,35 @@
+size 24x6
+cursor 7,4
+cursor_flag 1
+cursor_shape default
+cursor_blinking 0
+cursor_very_visible 0
+alternate_on 0
+insert_flag 0
+keypad_cursor_flag 0
+keypad_flag 0
+wrap_flag 1
+origin_flag 0
+mouse_standard_flag 0
+mouse_button_flag 0
+mouse_all_flag 0
+mouse_sgr_flag 0
+bracket_paste_flag 0
+synchronized_output_flag 0
+scroll_region_upper 0
+scroll_region_lower 5
+history_size 0
+--- screen
+[1mB[2mD[0mN[3mI[0mN[4mU[0mN[5mKF[0mN  
+[7mR[0mN[8mH[0mN[9mS[0mN[5:3mO[0mN    
+[1;2;3;4;5;7;8;9;5:3mALL[0mRST
+[1;3m[31mCOMBO[0mPLAIN  
+[4mSEMI[0mEND     
+
+--- joined
+BDNINUNKFN
+RNHNSNON
+ALLRST
+COMBOPLAIN
+SEMIEND
+

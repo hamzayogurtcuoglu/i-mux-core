@@ -413,7 +413,8 @@ func (in *input) CsiDispatch(p *Params, inter []byte, final byte) {
 			in.csiSM(p)
 		case 'l': // RM
 			in.csiRM(p)
-		case 'm': // SGR (C1.5)
+		case 'm': // SGR
+			in.csiSGR(p)
 		case 'n': // DSR (C1.8)
 		case 'r': // DECSTBM
 			n := p.Get(0, 1, 1)
@@ -518,6 +519,226 @@ func (in *input) csiRMPrivate(p *Params) {
 			s.cursorMove(0, 0, true)
 		case 7: // DECAWM
 			s.Mode &^= ModeWrap
+		}
+	}
+}
+
+func (in *input) csiSGR256Do(fgbg, c int) bool {
+	gc := &in.cell.cell
+	if c == -1 || c > 255 {
+		switch fgbg {
+		case 38:
+			gc.Fg = ColorDefault
+		case 48:
+			gc.Bg = ColorDefault
+		}
+	} else {
+		switch fgbg {
+		case 38:
+			gc.Fg = Color(c) | ColorFlag256
+		case 48:
+			gc.Bg = Color(c) | ColorFlag256
+		case 58:
+			gc.Us = Color(c) | ColorFlag256
+		}
+	}
+	return true
+}
+
+func (in *input) csiSGR256(p *Params, fgbg int, i *int) {
+	c := p.Get(*i+1, 0, -1)
+	if in.csiSGR256Do(fgbg, c) {
+		*i++
+	}
+}
+
+func (in *input) csiSGRRGBDo(fgbg, r, g, b int) bool {
+	if r == -1 || r > 255 || g == -1 || g > 255 || b == -1 || b > 255 {
+		return false
+	}
+	gc := &in.cell.cell
+	switch fgbg {
+	case 38:
+		gc.Fg = ColorJoinRGB(r, g, b)
+	case 48:
+		gc.Bg = ColorJoinRGB(r, g, b)
+	case 58:
+		gc.Us = ColorJoinRGB(r, g, b)
+	}
+	return true
+}
+
+func (in *input) csiSGRRGB(p *Params, fgbg int, i *int) {
+	r := p.Get(*i+1, 0, -1)
+	g := p.Get(*i+2, 0, -1)
+	b := p.Get(*i+3, 0, -1)
+	if in.csiSGRRGBDo(fgbg, r, g, b) {
+		*i += 3
+	}
+}
+
+func (in *input) csiSGRColon(s []byte) {
+	p := [8]int{-1, -1, -1, -1, -1, -1, -1, -1}
+	n := 0
+	start := 0
+	for j := 0; j <= len(s); j++ {
+		if j < len(s) && s[j] != ':' {
+			continue
+		}
+		out := s[start:j]
+		start = j + 1
+		if len(out) != 0 {
+			v, ok := atoi(out)
+			if !ok {
+				return
+			}
+			p[n] = v
+			n++
+			if n == len(p) {
+				return
+			}
+		} else {
+			n++
+			if n == len(p) {
+				return
+			}
+		}
+	}
+	if n == 0 {
+		return
+	}
+	gc := &in.cell.cell
+	if p[0] == 4 {
+		if n != 2 {
+			return
+		}
+		switch p[1] {
+		case 0:
+			gc.Attr &^= AttrAllUnderscore
+		case 1:
+			gc.Attr &^= AttrAllUnderscore
+			gc.Attr |= AttrUnderscore
+		case 2:
+			gc.Attr &^= AttrAllUnderscore
+			gc.Attr |= AttrUnderscore2
+		case 3:
+			gc.Attr &^= AttrAllUnderscore
+			gc.Attr |= AttrUnderscore3
+		case 4:
+			gc.Attr &^= AttrAllUnderscore
+			gc.Attr |= AttrUnderscore4
+		case 5:
+			gc.Attr &^= AttrAllUnderscore
+			gc.Attr |= AttrUnderscore5
+		}
+		return
+	}
+	if n < 2 || (p[0] != 38 && p[0] != 48 && p[0] != 58) {
+		return
+	}
+	switch p[1] {
+	case 2:
+		if n < 3 {
+			break
+		}
+		idx := 3
+		if n == 5 {
+			idx = 2
+		}
+		if n < idx+3 {
+			break
+		}
+		in.csiSGRRGBDo(p[0], p[idx], p[idx+1], p[idx+2])
+	case 5:
+		if n < 3 {
+			break
+		}
+		in.csiSGR256Do(p[0], p[2])
+	}
+}
+
+func (in *input) csiSGR(p *Params) {
+	gc := &in.cell.cell
+	if p.Len() == 0 {
+		*gc = DefaultCell
+		return
+	}
+	for i := 0; i < p.Len(); i++ {
+		if p.Kind(i) == ParamString {
+			in.csiSGRColon(p.String(i))
+			continue
+		}
+		n := p.Get(i, 0, 0)
+		if n == -1 {
+			continue
+		}
+		if n == 38 || n == 48 || n == 58 {
+			i++
+			switch p.Get(i, 0, -1) {
+			case 2:
+				in.csiSGRRGB(p, n, &i)
+			case 5:
+				in.csiSGR256(p, n, &i)
+			}
+			continue
+		}
+		switch n {
+		case 0:
+			link := gc.Link
+			*gc = DefaultCell
+			gc.Link = link
+		case 1:
+			gc.Attr |= AttrBright
+		case 2:
+			gc.Attr |= AttrDim
+		case 3:
+			gc.Attr |= AttrItalics
+		case 4:
+			gc.Attr &^= AttrAllUnderscore
+			gc.Attr |= AttrUnderscore
+		case 5, 6:
+			gc.Attr |= AttrBlink
+		case 7:
+			gc.Attr |= AttrReverse
+		case 8:
+			gc.Attr |= AttrHidden
+		case 9:
+			gc.Attr |= AttrStrikethrough
+		case 21:
+			gc.Attr &^= AttrAllUnderscore
+			gc.Attr |= AttrUnderscore2
+		case 22:
+			gc.Attr &^= AttrBright | AttrDim
+		case 23:
+			gc.Attr &^= AttrItalics
+		case 24:
+			gc.Attr &^= AttrAllUnderscore
+		case 25:
+			gc.Attr &^= AttrBlink
+		case 27:
+			gc.Attr &^= AttrReverse
+		case 28:
+			gc.Attr &^= AttrHidden
+		case 29:
+			gc.Attr &^= AttrStrikethrough
+		case 30, 31, 32, 33, 34, 35, 36, 37:
+			gc.Fg = Color(n - 30)
+		case 39:
+			gc.Fg = ColorDefault
+		case 40, 41, 42, 43, 44, 45, 46, 47:
+			gc.Bg = Color(n - 40)
+		case 49:
+			gc.Bg = ColorDefault
+		case 53:
+			gc.Attr |= AttrOverline
+		case 55:
+			gc.Attr &^= AttrOverline
+		case 59:
+			gc.Us = ColorDefault
+		case 90, 91, 92, 93, 94, 95, 96, 97:
+			gc.Fg = Color(n)
+		case 100, 101, 102, 103, 104, 105, 106, 107:
+			gc.Bg = Color(n - 10)
 		}
 	}
 }

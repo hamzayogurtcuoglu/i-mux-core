@@ -1,0 +1,39 @@
+size 24x8
+cursor 6,7
+cursor_flag 1
+cursor_shape default
+cursor_blinking 0
+cursor_very_visible 0
+alternate_on 0
+insert_flag 0
+keypad_cursor_flag 0
+keypad_flag 0
+wrap_flag 1
+origin_flag 0
+mouse_standard_flag 0
+mouse_button_flag 0
+mouse_all_flag 0
+mouse_sgr_flag 0
+bracket_paste_flag 0
+synchronized_output_flag 0
+scroll_region_upper 0
+scroll_region_lower 7
+history_size 0
+--- screen
+[30m0[31m1[32m2[33m3[34m4[35m5[36m6[37m7[39mD   
+[90m0[91m1[92m2[93m3[94m4[95m5[96m6[97m7[39mD   
+[40m0[41m1[42m2[43m3[44m4[45m5[46m6[47m7[49mD   
+[100m0[101m1[102m2[103m3[104m4[105m5[106m6[107m7[49mD   
+[38;5;196m[48;5;21mP256[38;5;46m[48;5;235mC256[39mBAD[49m 
+[38;2;10;20;30m[48;2;40;50;60mRGB1[39m[49m  
+[38;2;70;80;90m[48;2;100;110;120mRGB2[39m[49m  
+CS[1;2mBAD[0m!
+--- joined
+01234567D
+01234567D
+01234567D
+01234567D
+P256C256BAD
+RGB1
+RGB2
+CSBAD!

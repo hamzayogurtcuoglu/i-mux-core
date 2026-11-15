@@ -39,6 +39,11 @@ const (
 // IsDefault reports whether c is the default or the terminal's colour.
 func (c Color) IsDefault() bool { return c == 8 || c == 9 }
 
+// ColorJoinRGB packs an RGB colour (tmux's colour_join_rgb).
+func ColorJoinRGB(r, g, b int) Color {
+	return Color(((r&0xff)<<16)|((g&0xff)<<8)|(b&0xff)) | ColorFlagRGB
+}
+
 // Cell attributes (tmux's GRID_ATTR_*).
 const (
 	AttrBright        = 0x1

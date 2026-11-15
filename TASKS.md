@@ -289,7 +289,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   inside and outside the scroll region, pending wrap). All match tmux.
 - **Depends on:** C1.3, C1.12 (the fixture tool can grow alongside).
 
-### [ ] C1.5 SGR: colours and attributes
+### [x] C1.5 SGR: colours and attributes
 - **Goal:** colours and text styles exactly as programs set them.
 - **Details:**
   - Every SGR attribute in ARCHITECTURE.md §8.

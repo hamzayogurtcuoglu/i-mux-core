@@ -136,4 +136,35 @@ var Specs = map[string]string{
 		"q\x1b(B!" +
 		"\x1b[s\x1b[5;1HBOT\x1b[u*" +
 		"\x1b[!p",
+
+	// C1.5 SGR: colours and attributes.
+	"sgr-attrs@24x6.in": "\x1b[1mB\x1b[2mD\x1b[22mN" +
+		"\x1b[3mI\x1b[23mN" +
+		"\x1b[4mU\x1b[24mN" +
+		"\x1b[5mK\x1b[6mF\x1b[25mN\r\n" +
+		"\x1b[7mR\x1b[27mN" +
+		"\x1b[8mH\x1b[28mN" +
+		"\x1b[9mS\x1b[29mN" +
+		"\x1b[53mO\x1b[55mN\r\n" +
+		"\x1b[1;2;3;4;5;7;8;9;53mALL\x1b[0mRST\r\n" +
+		"\x1b[1;3;31mCOMBO\x1b[mPLAIN\r\n" +
+		"\x1b[;1;;4mSEMI\x1b[0mEND",
+	"sgr-colors@24x8.in": "\x1b[30m0\x1b[31m1\x1b[32m2\x1b[33m3\x1b[34m4\x1b[35m5\x1b[36m6\x1b[37m7\x1b[39mD\r\n" +
+		"\x1b[90m0\x1b[91m1\x1b[92m2\x1b[93m3\x1b[94m4\x1b[95m5\x1b[96m6\x1b[97m7\x1b[39mD\r\n" +
+		"\x1b[40m0\x1b[41m1\x1b[42m2\x1b[43m3\x1b[44m4\x1b[45m5\x1b[46m6\x1b[47m7\x1b[49mD\r\n" +
+		"\x1b[100m0\x1b[101m1\x1b[102m2\x1b[103m3\x1b[104m4\x1b[105m5\x1b[106m6\x1b[107m7\x1b[49mD\r\n" +
+		"\x1b[38;5;196;48;5;21mP256\x1b[38:5:46;48:5:235mC256\x1b[38;5;999mBAD\x1b[0m\r\n" +
+		"\x1b[38;2;10;20;30;48;2;40;50;60mRGB1\x1b[0m\r\n" +
+		"\x1b[38:2:70:80:90;48:2::100:110:120mRGB2\x1b[0m\r\n" +
+		"\x1b[38:2:0:130:140:150:1:2mCS\x1b[38;2;300;1;2mBAD\x1b[0m!",
+	"sgr-underline@24x6.in": "\x1b[4mU1\x1b[21mU2\x1b[4:0mU0\r\n" +
+		"\x1b[4:1mS\x1b[4:2mD\x1b[4:3mC\x1b[4:4mO\x1b[4:5mH\x1b[24mN\r\n" +
+		"\x1b[4:3;58;5;196mC256\x1b[58:5:82mC256B\x1b[59mDEF\r\n" +
+		"\x1b[4:1;58;2;12;34;56mRGB1\x1b[58:2:78:90:123mRGB2\r\n" +
+		"\x1b[58:2::200:100:50mRGB3\x1b[59mRST\x1b[0m!",
+	"sgr-bce@12x5.in": "\x1b[44mAB\x1b[K\r\n" +
+		"\x1b[42m012345\x1b[1;4H\x1b[2X\r\n" +
+		"\x1b[3;1H\x1b[41mabcdef\x1b[3;3H\x1b[2@\x1b[3;8H\x1b[1P\r\n" +
+		"\x1b[4;1H\x1b[43mXXXXXX\x1b[4;3H\x1b[1K\r\n" +
+		"\x1b[5;1H\x1b[45mYYYY\x1b[0J\x1b[0m",
 }

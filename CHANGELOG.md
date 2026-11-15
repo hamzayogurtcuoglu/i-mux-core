@@ -28,3 +28,6 @@ All notable changes to i-mux-core are listed here. The format follows
 - Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,
   insert/origin/wrap modes, alignment test and resets in `internal/vt`, verified against tmux 3.8
   fixtures.
+- SGR colours and text attributes in `internal/vt` (ANSI 8/16, 256-colour and RGB in `;` and `:`
+  forms, underline styles `4:0`–`4:5`, underline colours 58/59, and resets), verified against
+  tmux 3.8 `capture-pane -e` fixtures.
