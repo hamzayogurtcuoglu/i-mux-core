@@ -197,9 +197,16 @@ A per-client ticker (at most every 16 ms, and right away after input) then:
   | `Resize` | client → server | new terminal size |
   | `Detach`, `Exit` | server → client | reason, exit code; the client restores its terminal and exits |
   | `Suspend` | server → client | Unix only: the client stops itself (SIGTSTP) |
+  | `VersionError` | server → client | the server's protocol version, before it closes the connection |
 
 - **Version check:** a protocol version mismatch is refused with an error that i-mux classifies
-  as "no server", so a newer `imux-core` never talks to an old server.
+  as "no server", so a newer `imux-core` never talks to an old server. The server answers a
+  `Hello` with another version by a `VersionError` frame holding its own version, and closes the
+  connection; the client reports `error connecting to <socket path> (protocol version N, server
+  has M)`, which i-mux reads as no server.
+- **Back-pressure:** each attached client's output goes through a queue with a byte cap (4 MiB).
+  A client that stays over the cap for more than a second is detached with the reason
+  `too slow`, so a client that stops reading cannot make the server grow without limit (§7).
 
 ---
 
