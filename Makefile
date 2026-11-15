@@ -10,7 +10,7 @@ PKGS      ?= ./...
 
 export CGO_ENABLED = 0
 
-.PHONY: all build test lint fmt difftest fuzz bench ci clean
+.PHONY: all build test lint fmt tmux difftest fuzz bench ci clean
 
 all: lint test build
 
@@ -30,11 +30,17 @@ lint: ## golangci-lint, and go vet for every system the engine runs on
 fmt: ## Format with gofumpt via golangci-lint
 	golangci-lint fmt ./...
 
-# The differential tests run scripts against real tmux and i-mux-core. They
-# skip, and say so, when tmux is not installed; CI sets IMUX_DIFFTEST_REQUIRE=1
-# so they never skip there.
-difftest: build ## Differential tests against real tmux
-	IMUX_CORE_BIN=$(CURDIR)/bin/$(BINARY) $(GO) test -count=1 -tags difftest ./internal/difftest/...
+# The differential tests compare i-mux-core with the pinned tmux (3.6) that
+# `make tmux` builds. They skip, and say so, when it has not been built; CI
+# sets IMUX_DIFFTEST_REQUIRE=1 so they never skip there.
+TMUX_PINNED ?= $(CURDIR)/.cache/tmux/3.6/bin/tmux
+
+tmux: ## Build the pinned tmux 3.6 into .cache/tmux
+	./scripts/build-tmux.sh
+
+difftest: build ## Differential tests against the pinned tmux
+	IMUX_CORE_BIN=$(CURDIR)/bin/$(BINARY) IMUX_DIFFTEST_TMUX=$(TMUX_PINNED) \
+		$(GO) test -count=1 -tags difftest ./internal/difftest/...
 
 fuzz: ## Run every fuzz target for FUZZTIME (default 10s)
 	FUZZTIME=$(FUZZTIME) ./scripts/fuzz-short.sh

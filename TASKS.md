@@ -53,7 +53,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - `go vet` is clean with `GOOS=windows`.
 - **Depends on:** none.
 
-### [ ] C0.2 CI on macOS, Linux and Windows
+### [x] C0.2 CI on macOS, Linux and Windows
 - **Goal:** every change is checked on all three systems from the start.
 - **Details:**
   - A GitHub Actions workflow with a matrix of `ubuntu-latest`, `macos-latest` and `windows-latest`:
@@ -69,6 +69,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:**
   - All jobs are green on an empty-but-real codebase.
   - A deliberately failing test turns the right job red.
+  - *Not yet seen:* the workflow has not run on GitHub; it runs once the owner pushes. Check
+    both points then.
 - **Depends on:** C0.1.
 
 ### [ ] C0.3 Record the contract from i-mux

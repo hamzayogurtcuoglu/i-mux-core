@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Unit tests (race)
+        if: runner.os != 'Windows'
+        run: go test -race -count=1 ./...
+      - name: Unit tests
+        if: runner.os == 'Windows'
+        run: go test -count=1 ./...
+
+  lint:
+    name: Lint (GOOS=${{ matrix.goos }})
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+    runs-on: ubuntu-latest
+    env:
+      GOOS: ${{ matrix.goos }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.15.0
+
+  difftest:
+    name: Difftest vs tmux 3.6 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: tmux build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libevent-dev libncurses-dev libutf8proc-dev bison pkg-config
+      - name: tmux build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install libevent ncurses utf8proc
+      - name: Cache the pinned tmux
+        uses: actions/cache@v4
+        with:
+          path: .cache/tmux
+          key: tmux-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build-tmux.sh') }}
+      - name: Build the pinned tmux
+        run: make tmux
+      - name: Differential tests
+        env:
+          IMUX_DIFFTEST_REQUIRE: "1"
+        run: make difftest

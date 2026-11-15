@@ -5,3 +5,4 @@
 *.out
 /coverage*
 /testdata/large/
+/.cache/
