@@ -1,0 +1,10 @@
+# The command client (C2.6): how a command line splits at ";", and the exit codes.
+run has-session
+run new-session -d -s a 'exec sleep 100'
+run has-session ;
+run ; has-session
+run 'has-session;' 'has-session\;'
+run has-session -t a\; has-session -t nope
+run has-session -t a ; has-session -t nope
+run has-session -t nope ; has-session -t a
+run kill-server

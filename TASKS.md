@@ -548,7 +548,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Status:** done. `internal/layout` is a port of tmux 3.8's layout.c and layout-custom.c
   (tiled panes only, K6); six scenarios (about 140 steps) match tmux exactly, step by step.
 
-### [ ] C2.6 The command client
+### [x] C2.6 The command client
 - **Goal:** `imux-core [-L|-S] [-f] [-u] cmd ; cmd` works like tmux's command line.
 - **Details:**
   - argv parsing:
@@ -565,6 +565,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   print formats (`-P -F`, `display-message -p`, `list-sessions` with a server) need the format
   engine and are checked with C3.5 and C3.6.
 - **Depends on:** C2.3, C3.2 (for the command table: build a minimal one first and grow it).
+- **Status:** done (the client itself came with C2.3). `testdata/diff/client.txt` and
+  `TestEmptyCommandLine` check splitting at `;`, exit codes and a command line with no command.
 
 ### [ ] C2.7 The attached client (Unix)
 - **Goal:** a terminal attaches, shows the session and gives it back clean.

@@ -200,3 +200,27 @@ func TestNoServer(t *testing.T) {
 		t.Logf("%+v", r)
 	}
 }
+
+// TestEmptyCommandLine compares imux-core with no command (tmux's new-session) from a client
+// whose stdin is not a terminal, with and without a server.
+func TestEmptyCommandLine(t *testing.T) {
+	ref, core := tmuxEngine(t), coreEngine(t)
+	results := func(eng *Binary) []Result {
+		env, err := NewEnv()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(env.Dir)
+		defer eng.Stop(env)
+		run := func(args ...string) Result {
+			r := eng.Run(context.Background(), env, args)
+			r.Stderr = strings.ReplaceAll(r.Stderr, env.Dir, "$DIR")
+			return r
+		}
+		return []Result{run(), run("new-session", "-d", "-s", "a", "exec sleep 100"), run(), run("has-session", "-t", "a")}
+	}
+	a, b := results(ref), results(core)
+	if !reflect.DeepEqual(a, b) {
+		t.Errorf("tmux:\n%+v\nimux-core:\n%+v", a, b)
+	}
+}
