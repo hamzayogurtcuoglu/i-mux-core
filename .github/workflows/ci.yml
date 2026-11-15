@@ -87,8 +87,12 @@ jobs:
         run: make difftest
 
   conpty-spike:
-    name: ConPTY and IPC evidence (C0.7)
-    runs-on: windows-latest
+    name: ConPTY and IPC evidence (C0.7, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -103,5 +107,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: conpty-evidence
+          name: conpty-evidence-${{ matrix.os }}
           path: ${{ runner.temp }}/conpty-evidence.md

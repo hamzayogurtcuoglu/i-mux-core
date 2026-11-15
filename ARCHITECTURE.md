@@ -191,12 +191,13 @@ A per-client ticker (at most every 16 ms, and right away after input) then:
 
 - **Transport:**
   - macOS and Linux: Unix domain socket.
-  - Windows: decided in spike C0.7. Either AF_UNIX, which Windows 10 1803+ and Go support, or a
-    named pipe. Whichever is chosen must give peer identity (§7).
+  - Windows (E13): a named pipe, `\\.\pipe\imux-core-<user SID>\<name>`. The last element is
+    the socket name, so `#{socket_path}`'s base name is `-L`'s name, as i-mux checks on every
+    system. `-S <path>` names the pipe itself.
 - **Socket path:** `<socket dir>/<name>`, where `name` comes from `-L` (default `default`) and
   `-S <path>` gives a full path. The socket dir is:
   - Unix: `$TMUX_TMPDIR` or `/tmp`, then `imux-core-<uid>`;
-  - Windows: `%LOCALAPPDATA%\i-mux-core\sockets`.
+  - Windows: none; the pipe's name carries the user's SID (above).
 - **Framing:** `[type u8][length u32 big-endian][payload]`, with a 1 MiB cap per frame. A frame
   over the cap closes the connection.
 - **Payloads:** control messages are JSON, and terminal data (input and output) is raw bytes.
@@ -280,12 +281,22 @@ type Listener interface { /* Listen, Dial, PeerUser */ }
 
 ### Windows (Phase 8)
 
-- **PTY:** ConPTY (`CreatePseudoConsole`), with the child in a **job object** so `Kill` ends its
-  whole tree. The spike (C0.7) settles:
-  - the minimum Windows build;
-  - which ConPTY flags are available (inherit cursor, resize behaviour, passthrough on newer
-    builds);
-  - how ConPTY's re-rendering affects the emulator.
+- **PTY (E12):** ConPTY (`CreatePseudoConsole`) with no flags, and the child in a **job object**
+  so `Kill` ends its whole tree. The spike's evidence (`spikes/conpty/EVIDENCE.md`, C0.7):
+  - every flag is accepted, and `PSEUDOCONSOLE_PASSTHROUGH_MODE` changes nothing on build
+    26100, so none is used;
+  - passed through to the emulator: 2026, 2004, 1004, OSC 0, 7, 9;9 and 52, CSI u,
+    modifyOtherKeys, RGB and underline styles (with `ESC [ 0 m` written `ESC [ m`), wide
+    characters; keys, pastes and SGR mouse input reach the program unchanged;
+  - consumed by ConPTY: a program's mouse mode requests (1000, 1002, 1003, 1006), so the pane's
+    screen never learns them (COMPATIBILITY.md K8), and the DA1 query, which ConPTY answers;
+  - changed by ConPTY: OSC 8 gets an `id=` (K9); `ESC [ ? 1049 l` comes out as a repaint; and
+    each console starts with a title (OSC 0, the program's path) and `ESC [ ? 25 h`, which the
+    emulator takes as any program's own;
+  - processes: `cmd.exe`, `powershell.exe` and `pwsh.exe` run; exit codes and resizes arrive;
+    `TerminateJobObject` ends grandchildren too.
+  - **Minimum Windows:** Windows 10 version 1809 (build 17763), where `CreatePseudoConsole`
+    first appears. CI checks build 26100 (`windows-latest`) and build 20348 (`windows-2022`).
 - **Foreground command:** the newest live descendant of the pane's process in the job, by image
   name without `.exe`.
 - **Current path:** the last OSC 7 or OSC 9;9 the program reported, else the pane's start
@@ -320,11 +331,13 @@ The server runs every command it receives as its user, so **only that user may c
   Another uid, root included, is closed at once, without a reply. tmux's default server access
   also lets root in; the engine has no `server-access` (a non-goal), so only the owner gets in.
 
-**Windows:**
-- The socket or pipe is created with a DACL that allows only the current user's SID (and
-  SYSTEM), and gets no inherited ACEs.
-- Every connection's client process token SID is checked against the server's. A named pipe also
-  sets `PIPE_REJECT_REMOTE_CLIENTS`.
+**Windows (E13):**
+- The pipe is created with a protected DACL that allows only the current user's SID and SYSTEM
+  (no inherited ACEs) and with `PIPE_REJECT_REMOTE_CLIENTS`.
+- Every connection's client process (`GetNamedPipeClientProcessId`) has its token SID checked
+  against the server's; another is closed at once.
+- A client whose server dies reads "The pipe has been ended", which it reports as a lost
+  server.
 
 **Everywhere:**
 - No TCP, UDP or other network listener, ever.
@@ -509,5 +522,7 @@ properly):
 | E9 | `imux-core -V` prints `imux-core X.Y.Z (tmux 3.8 compatible)`; `#{version}` is `3.8` | i-mux gates features on tmux's version; the engine declares the level it implements. 3.8, not 3.6: i-mux handles 3.7's and 3.8's changes, and its e2e suite passes on 3.8 but not on 3.6 (decided by the owner on 2026-11-15) |
 | E10 | `internal/vt` is our own port of tmux 3.8's `input.c`, `screen-write.c` and `grid.c`, not an existing Go emulator package | The candidates lack the line wrap flag and tmux's reflow, and parse 11 to 40 times slower than the port (§8) |
 | E11 | Unix PTYs and process information through `golang.org/x/sys/unix` and, on macOS, libSystem's `proc_pidinfo` without cgo; no `github.com/creack/pty` | x/sys is needed anyway (`tcgetpgrp`, `ioctl`s, signals); opening a PTY is a few `ioctl`s per system; no cgo keeps cross-compiled release builds simple. Shown by C0.6's test on macOS and Linux |
-| E15 | The client reads terminfo with our own reader of compiled terminfo files (the legacy and the 32-bit formats, with extended capabilities), from the places ncurses looks; parameters are expanded by our own `tparm`. A built-in `xterm-256color` description, generated from ncurses' entry, is used when there is no terminfo (Windows) | No cgo and no ncurses dependency; tmux itself only needs the capabilities as strings, which is what crosses the socket. The reader and `tparm` are checked against tmux's own view of the terminal (`show-messages -T`) |
+| E12 | On Windows, panes run in ConPTY with no flags, each in a job object; the minimum is Windows 10 1809 (build 17763) | The C0.7 evidence (`spikes/conpty/EVIDENCE.md`, build 26100): what passes, what ConPTY consumes or changes, and that the job object ends a whole tree (§6). Passthrough mode changes nothing there. Mouse modes a pane's program asks for do not reach the emulator (K8) |
+| E13 | On Windows, the server listens on a named pipe with a protected DACL (the user and SYSTEM), `PIPE_REJECT_REMOTE_CLIENTS`, and a token SID check of every client | The C0.7 evidence: the DACL, the remote client flag and the client's SID all work on a pipe. AF_UNIX gives the peer SID too, but its socket file's protection could not be shown (the spike could not read its DACL) and it has no remote client flag |
 | E14 | On Windows, `run-shell` and `if-shell` shell commands run in `cmd.exe /d /s /c`; i-mux's own calls use an engine extension, the argv form (`["prog", "arg", …]`, formats expanded in each element, no shell), and pane programs go as separate arguments | i-mux builds POSIX lines (`'<imux>' … >/dev/null 2>&1 \|\| true`, `rm -f`) that no Windows shell runs; quoting them for PowerShell or `cmd.exe` would bring its own bugs, while an argv needs none. macOS and Linux stay unchanged (C9.3) |
+| E15 | The client reads terminfo with our own reader of compiled terminfo files (the legacy and the 32-bit formats, with extended capabilities), from the places ncurses looks; parameters are expanded by our own `tparm`. A built-in `xterm-256color` description, generated from ncurses' entry, is used when there is no terminfo (Windows) | No cgo and no ncurses dependency; tmux itself only needs the capabilities as strings, which is what crosses the socket. The reader and `tparm` are checked against tmux's own view of the terminal (`show-messages -T`) |

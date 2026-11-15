@@ -168,7 +168,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     (`bash` for macOS's `/bin/sh`, checked on tmux 3.8); the test checks that too.
 - **Depends on:** C0.2.
 
-### [ ] C0.7 Spike: Windows ConPTY and IPC
+### [x] C0.7 Spike: Windows ConPTY and IPC
 - **Goal:** know the Windows ground before anything depends on it. It runs on GitHub's Windows
   runner; no Windows machine is needed.
 - **Details:**
@@ -190,9 +190,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Decisions **E12** (ConPTY use and minimum Windows build) and **E13** (IPC transport and
     its security) are recorded with the evidence tables.
   - The spike's test runs on `windows-latest`.
-- **Status:** the spike (`spikes/conpty`) and its CI job (`conpty-spike`, which uploads the
-  evidence as the `conpty-evidence` artifact) are in. E12 and E13 wait for that job's first run,
-  which needs the owner to push: no Windows machine is available here.
+- **Status:** done. The first CI run's evidence is in `spikes/conpty/EVIDENCE.md`; E12 and E13
+  are in ARCHITECTURE.md (§5, §6, §7 and the decisions), with K8 and K9 in COMPATIBILITY.md.
+  The spike also runs on `windows-2022` (build 20348), to keep an older build in view.
 - **Depends on:** C0.2.
 
 ### [x] C0.8 Spike: shell commands on Windows
