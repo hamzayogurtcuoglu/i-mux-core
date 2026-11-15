@@ -698,8 +698,11 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Table tests.
   - A fuzz target.
   - The **generated i-mux tmux.conf files** captured in C0.3 parse with no error, and each one's
-    commands are listed the same as tmux shows them (`list-keys`, `show-options -g`, compared
-    with the difftest).
+    commands are listed the same as tmux shows them. `source-file -nv` shows them: it parses a
+    file without running it and prints each line's commands. `cmd/parsefixture` records its
+    output for `testdata/cmdlang/*.conf`, and with `-dir` for the captured configs; the tests
+    compare (`IMUX_CMDLANG_EXTRA` for the captured ones, which are not committed). The same
+    check through `list-keys` and `show-options -g` comes with C3.8 and C3.4.
 - **Depends on:** C0.3.
 
 ### [ ] C3.2 Command table and flags

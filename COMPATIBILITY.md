@@ -327,6 +327,19 @@ started the server. i-mux and its tests rely on it for `HOME`, `PATH`, `SHELL`, 
 - single and double quotes with tmux's escape rules (`\\` inside double quotes; single quotes keep
   `\E` in `terminal-overrides` as written).
 
+tmux 3.8's parser has quirks the engine keeps, checked with `source-file -nv` (which parses a
+file without running it and prints each line's commands) by the files in `testdata/cmdlang`:
+
+- a quote left open runs to the end of the file, newlines included, with no error;
+- a command's line, in errors and in `-v` output, is the line it ends on: after a `\`
+  continuation or a newline inside quotes, and after a comment the next line (a command
+  followed by a comment shares its group with the next line's commands);
+- `~` is expanded at the start of a word and inside double quotes, not inside single quotes;
+  `$VAR` and `${VAR}` are expanded when the file is parsed, so `NAME=value` lines in the same
+  file do not reach later `$NAME`;
+- the default command aliases (`split-pane`, `splitp`, `info`, …) are expanded when a file is
+  parsed.
+
 The user's `~/.imux/tmux.local.conf` is sourced last. With i-mux-core, a command it does not
 know prints one warning and the rest of the file still loads.
 
