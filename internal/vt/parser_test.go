@@ -79,7 +79,9 @@ func TestParserBasics(t *testing.T) {
 		{"\xff", []string{"utf8 ff true"}},
 		{"\xc3a", []string{"utf8 c3 true", "print a"}},
 		{"\xe4\xc3\xa9", []string{"utf8 e4c3a9 true"}}, // tmux takes size bytes, then fails
-		{"\xc3\n\xa9", []string{"exec 0xa", "utf8 c3a9 false"}},
+		// A control stops UTF-8 (tmux's input_c0_dispatch); an escape sequence does not.
+		{"\xc3\n\xa9", []string{"utf8 c3 true", "exec 0xa", "utf8 a9 true"}},
+		{"\xc3\x1b[m\xa9", []string{`csi "" [] m`, "utf8 c3a9 false"}},
 		{"\x1b[99999999999m", nil}, // above INT_MAX: ignored
 	}
 	for _, tt := range tests {

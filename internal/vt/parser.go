@@ -463,6 +463,7 @@ func (p *Parser) Write(b []byte) (int, error) {
 		tr := &lookup[p.state][c]
 		switch tr.act {
 		case acC0:
+			p.stopUTF8() // tmux's input_c0_dispatch: a control cannot be part of UTF-8
 			p.h.Execute(c)
 		case acPrint:
 			p.stopUTF8()
