@@ -61,7 +61,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Lint runs on Linux for `GOOS=linux`, `GOOS=darwin` and `GOOS=windows`.
   - The difftest job runs on Linux and macOS against a **pinned tmux 3.8**, built on both by
     `scripts/build-tmux.sh` from the release tarball, checked against its SHA-256, configured
-    with `--enable-utf8proc` (so widths agree on both systems) and cached. Homebrew is not used
+    with `--enable-utf8proc` and linked with a pinned utf8proc (2.12.0, also built from its
+    checked tarball) so widths agree on both systems, and cached. Homebrew is not used
     for tmux itself: it ships only the newest tmux, so it cannot be pinned. The script checks the
     built version and fails on a mismatch. `make tmux` builds the same pinned tmux locally, and
     `make difftest` uses it.

@@ -326,9 +326,14 @@ the same bytes.
     blink, reverse, invisible, strikethrough, overline;
   - an OSC 8 hyperlink id.
 - **Width:** a single width function shared by the emulator, the renderer and the formats
-  (`#{p/N/…}` padding, status line widths). It matches tmux's results for the test fixtures
-  (East Asian Wide, emoji presentation, ZWJ sequences, variation selectors). Differences are
-  listed in COMPATIBILITY.md.
+  (`#{p/N/…}` padding, status line widths). It is tmux's with utf8proc: tmux's own default
+  width table (regional indicators 1, skin tone modifiers and some emoji 2), then
+  `utf8proc_charwidth`, with private use characters 1. Its table is generated
+  (`scripts/gen-widths.sh`) from **utf8proc 2.12.0**, the same pinned version
+  `scripts/build-tmux.sh` builds and links into the reference tmux on every system, so widths
+  agree everywhere. Combining (ZWJ sequences, variation selectors, skin tones, regional
+  indicator pairs, Hangul jamo) follows tmux's `screen_write_combine` and `utf8-combined.c`.
+  Differences are listed in COMPATIBILITY.md.
 - **Screen:**
   - main and alternate screens; scroll region; origin mode; auto-wrap with the wrap flag kept
     per line, which `capture-pane -J` needs; tab stops; insert mode; saved cursor (DECSC/DECRC
