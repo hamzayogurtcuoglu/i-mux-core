@@ -126,6 +126,18 @@ func (t *Terminal) Resize(cols, rows int) {
 	s.Resize(cols, rows, !s.IsAlternate())
 }
 
+// InString reports whether an OSC, DCS, APC or similar string has started and not ended; the
+// pane's reader then gives up on it after vt.GroundTimeout without output (ExpireString).
+func (t *Terminal) InString() bool { return t.parser.InString() }
+
+// ExpireString gives up on an unterminated string, as tmux's ground timer does: back to the
+// ground state, with the current style reset.
+func (t *Terminal) ExpireString() {
+	if t.parser.Expire() {
+		t.in.resetCell()
+	}
+}
+
 // Write feeds output from the program. It never fails.
 func (t *Terminal) Write(b []byte) (int, error) { return t.parser.Write(b) }
 

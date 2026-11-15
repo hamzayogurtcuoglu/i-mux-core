@@ -42,6 +42,9 @@ All notable changes to i-mux-core are listed here. The format follows
   and the output queue that detaches a client that does not keep up.
 - The server's socket: a `0700` directory per user, checked before use, a `0600` socket, and only
   the owner's connections accepted.
+- The server's tree of sessions, windows and panes, with tmux's ids, names and indexes, and its
+  loop: one goroutine owns the tree, pane readers feed the screens, and the server ends with its
+  last session.
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
 - Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,

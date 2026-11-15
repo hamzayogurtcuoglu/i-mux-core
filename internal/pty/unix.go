@@ -98,6 +98,10 @@ func (p *unixProc) Read(b []byte) (int, error) {
 
 func (p *unixProc) Write(b []byte) (int, error) { return p.master.Write(b) }
 
+// SetReadDeadline makes a pending or later Read return os.ErrDeadlineExceeded at t (the zero
+// time removes the deadline); the pane's reader uses it for tmux's ground timer.
+func (p *unixProc) SetReadDeadline(t time.Time) error { return p.master.SetReadDeadline(t) }
+
 func (p *unixProc) Resize(cols, rows int) error {
 	return unix.IoctlSetWinsize(p.fd, unix.TIOCSWINSZ, &unix.Winsize{Col: uint16(cols), Row: uint16(rows)})
 }

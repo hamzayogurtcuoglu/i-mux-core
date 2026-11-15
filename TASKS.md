@@ -496,7 +496,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     stale socket is replaced; no-server errors match tmux (difftest).
 - **Depends on:** C2.2, C2.4.
 
-### [ ] C2.4 Model and server loop
+### [x] C2.4 Model and server loop
 - **Goal:** the tree of sessions, windows and panes, owned by one goroutine (E2).
 - **Details:**
   - `internal/model`: ids (`$N @N %N`), names, indexes, creation and destruction, the

@@ -284,3 +284,17 @@ func TestDCSDECRQSSAndXTGETTCAP(t *testing.T) {
 		t.Fatalf("screen after XTGETTCAP = %q", got)
 	}
 }
+
+func TestExpireString(t *testing.T) {
+	term := NewTerminal(20, 3, 10)
+	_, _ = term.Write([]byte("\x1b[31m\x1b]2;never ends"))
+	if !term.InString() {
+		t.Fatal("not in a string")
+	}
+	term.ExpireString()
+	_, _ = term.Write([]byte("x"))
+	c := term.Screen.Grid.ViewCell(0, 0)
+	if term.InString() || c.Data != "x" || c.Fg != 8 {
+		t.Fatalf("after expiring: in string %v, cell %+v (the style resets, as tmux's input_reset)", term.InString(), c)
+	}
+}

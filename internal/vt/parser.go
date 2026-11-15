@@ -353,8 +353,8 @@ func (p *Parser) clear() {
 }
 
 // GroundTimeout is how long tmux lets a string (OSC, DCS, APC, a rename, SOS or PM) go
-// unterminated before it gives up on it.
-const GroundTimeout = 5 * time.Second
+// unterminated before it gives up on it. Tests shorten it.
+var GroundTimeout = 5 * time.Second
 
 // InString reports whether a string has started and not ended: the pane's reader then calls
 // Expire once GroundTimeout passes with no more output, as tmux's ground timer does.
