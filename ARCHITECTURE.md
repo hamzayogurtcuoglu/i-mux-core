@@ -337,8 +337,26 @@ the same bytes.
 - **Synchronized output from a pane (2026):** while a pane holds the mode, the renderer keeps
   showing that pane's last complete frame, with a timeout (as tmux does).
 
-Spike C0.5 decides whether to build on an existing Go emulator package or write our own. In
-either case the code lives in `internal/vt` and we own its behaviour.
+**Decision E10 (spike C0.5): we write our own,** porting tmux 3.8's `input.c` (the parser and
+the sequences), `screen-write.c` and `grid.c` (the screen, wrapping, scrollback and reflow), so
+that the same bytes give the same screen as under tmux, malformed input included. Ported files
+keep tmux's ISC copyright notice. The evidence, measured on 2026-11-15 on an Apple M-series Mac
+with a deterministic 100 MB mixed stream (plain and coloured lines, cursor movement and erasing,
+synchronized alternate-screen frames, wide characters and emoji, titles, OSC 8 links, scroll
+regions, tabs) fed in 32 KiB writes to a 200×50 screen:
+
+| | License, upkeep | Line wrap flag (`capture-pane -J`) | Reflow on resize | Scrollback | Underline styles, OSC 8 | 2026 held frames | Throughput | Allocated |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `github.com/charmbracelet/x/vt` v0.1.0 | MIT, maintained; pulls in 12 modules | no | no | yes, trailing blanks trimmed | yes, yes | mode tracked only | 4.3 MB/s | 7.2 GB |
+| `github.com/hinshun/vt10x` (2022-03) | MIT, unmaintained since 2022 | no | no | no | no, no | no | 15.6 MB/s | 2.0 GB |
+| Our port of tmux's `input.c` state machine (parser only, `internal/vt`) | ISC (tmux), ours | — | — | — | — | — | 176.5 MB/s | 0.1 MB per 8 MB |
+| tmux 3.8 itself, end to end through a pty (reference) | | yes | yes | yes | yes, yes | yes | 10.4 MB/s | |
+
+Neither package keeps the per-line wrap flag or reflows the way tmux does, and both would need
+deep changes to match tmux's handling of malformed input, its replies and its quirks; the
+faster one is unmaintained. A Go port of tmux's own state machine parses an order of magnitude
+faster than either, which leaves the screen code room to stay within the ≤ 1.5× tmux target
+(§10). The parser is the starting point of `internal/vt` (task C1.2).
 
 ---
 
@@ -436,3 +454,4 @@ Measured by benchmarks in Phase 6, each against tmux on the same machine:
 | E7 | Differences from tmux are bugs unless written in COMPATIBILITY.md | Parity is measurable; nothing drifts silently |
 | E8 | Windows work starts after parity on macOS and Linux (Phase 8) | The hard part, the emulator and the command surface, is proven where tmux can check it |
 | E9 | `imux-core -V` prints `imux-core X.Y.Z (tmux 3.8 compatible)`; `#{version}` is `3.8` | i-mux gates features on tmux's version; the engine declares the level it implements. 3.8, not 3.6: i-mux handles 3.7's and 3.8's changes, and its e2e suite passes on 3.8 but not on 3.6 (decided by the owner on 2026-11-15) |
+| E10 | `internal/vt` is our own port of tmux 3.8's `input.c`, `screen-write.c` and `grid.c`, not an existing Go emulator package | The candidates lack the line wrap flag and tmux's reflow, and parse 11 to 40 times slower than the port (§8) |
