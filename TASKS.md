@@ -463,7 +463,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - A version mismatch gives the expected error.
 - **Depends on:** C0.1.
 
-### [ ] C2.2 Socket directory and peer checks (Unix)
+### [x] C2.2 Socket directory and peer checks (Unix)
 - **Goal:** only the server's own user can connect (E5).
 - **Details:**
   - The socket dir is `$TMUX_TMPDIR` or `/tmp`, then `imux-core-<uid>`:

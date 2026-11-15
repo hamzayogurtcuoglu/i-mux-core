@@ -40,6 +40,8 @@ All notable changes to i-mux-core are listed here. The format follows
   target for the whole emulator, and a nightly CI job that fuzzes every target for 10 minutes.
 - `internal/ipc`: the client-server protocol's frames and messages, the protocol version check,
   and the output queue that detaches a client that does not keep up.
+- The server's socket: a `0700` directory per user, checked before use, a `0600` socket, and only
+  the owner's connections accepted.
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
 - Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,
