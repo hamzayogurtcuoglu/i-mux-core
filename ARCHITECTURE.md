@@ -407,7 +407,8 @@ Measured by benchmarks in Phase 6, each against tmux on the same machine:
    - the full rendered frame of a headless attached client: the client's output is fed into a
      `vt.Screen` and compared cell by cell.
 
-   tmux's version is pinned in CI.
+   tmux's version is pinned (3.6, built from its release tarball by `scripts/build-tmux.sh`),
+   in CI and locally (`make tmux`).
 4. **i-mux's e2e suite** (`../i-mux/e2e`, 105 tests) run with `IMUX_TMUX_BIN=imux-core`. This
    is the final measure of parity.
 5. **Windows CI** (`windows-latest`) runs the unit tests, the VT fixtures and an engine e2e

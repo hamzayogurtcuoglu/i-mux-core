@@ -59,9 +59,12 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - A GitHub Actions workflow with a matrix of `ubuntu-latest`, `macos-latest` and `windows-latest`:
     build, vet and unit tests on each.
   - Lint runs on Linux for `GOOS=linux`, `GOOS=darwin` and `GOOS=windows`.
-  - The difftest job runs on Linux and macOS against a **pinned tmux 3.6**:
-    - Linux: built from the release tarball, checked against its SHA-256 and cached;
-    - macOS: Homebrew, with the version checked and the job failing on a mismatch.
+  - The difftest job runs on Linux and macOS against a **pinned tmux 3.6**, built on both by
+    `scripts/build-tmux.sh` from the release tarball, checked against its SHA-256, configured
+    with `--enable-utf8proc` (so widths agree on both systems) and cached. Homebrew is not used
+    for tmux itself: it ships only the newest tmux, so it cannot be pinned. The script checks the
+    built version and fails on a mismatch. `make tmux` builds the same pinned tmux locally, and
+    `make difftest` uses it.
   - Go module and build caches are kept.
 - **Acceptance:**
   - All jobs are green on an empty-but-real codebase.
