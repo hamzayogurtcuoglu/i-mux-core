@@ -270,7 +270,15 @@ type Listener interface { /* Listen, Dial, PeerUser */ }
 - **Console:** `SetConsoleMode` with `ENABLE_VIRTUAL_TERMINAL_INPUT` on stdin and
   `ENABLE_VIRTUAL_TERMINAL_PROCESSING` + `DISABLE_NEWLINE_AUTO_RETURN` on stdout. Resizes come
   from `WINDOW_BUFFER_SIZE_EVENT`.
-- **Shell:** for `run-shell` and `if-shell`, decided in C0.8.
+- **Shell (E14):**
+  - a shell command given to `run-shell` or `if-shell` runs as `%COMSPEC% /d /s /c "<command>"`
+    (`cmd.exe`), the Windows counterpart of tmux's `/bin/sh -c`: always there, quick to start,
+    and with one quoting rule;
+  - a pane's program given as one string runs in `default-shell`, which defaults to `pwsh.exe`
+    when it is installed, else `powershell.exe` (C8.7); given as several arguments, it runs
+    without a shell, as tmux does on every system;
+  - i-mux's own calls use the **argv form** of `run-shell` and `if-shell` (COMPATIBILITY.md X1),
+    which needs no shell and no quoting at all.
 
 ---
 
@@ -461,3 +469,4 @@ Measured by benchmarks in Phase 6, each against tmux on the same machine:
 | E9 | `imux-core -V` prints `imux-core X.Y.Z (tmux 3.8 compatible)`; `#{version}` is `3.8` | i-mux gates features on tmux's version; the engine declares the level it implements. 3.8, not 3.6: i-mux handles 3.7's and 3.8's changes, and its e2e suite passes on 3.8 but not on 3.6 (decided by the owner on 2026-11-15) |
 | E10 | `internal/vt` is our own port of tmux 3.8's `input.c`, `screen-write.c` and `grid.c`, not an existing Go emulator package | The candidates lack the line wrap flag and tmux's reflow, and parse 11 to 40 times slower than the port (§8) |
 | E11 | Unix PTYs and process information through `golang.org/x/sys/unix` and, on macOS, libSystem's `proc_pidinfo` without cgo; no `github.com/creack/pty` | x/sys is needed anyway (`tcgetpgrp`, `ioctl`s, signals); opening a PTY is a few `ioctl`s per system; no cgo keeps cross-compiled release builds simple. Shown by C0.6's test on macOS and Linux |
+| E14 | On Windows, `run-shell` and `if-shell` shell commands run in `cmd.exe /d /s /c`; i-mux's own calls use an engine extension, the argv form (`["prog", "arg", …]`, formats expanded in each element, no shell), and pane programs go as separate arguments | i-mux builds POSIX lines (`'<imux>' … >/dev/null 2>&1 \|\| true`, `rm -f`) that no Windows shell runs; quoting them for PowerShell or `cmd.exe` would bring its own bugs, while an argv needs none. macOS and Linux stay unchanged (C9.3) |

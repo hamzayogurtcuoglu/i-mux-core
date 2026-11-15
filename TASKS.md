@@ -194,7 +194,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   which needs the owner to push: no Windows machine is available here.
 - **Depends on:** C0.2.
 
-### [ ] C0.8 Spike: shell commands on Windows
+### [x] C0.8 Spike: shell commands on Windows
 - **Goal:** decide what `run-shell`, `if-shell` and `default-shell` mean on Windows.
 - **Details:**
   - i-mux's config and code build POSIX shell command lines today. Examples:
@@ -346,7 +346,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - A **probe program** (`testdata/probe`) sends each query and prints the reply, hex-encoded.
     The difftest runs it in tmux and in i-mux-core.
 - **Acceptance:** every probe reply is identical, or the difference is recorded in
-  COMPATIBILITY.md §12 with a reason.
+  COMPATIBILITY.md §13 with a reason.
 - **Depends on:** C1.7, C2.6 (for the difftest run; the unit part can come earlier).
 
 ### [ ] C1.9 Fake TUI for tests
@@ -798,6 +798,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     - the branches are commands or `{ … }` blocks.
   - Jobs get `TMUX` and `TMUX_PANE` as tmux sets them.
   - On Unix the shell is `/bin/sh -c`.
+  - The argv form (COMPATIBILITY.md X1), with its own engine tests: tmux has no such form.
 - **Acceptance:** difftest of each form, including timing order with `-d`, and the view-mode
   output of a failing foreground job.
 - **Depends on:** C3.9.
@@ -1261,7 +1262,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
     i-mux-core's pane captures the result.
   - Compare with the Unix expectations.
   - Fix what can be fixed in the emulator or in the ConPTY flags. Record what cannot in
-    COMPATIBILITY.md §12 (K rows), with the Windows build it was seen on.
+    COMPATIBILITY.md §13 (K rows), with the Windows build it was seen on.
 - **Acceptance:** the fixture comparison runs in Windows CI, and every difference is either fixed
   or recorded.
 - **Depends on:** C8.1.
@@ -1317,7 +1318,8 @@ i-mux's `make ci` must pass with tmux exactly as before.
 ### [ ] C8.7 Shells and jobs on Windows
 - **Goal:** `run-shell`, `if-shell` and the default shell work on Windows per E14.
 - **Details:**
-  - The decided shell or argv form.
+  - Shell commands of `run-shell` and `if-shell` in `%COMSPEC% /d /s /c`; the argv form (X1)
+    with Windows' program lookup (`PATH`, `PATHEXT`).
   - `default-shell`: `pwsh` if installed, else `powershell.exe`, else `cmd.exe`, unless set.
   - `TMUX` and `TMUX_PANE` in jobs and panes, in a form i-mux parses on Windows (C9.3).
 - **Acceptance:** engine tests of each `run-shell` and `if-shell` form on Windows.
@@ -1383,7 +1385,9 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Details:**
   - Change `UICommand`, `Silent`, `ShQuote` and `ShJoin`, the `run-shell` strings in the
     generated config, the popups' commands and every `sh -c` use per E14:
-    - on Windows, the decided form;
+    - on Windows, the argv form of `run-shell` and `if-shell` (COMPATIBILITY.md X1; the quiet
+      form for `… >/dev/null 2>&1 || true`), and popups' and panes' programs as separate
+      arguments; no `rm -f` or other shell utilities;
     - on macOS and Linux, unchanged.
   - Parse `TMUX` and `TMUX_PANE` in their Windows form.
 - **Acceptance:**

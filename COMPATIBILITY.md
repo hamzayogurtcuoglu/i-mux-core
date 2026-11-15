@@ -1,7 +1,7 @@
 # Compatibility contract
 
 This is the tmux behaviour i-mux uses and i-mux-core must reproduce. A difference from tmux on
-anything listed here is a bug, unless §12 records it as a known difference.
+anything listed here is a bug, unless §13 records it as a known difference.
 
 **Source.** Recorded on 2026-11-15 (task C0.3) from i-mux 0.62.0, on tmux 3.8:
 1. `scripts/contract.sh` ran i-mux's whole e2e suite (all tests passed) with a recording `tmux`
@@ -313,7 +313,19 @@ know prints one warning and the rest of the file still loads.
 - Detach (`detach-client`, or the session ending) restores the terminal fully: modes, alternate
   screen, cursor, mouse and paste reporting off.
 
-## 12. Known differences
+## 12. Extensions
+
+Behaviour i-mux-core has and tmux does not. i-mux uses an extension only with i-mux-core, and only
+where it needs it.
+
+| # | Extension | Why |
+| --- | --- | --- |
+| X1 | **The argv form of `run-shell` and `if-shell`** (E14). A command whose text, after leading spaces, starts with `["` and is a JSON array of strings runs that argv directly, with no shell: the JSON is parsed before formats are expanded, then each element is expanded on its own, so values never need quoting. `{"argv": [...], "quiet": true}` does the same and also discards the output and the exit status, as `>/dev/null 2>&1 \|\| true` does. Otherwise output and exit status are handled as for a shell command, and for `if-shell` the exit status picks the branch. On every system the engine implements and tests it; i-mux uses it on Windows, where there is no POSIX shell | i-mux's bindings and hooks run `'<imux>' … >/dev/null 2>&1 \|\| true`, a POSIX line |
+
+A shell command that is not in the argv form runs in `/bin/sh -c` on macOS and Linux, as in
+tmux, and in `%COMSPEC% /d /s /c` on Windows (E14).
+
+## 13. Known differences
 
 | # | Difference | Why |
 | --- | --- | --- |
