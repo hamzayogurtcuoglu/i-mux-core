@@ -480,7 +480,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - A security note is added to ARCHITECTURE.md §7 if anything changed.
 - **Depends on:** C2.1.
 
-### [ ] C2.3 Server start, lifetime and stale sockets
+### [x] C2.3 Server start, lifetime and stale sockets
 - **Goal:** `new-session -d` starts a server when there is none, as tmux does.
 - **Details:**
   - `imux-core __server` is started by the client, detached (`setsid`, null stdio).
@@ -501,6 +501,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     last session closes and the server exits; a stale socket is replaced; no-server errors match
     tmux (difftest).
 - **Depends on:** C2.2, C2.4.
+- **Status:** done. tmux's command table (names, aliases, argument templates, usages, which
+  commands start a server) is generated from tmux's source by `scripts/gen-command-table.sh`
+  into `internal/commands/table_gen.go`; the session commands are checked against tmux by
+  `testdata/diff/sessions.txt` and `TestNoServer`.
 
 ### [x] C2.4 Model and server loop
 - **Goal:** the tree of sessions, windows and panes, owned by one goroutine (E2).

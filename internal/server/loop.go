@@ -3,7 +3,10 @@ package server
 import (
 	"errors"
 	"io"
+	"io/fs"
+	"net"
 	"os"
+	"os/exec"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -25,6 +28,13 @@ type Options struct {
 	Now          func() time.Time // nil: time.Now
 	// PaneChanged is called in the loop when a pane's screen has changed (coalesced).
 	PaneChanged func(p *model.Pane)
+
+	SocketPath string   // the server's socket, for $TMUX
+	Environ    []string // the global environment panes start with; nil: os.Environ()
+	// HoldForClient keeps the server up, though it has no session, until its first client
+	// has connected or HoldTimeout has passed: the client that started it is on its way.
+	HoldForClient bool
+	HoldTimeout   time.Duration // 0: 5 s
 }
 
 // Server is the server's state and loop.
@@ -38,6 +48,14 @@ type Server struct {
 	readers sync.WaitGroup
 	panes   map[*model.Pane]*paneState
 	exiting bool
+
+	clients int  // connected clients (in the loop)
+	held    bool // HoldForClient, until the first client
+	killed  bool // kill-server
+
+	connMu sync.Mutex
+	conns  map[net.Conn]struct{}
+	connWG sync.WaitGroup
 }
 
 type paneState struct {
@@ -55,6 +73,12 @@ func New(o Options) *Server {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
+	if o.Environ == nil {
+		o.Environ = os.Environ()
+	}
+	if o.HoldTimeout == 0 {
+		o.HoldTimeout = 5 * time.Second
+	}
 	return &Server{
 		opts:   o,
 		tree:   model.NewTree(),
@@ -62,12 +86,22 @@ func New(o Options) *Server {
 		stop:   make(chan struct{}),
 		done:   make(chan struct{}),
 		panes:  map[*model.Pane]*paneState{},
+		held:   o.HoldForClient,
+		conns:  map[net.Conn]struct{}{},
 	}
 }
 
 // Run runs the loop until Shutdown, then waits for the pane readers to end.
 func (s *Server) Run() {
 	defer close(s.done)
+	if s.held {
+		time.AfterFunc(s.opts.HoldTimeout, func() {
+			s.post(func() {
+				s.held = false
+				s.checkExit()
+			})
+		})
+	}
 	for {
 		select {
 		case f := <-s.events:
@@ -146,6 +180,13 @@ var ErrStopped = errors.New("server: stopped")
 func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 	spec.Cols, spec.Rows = p.Sx, p.Sy
 	proc, err := s.opts.PTY.Start(spec)
+	var ee *exec.Error
+	var pe *fs.PathError
+	if errors.As(err, &ee) || errors.As(err, &pe) {
+		// tmux forks before it runs the program: one that cannot run makes a pane that ends at
+		// once, with status 1, and the command succeeds.
+		proc, err = deadProc{}, nil
+	}
 	if err != nil {
 		return err
 	}
@@ -242,7 +283,13 @@ func (s *Server) RemovePane(p *model.Pane) {
 			s.tree.RemoveSession(sess)
 		}
 	}
-	if s.tree.Empty() {
+	s.checkExit()
+}
+
+// checkExit ends the server when it has no session and no client, as tmux's exit-empty does,
+// or once kill-server has run.
+func (s *Server) checkExit() {
+	if s.killed || (s.tree.Empty() && s.clients == 0 && !s.held) {
 		s.exiting = true
 	}
 }
@@ -255,3 +302,15 @@ func (s *Server) shutdown() {
 		delete(s.panes, p)
 	}
 }
+
+// deadProc is a pane's program that could not run: it ends at once with status 1.
+type deadProc struct{}
+
+func (deadProc) Read([]byte) (int, error)      { return 0, io.EOF }
+func (deadProc) Write([]byte) (int, error)     { return 0, os.ErrClosed }
+func (deadProc) Resize(int, int) error         { return nil }
+func (deadProc) Wait() (pty.ExitStatus, error) { return pty.ExitStatus{Code: 1}, nil }
+func (deadProc) Kill() error                   { return nil }
+func (deadProc) Pid() int                      { return 0 }
+func (deadProc) Fd() int                       { return -1 }
+func (deadProc) Close() error                  { return nil }

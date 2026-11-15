@@ -91,8 +91,13 @@ type Listener struct {
 // PeerUID returns the uid of a connection's other end; tests replace it.
 var PeerUID = peerUID
 
-// Listen creates the socket at path, readable and writable by its owner only.
+// Listen creates the socket at path, readable and writable by its owner only. Whatever is at
+// path is removed first, and the socket is left when the listener closes, as tmux does: the
+// client that starts a server has checked under the lock file that nothing listens there.
 func Listen(path string) (*Listener, error) {
+	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
+	}
 	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
 	if err != nil {
 		return nil, err
@@ -102,7 +107,7 @@ func Listen(path string) (*Listener, error) {
 		_ = l.Close()
 		return nil, err
 	}
-	l.SetUnlinkOnClose(true)
+	l.SetUnlinkOnClose(false)
 	return &Listener{UnixListener: l, uid: os.Getuid()}, nil
 }
 

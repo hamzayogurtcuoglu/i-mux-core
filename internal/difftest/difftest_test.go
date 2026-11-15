@@ -4,10 +4,13 @@ package difftest
 
 import (
 	"context"
+	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 // The differential tests: `make difftest` runs them with IMUX_DIFFTEST_TMUX (the pinned tmux)
@@ -148,5 +151,52 @@ func TestHarnessAgainstTmux(t *testing.T) {
 	}
 	if !strings.Contains(diffs[0].String(), "sample.txt:") || !strings.Contains(diffs[0].B, "HELLO") {
 		t.Fatalf("message: %s", diffs[0])
+	}
+}
+
+// TestNoServer compares the errors with no server: no socket, a socket left by a server that is
+// gone (replaced when a server starts), and the socket the last session's server leaves.
+func TestNoServer(t *testing.T) {
+	ref, core := tmuxEngine(t), coreEngine(t)
+	results := func(eng *Binary) []Result {
+		env, err := NewEnv()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(env.Dir)
+		defer eng.Stop(env)
+		var out []Result
+		run := func(args ...string) Result {
+			r := eng.Run(context.Background(), env, args)
+			r.Stderr = strings.ReplaceAll(r.Stderr, env.Dir, "$DIR")
+			return r
+		}
+		out = append(out, run("has-session"))
+		l, err := net.ListenUnix("unix", &net.UnixAddr{Name: env.Socket, Net: "unix"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		l.SetUnlinkOnClose(false)
+		l.Close()
+		out = append(out, run("has-session"), run("new-session", "-d", "-s", "a", "exec sleep 100"),
+			run("kill-session", "-t", "a"))
+		// The server exits soon after its last session.
+		deadline := time.Now().Add(WaitTimeout)
+		r := run("has-session")
+		for strings.Contains(r.Stderr, "can't find session") || r.Code == 0 {
+			if time.Now().After(deadline) {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+			r = run("has-session")
+		}
+		return append(out, r, run("kill-server"))
+	}
+	a, b := results(ref), results(core)
+	if !reflect.DeepEqual(a, b) {
+		t.Errorf("tmux:\n%+v\nimux-core:\n%+v", a, b)
+	}
+	for _, r := range a {
+		t.Logf("%+v", r)
 	}
 }

@@ -8,7 +8,8 @@ import (
 
 // Spec says what to run on a new PTY.
 type Spec struct {
-	Argv []string // the program and its arguments; Argv[0] is looked up in PATH
+	Path string   // the program to run; "" runs Argv[0], looked up in PATH
+	Argv []string // the program's arguments, Argv[0] its name (a login shell's is "-sh")
 	Env  []string // the program's whole environment
 	Dir  string   // its working directory
 	Cols int

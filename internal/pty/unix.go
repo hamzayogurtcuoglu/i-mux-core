@@ -52,6 +52,10 @@ func (u *Unix) Start(spec Spec) (Proc, error) {
 		return nil, err
 	}
 	cmd := exec.Command(spec.Argv[0], spec.Argv[1:]...)
+	if spec.Path != "" {
+		cmd = exec.Command(spec.Path)
+		cmd.Args = spec.Argv
+	}
 	cmd.Env, cmd.Dir = spec.Env, spec.Dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = s, s, s
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}

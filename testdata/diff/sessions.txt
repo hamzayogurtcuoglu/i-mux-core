@@ -1,0 +1,38 @@
+# Server start and the session commands of C2.3: tmux's command lookup, argument errors and
+# session targets, and the errors with no server. Panes run fixed commands, never a shell.
+run has-session
+run kill-server
+run kill-session -t a
+run nosuch
+run new-session -d -s a 'exec sleep 100'
+run new-session -d -s a
+run new-session -d -s b -c / -n win exec sleep 100
+run has-session -t a
+run has-session -t =a
+run has-session -t a:0
+run has-session -t $0
+run has-session -t $99
+run has-session -t =nope
+run has-session -t nope
+run has-session -t 'b*'
+run has-session
+run has-session -t
+run has-session extra
+run has-session -%
+run has-session -?
+run kill-session -t a extra
+run new-session -z
+run new-session -d -x abc
+run new-session -d -x 0 -s q 'exec sleep 100'
+run new-session -d -x 65536 -s q 'exec sleep 100'
+run new
+run ne
+run kill-s
+run rename-session
+run kill-server -?
+run new-session -d -s c 'exec sleep 100' ; has-session -t c ; has-session -t zz ; kill-session -t c
+run has-session -t c
+run kill-session -t a
+run has-session -t a
+run start-server
+run kill-server
