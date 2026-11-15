@@ -1,6 +1,7 @@
 package vtfixture
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -236,6 +237,11 @@ var Specs = map[string]string{
 	"modes-1048@20x4.in":               "\x1b[2;3H\x1b[?1048h\x1b[4;5Hx\x1b[?1048ly",
 	"modes-deccolm@20x4.in":            "text\r\nmore\x1b[2;3H\x1b[?3hz",
 	"charset-so-si@20x3.in":            "\x1b)0\x0eqxl\x0fabc\r\n\x1b(0lqk\x1b(Bdone",
+	// The cursor is not clamped when the alternate screen narrows (no reflow), as in tmux.
+	"alternate-narrow-cursor@10x3-5x3.in": "\x1b[?47h\x1b[1;9Hab",
+	"alternate-narrow-write@10x3-5x3.in":  "\x1b[?47h\x1b[1;9Hab\x1b[?47l",
+	// Reflow can take the history past history-limit: tmux collects it only when scrolling.
+	"history-reflow-over-limit@20x5-10x5.in": overLimit(),
 }
 
 // history5000 is the output of seq 1 5000 on a terminal.
@@ -263,4 +269,13 @@ func history20() string {
 		b.WriteString("line-" + strconv.Itoa(i) + "-text\r\n")
 	}
 	return b.String() + "last"
+}
+
+// overLimit is 2100 lines of 19 characters: one line each at 20 columns, two at 10.
+func overLimit() string {
+	var b strings.Builder
+	for i := 0; i < 2100; i++ {
+		fmt.Fprintf(&b, "line-%06d-abcdefgh\r\n", i)
+	}
+	return b.String() + "end"
 }
