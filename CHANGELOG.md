@@ -36,6 +36,8 @@ All notable changes to i-mux-core are listed here. The format follows
   a memory benchmark for a full 50000-line history.
 - Resizing a pane's screen as tmux does: lines reflow to the new width on the main screen and
   move between the screen and the history for a new height, with the cursor following them.
+- Emulator benchmarks and `BENCHMARKS.md` (100 MB of mixed output in 0.43× tmux's time), a fuzz
+  target for the whole emulator, and a nightly CI job that fuzzes every target for 10 minutes.
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
 - Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,

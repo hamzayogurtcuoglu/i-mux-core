@@ -42,6 +42,7 @@ until the new engine has proved itself:
 | [ARCHITECTURE.md](ARCHITECTURE.md) | The design: processes, packages, data flow, platform layers and security. |
 | [COMPATIBILITY.md](COMPATIBILITY.md) | The contract: every tmux command, flag, format, option, hook and key i-mux uses. |
 | [TASKS.md](TASKS.md) | The plan: phases and tasks, each with its goal, details and acceptance criteria. |
+| [BENCHMARKS.md](BENCHMARKS.md) | Performance baselines, measured against tmux. |
 
 ## Phases at a glance
 

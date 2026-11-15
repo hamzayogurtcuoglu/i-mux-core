@@ -1,0 +1,40 @@
+name: Nightly fuzzing
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: ${{ matrix.target }} (10 minutes)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: FuzzParser
+            package: ./internal/vt/
+          - target: FuzzTerminal
+            package: ./internal/vt/
+          - target: FuzzWalk
+            package: ./internal/format/
+          - target: FuzzParse
+            package: ./internal/cmdlang/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Fuzz
+        run: go test -run '^$' -fuzz '^${{ matrix.target }}$' -fuzztime 10m ${{ matrix.package }}
+      - name: Upload a failing input
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}-failure
+          path: "**/testdata/fuzz/${{ matrix.target }}/"

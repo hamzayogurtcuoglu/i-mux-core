@@ -421,7 +421,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Regenerating the fixtures from tmux gives no changes (checked in CI).
 - **Depends on:** C1.3, C0.4.
 
-### [ ] C1.13 Emulator performance and fuzzing
+### [x] C1.13 Emulator performance and fuzzing
 - **Goal:** the emulator is fast and does not crash on hostile input.
 - **Details:**
   - Benchmarks of plain-text, colour-heavy and cursor-heavy streams, in MB/s and allocations
@@ -432,6 +432,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Baselines are recorded in `BENCHMARKS.md`.
   - The fuzz runs are clean.
   - Parse throughput is enough for ARCHITECTURE.md §10 (100 MB in well under tmux's time × 1.5).
+  - *Not yet seen:* the nightly job has not run (it runs once the owner pushes). Locally,
+    FuzzTerminal ran clean for 5 minutes (1.7M inputs) and the other targets for 1 minute each.
 - **Depends on:** C1.10.
 
 **Gate 1:**
