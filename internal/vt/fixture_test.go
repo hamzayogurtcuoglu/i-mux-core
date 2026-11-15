@@ -79,6 +79,10 @@ func TestFixtures(t *testing.T) {
 			term := NewTerminal(cols, rows, 2000)
 			term.Screen.Title = vtfixture.InitialTitle // tmux starts a pane with the host's name
 			term.Write(data)
+			for _, size := range vtfixture.Sizes(in)[1:] {
+				term.Resize(size[0], size[1])
+			}
+			cols, rows = vtfixture.Final(in)
 			got := fixtureState(term, cols, rows)
 			if got != string(want) {
 				t.Errorf("screen differs from tmux's:\n%s", lineDiff(string(want), got))

@@ -394,7 +394,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - A memory benchmark is recorded.
 - **Depends on:** C1.4, C1.5.
 
-### [ ] C1.11 Resize and reflow
+### [x] C1.11 Resize and reflow
 - **Goal:** resizing a pane keeps its content the way tmux does.
 - **Details:**
   - Width changes reflow wrapped lines, in the main screen and in the history, as tmux does.

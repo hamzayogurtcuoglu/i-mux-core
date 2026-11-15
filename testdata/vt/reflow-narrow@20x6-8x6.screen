@@ -1,0 +1,62 @@
+size 8x6
+cursor 3,5
+cursor_flag 1
+cursor_shape default
+cursor_blinking 0
+cursor_very_visible 0
+alternate_on 0
+insert_flag 0
+keypad_cursor_flag 0
+keypad_flag 0
+wrap_flag 1
+origin_flag 0
+mouse_standard_flag 0
+mouse_button_flag 0
+mouse_all_flag 0
+mouse_sgr_flag 0
+bracket_paste_flag 0
+synchronized_output_flag 0
+scroll_region_upper 0
+scroll_region_lower 5
+pane_title HOST
+pane_path 
+history_size 7
+--- screen
+[32menough
+[39mshort   
+exactly-
+twenty-c
+harsx   
+end  
+--- history and screen
+the quic
+k brown 
+fox jump
+s over
+[32mgreen te
+xt that 
+is long 
+enough
+[39mshort   
+exactly-
+twenty-c
+harsx   
+end  
+--- joined
+the quick brown fox jumps over
+green text that is long enough
+short   
+exactly-twenty-charsx
+end
+--- ranges
+the quick brown fox jumps over
+green text that is long enough
+short   
+exactly-twenty-charsx
+end
+---
+[32mgreen te
+xt that 
+is long 
+enough
+[39mshort   

@@ -115,6 +115,17 @@ func NewTerminal(sx, sy, hlimit int) *Terminal {
 	return t
 }
 
+// Resize changes the pane's size, as tmux's window_pane_resize: lines reflow, except on the
+// alternate screen, and synchronized output ends.
+func (t *Terminal) Resize(cols, rows int) {
+	s := t.Screen
+	if cols == s.SizeX() && rows == s.SizeY() {
+		return
+	}
+	s.Mode &^= ModeSync
+	s.Resize(cols, rows, !s.IsAlternate())
+}
+
 // Write feeds output from the program. It never fails.
 func (t *Terminal) Write(b []byte) (int, error) { return t.parser.Write(b) }
 

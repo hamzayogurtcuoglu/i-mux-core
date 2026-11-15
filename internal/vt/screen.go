@@ -233,6 +233,12 @@ func (s *Screen) AlternateOff(gc *Cell, cursor bool) bool {
 	if s.NoAlternateScreen {
 		return false
 	}
+	// If the size changed while in the alternate screen, go back to the saved grid's size
+	// before copying it back.
+	sx, sy := s.SizeX(), s.SizeY()
+	if s.IsAlternate() {
+		s.Resize(s.savedGrid.Sx, s.savedGrid.Sy, false)
+	}
 	if cursor && s.savedCx != noSavedCursor && s.savedCy != noSavedCursor {
 		s.Cx = s.savedCx
 		s.Cy = s.savedCy
@@ -250,9 +256,11 @@ func (s *Screen) AlternateOff(gc *Cell, cursor bool) bool {
 		return false
 	}
 	s.Grid.DuplicateLines(s.Grid.HSize, s.savedGrid, 0, s.savedGrid.Sy)
+	// Turn history back on (so resize can use it), then resize back to the current size.
 	if s.savedFlags&gridHistory != 0 {
 		s.Grid.flags |= gridHistory
 	}
+	s.Resize(sx, sy, true)
 	s.savedGrid = nil
 	if s.Cx > s.SizeX()-1 {
 		s.Cx = s.SizeX() - 1
@@ -313,3 +321,77 @@ func (s *Screen) MouseUTF8() bool { return s.Mode&ModeMouseUTF8 != 0 }
 
 // MouseSGR reports whether SGR mouse encoding (mode 1006) is on.
 func (s *Screen) MouseSGR() bool { return s.Mode&ModeMouseSGR != 0 }
+
+// Resize changes the screen's size, as tmux's screen_resize: reflowing lines to a new width
+// when reflow is set, and moving lines between the screen and the history for a new height,
+// with the cursor following its content.
+func (s *Screen) Resize(sx, sy int, reflow bool) {
+	gd := s.Grid
+	cx, cy := s.Cx, gd.HSize+s.Cy
+	sx, sy = max(sx, 1), max(sy, 1)
+	if sx != s.SizeX() {
+		gd.Sx = sx
+		s.ResetTabs()
+	} else {
+		reflow = false
+	}
+	if sy != s.SizeY() {
+		s.resizeY(sy, true, &cy)
+	}
+	if reflow {
+		wx, wy := gd.WrapPosition(cx, cy)
+		gd.Reflow(sx)
+		cx, cy = gd.UnwrapPosition(wx, wy)
+	}
+	if cy >= gd.HSize {
+		s.Cx, s.Cy = cx, cy-gd.HSize
+	} else {
+		s.Cx, s.Cy = 0, 0
+	}
+}
+
+// resizeY is tmux's screen_resize_y: shrinking deletes blank lines below the cursor, then
+// pushes lines into the history; growing pulls lines back out of the scrolled history, then
+// adds blank ones.
+func (s *Screen) resizeY(sy int, eatEmpty bool, cy *int) {
+	gd := s.Grid
+	oldy := s.SizeY()
+	if sy < oldy {
+		needed := oldy - sy
+		if eatEmpty {
+			available := oldy - 1 - s.Cy
+			if available > 0 {
+				available = min(available, needed)
+				gd.ViewDeleteLines(oldy-available, available, 8)
+			}
+			needed -= max(available, 0)
+		}
+		available := s.Cy
+		if gd.History() {
+			gd.HScrolled += needed
+			gd.HSize += needed
+		} else if needed > 0 && available > 0 {
+			available = min(available, needed)
+			gd.ViewDeleteLines(0, available, 8)
+			*cy -= available
+		}
+	}
+	gd.AdjustLines(gd.HSize + sy)
+	if sy > oldy {
+		needed := sy - oldy
+		available := gd.HScrolled
+		if gd.History() && available > 0 {
+			available = min(available, needed)
+			gd.HScrolled -= available
+			gd.HSize -= available
+		} else {
+			available = 0
+		}
+		needed -= available
+		for i := gd.HSize + sy - needed; i < gd.HSize+sy; i++ {
+			gd.emptyLine(i, 8)
+		}
+	}
+	gd.Sy = sy
+	s.Rupper, s.Rlower = 0, s.SizeY()-1
+}

@@ -778,3 +778,207 @@ func (gd *Grid) UnwrapPosition(wx, wy int) (px, py int) {
 	}
 	return wx, yy
 }
+
+// AdjustLines sets how many lines the grid holds (history and screen), as grid_adjust_lines.
+func (gd *Grid) AdjustLines(n int) {
+	switch {
+	case n < len(gd.lines):
+		gd.lines = gd.lines[:n]
+	case n > len(gd.lines):
+		gd.lines = append(gd.lines, make([]Line, n-len(gd.lines))...)
+	}
+}
+
+// Reflow, ported from grid_reflow and its helpers: lines are rewrapped to width sx, joining
+// wrapped lines and splitting long ones, in the history as on the screen.
+
+func reflowDead(gl *Line) { *gl = Line{Flags: LineDead} }
+
+// reflowAdd adds n empty lines to the target and returns the index of the first.
+func (gd *Grid) reflowAdd(n int) int {
+	first := gd.Sy
+	gd.lines = append(gd.lines, make([]Line, n)...)
+	gd.Sy += n
+	return first
+}
+
+// reflowMove moves a line into the target, leaving it dead behind.
+func (gd *Grid) reflowMove(from *Line) int {
+	to := gd.reflowAdd(1)
+	gd.lines[to] = *from
+	reflowDead(from)
+	return to
+}
+
+func (gd *Grid) reflowJoin(target *Grid, sx, yy, width int, already bool) {
+	var to int
+	if !already {
+		to = target.Sy
+		target.reflowMove(&gd.lines[yy])
+	} else {
+		to = target.Sy - 1
+	}
+	gl := &target.lines[to]
+	at := gl.used
+
+	lines, want := 0, 0
+	var from *Line
+	wrapped := true
+	for yy+1+lines != gd.HSize+gd.Sy {
+		line := yy + 1 + lines
+		if gd.lines[line].Flags&LineWrapped == 0 {
+			wrapped = false
+		}
+		if gd.lines[line].used == 0 {
+			if !wrapped {
+				break
+			}
+			lines++
+			continue
+		}
+		var gc Cell
+		gd.lines[line].cell(0, &gc)
+		if width+int(gc.Width) > sx {
+			break
+		}
+		width += int(gc.Width)
+		target.SetCell(at, to, &gc)
+		at++
+
+		from = &gd.lines[line]
+		for want = 1; want < from.used; want++ {
+			from.cell(want, &gc)
+			if width+int(gc.Width) > sx {
+				break
+			}
+			width += int(gc.Width)
+			target.SetCell(at, to, &gc)
+			at++
+		}
+		lines++
+		if !wrapped || want != from.used || width == sx {
+			break
+		}
+	}
+	if lines == 0 || from == nil {
+		return
+	}
+	gl = &target.lines[to]
+	left := from.used - want
+	if left != 0 {
+		gd.MoveCells(0, want, yy+lines, left, 8)
+		from.cells = from.cells[:left]
+		from.used = left
+		lines--
+	} else if !wrapped {
+		gl.Flags &^= LineWrapped
+	}
+	for i := yy + 1; i < yy+1+lines; i++ {
+		reflowDead(&gd.lines[i])
+	}
+	if gd.HScrolled > to+lines {
+		gd.HScrolled -= lines
+	} else if gd.HScrolled > to {
+		gd.HScrolled = to
+	}
+}
+
+func (gd *Grid) reflowSplit(target *Grid, sx, yy, at int) {
+	gl := &gd.lines[yy]
+	used := gl.used
+	flags := gl.Flags
+	var gc Cell
+
+	var lines int
+	if gl.Flags&LineExtended == 0 {
+		lines = 1 + (gl.used-1)/sx
+	} else {
+		lines = 2
+		width := 0
+		for i := at; i < used; i++ {
+			gl.cell(i, &gc)
+			if width+int(gc.Width) > sx {
+				lines++
+				width = 0
+			}
+			width += int(gc.Width)
+		}
+	}
+
+	line := target.Sy + 1
+	first := target.reflowAdd(lines)
+
+	width, xx := 0, 0
+	for i := at; i < used; i++ {
+		gl.cell(i, &gc)
+		if width+int(gc.Width) > sx {
+			target.lines[line].Flags |= LineWrapped
+			line++
+			width = 0
+			xx = 0
+		}
+		width += int(gc.Width)
+		target.SetCell(xx, line, &gc)
+		xx++
+	}
+	if flags&LineWrapped != 0 {
+		target.lines[line].Flags |= LineWrapped
+	}
+
+	gl.cells = gl.cells[:at]
+	gl.used = at
+	gl.Flags |= LineWrapped
+	target.lines[first] = *gl
+	reflowDead(gl)
+
+	if yy <= gd.HScrolled {
+		gd.HScrolled += lines - 1
+	}
+	if width < sx && flags&LineWrapped != 0 {
+		gd.reflowJoin(target, sx, yy, width, true)
+	}
+}
+
+// Reflow rewraps the grid's lines to width sx.
+func (gd *Grid) Reflow(sx int) {
+	target := &Grid{Sx: gd.Sx}
+	var gc Cell
+	for yy := 0; yy < gd.HSize+gd.Sy; yy++ {
+		gl := &gd.lines[yy]
+		if gl.Flags&LineDead != 0 {
+			continue
+		}
+		at, width := 0, 0
+		if gl.Flags&LineExtended == 0 {
+			width = gl.used
+			at = min(width, sx)
+		} else {
+			for i := 0; i < gl.used; i++ {
+				gl.cell(i, &gc)
+				if at == 0 && width+int(gc.Width) > sx {
+					at = i
+				}
+				width += int(gc.Width)
+			}
+		}
+		switch {
+		case width == sx:
+			target.reflowMove(gl)
+		case width > sx:
+			gd.reflowSplit(target, sx, yy, at)
+		case gl.Flags&LineWrapped != 0:
+			gd.reflowJoin(target, sx, yy, width, false)
+		default:
+			target.reflowMove(gl)
+		}
+	}
+	if target.Sy < gd.Sy {
+		target.reflowAdd(gd.Sy - target.Sy)
+	}
+	gd.HSize = target.Sy - gd.Sy
+	if gd.HScrolled > gd.HSize {
+		gd.HScrolled = gd.HSize
+	}
+	gd.lines = target.lines
+	gd.ScrollGeneration++
+}

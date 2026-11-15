@@ -20,17 +20,38 @@ const (
 	DefaultRows = 24
 )
 
-var reSize = regexp.MustCompile(`@([0-9]+)x([0-9]+)\.in$`)
+var (
+	reSizes = regexp.MustCompile(`@([0-9]+x[0-9]+(-[0-9]+x[0-9]+)*)\.in$`)
+	reSize  = regexp.MustCompile(`^([0-9]+)x([0-9]+)$`)
+)
 
-// Size returns a fixture's size from its file name: name@WxH.in, else 80x24.
-func Size(path string) (cols, rows int) {
-	m := reSize.FindStringSubmatch(path)
+// Sizes returns a fixture's sizes from its file name: name@WxH.in, or name@WxH-WxH….in for a
+// fixture written at the first size and then resized to each of the others; 80x24 if none.
+func Sizes(path string) [][2]int {
+	m := reSizes.FindStringSubmatch(path)
 	if m == nil {
-		return DefaultCols, DefaultRows
+		return [][2]int{{DefaultCols, DefaultRows}}
 	}
-	cols, _ = strconv.Atoi(m[1])
-	rows, _ = strconv.Atoi(m[2])
-	return cols, rows
+	var out [][2]int
+	for _, part := range strings.Split(m[1], "-") {
+		p := reSize.FindStringSubmatch(part)
+		c, _ := strconv.Atoi(p[1])
+		r, _ := strconv.Atoi(p[2])
+		out = append(out, [2]int{c, r})
+	}
+	return out
+}
+
+// Size returns the size a fixture is written at, and Final the size it ends at.
+func Size(path string) (cols, rows int) {
+	s := Sizes(path)
+	return s[0][0], s[0][1]
+}
+
+// Final returns the size a fixture ends at.
+func Final(path string) (cols, rows int) {
+	s := Sizes(path)
+	return s[len(s)-1][0], s[len(s)-1][1]
 }
 
 // State is what a fixture's screen shows, besides its cells.
@@ -125,6 +146,12 @@ func FromTmux(tmux, self, in string, timeout time.Duration) (string, error) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+	for _, size := range Sizes(in)[1:] {
+		if _, err := run("resize-window", "-t", "@0", "-x", strconv.Itoa(size[0]), "-y", strconv.Itoa(size[1])); err != nil {
+			return "", err
+		}
+	}
+	cols, rows = Final(in)
 	s := &State{Cols: cols, Rows: rows, Values: map[string]string{}}
 	var formats []string
 	for _, f := range append([]string{"cursor_x", "cursor_y", "history_size"}, StateFormats...) {

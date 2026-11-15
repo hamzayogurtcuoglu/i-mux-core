@@ -209,6 +209,18 @@ var Specs = map[string]string{
 	"history-5000@20x5.in": history5000(),
 	"history-wrapped@10x4.in": "short\r\n" + strings.Repeat("abcdefghij", 3) + "xyz   \r\n" +
 		"\x1b[31m" + strings.Repeat("red", 7) + "\x1b[0m\r\n" + "next\r\nlast",
+	// C1.11: resizing, with reflow on the main screen and none on the alternate one.
+	"reflow-narrow@20x6-8x6.in":          reflowText(),
+	"reflow-wide@8x6-20x6.in":            reflowText(),
+	"reflow-round@20x6-7x4-20x6.in":      reflowText(),
+	"reflow-wide-chars@10x4-5x4-11x4.in": "日本語の文字を折り返す\r\nab日本cd",
+	"reflow-height@20x6-20x3-20x8.in":    "1\r\n2\r\n3\r\n4\r\n5",
+	"reflow-height-cursor@20x6-20x2.in":  "top\r\n\x1b[5;1Hbottom\x1b[2;1H",
+	"reflow-history@10x3-5x3-15x4.in":    history20(),
+	"reflow-alternate@20x5-8x4-20x5.in": "main line that wraps\r\nsecond" +
+		"\x1b[?1049h\x1b[Halternate line that wraps\r\nalt2",
+	"reflow-alternate-off@20x5-8x4.in": "main line that wraps\r\nsecond" +
+		"\x1b[?1049h\x1b[Halternate text here\x1b[?1049l*",
 }
 
 // history5000 is the output of seq 1 5000 on a terminal.
@@ -218,4 +230,22 @@ func history5000() string {
 		b.WriteString(strconv.Itoa(i) + "\r\n")
 	}
 	return b.String()
+}
+
+// reflowText has wrapped and unwrapped lines, colours and trailing spaces.
+func reflowText() string {
+	return "the quick brown fox jumps over\r\n" +
+		"\x1b[32mgreen text that is long enough\x1b[0m\r\n" +
+		"short   \r\n" +
+		"exactly-twenty-chars" + "x\r\n" +
+		"end"
+}
+
+// history20 is twenty numbered lines, most of them gone into a small screen's history.
+func history20() string {
+	var b strings.Builder
+	for i := 1; i <= 20; i++ {
+		b.WriteString("line-" + strconv.Itoa(i) + "-text\r\n")
+	}
+	return b.String() + "last"
 }

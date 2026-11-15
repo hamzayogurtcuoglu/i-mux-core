@@ -1,0 +1,100 @@
+size 15x4
+cursor 4,3
+cursor_flag 1
+cursor_shape default
+cursor_blinking 0
+cursor_very_visible 0
+alternate_on 0
+insert_flag 0
+keypad_cursor_flag 0
+keypad_flag 0
+wrap_flag 1
+origin_flag 0
+mouse_standard_flag 0
+mouse_button_flag 0
+mouse_all_flag 0
+mouse_sgr_flag 0
+bracket_paste_flag 0
+synchronized_output_flag 0
+scroll_region_upper 0
+scroll_region_lower 3
+pane_title HOST
+pane_path 
+history_size 17
+--- screen
+line-18-text   
+line-19-text   
+line-20-text   
+last 
+--- history and screen
+line-1-text    
+line-2-text    
+line-3-text    
+line-4-text    
+line-5-text    
+line-6-text    
+line-7-text    
+line-8-text    
+line-9-text    
+line-10-text   
+line-11-text   
+line-12-text   
+line-13-text   
+line-14-text   
+line-15-text   
+line-16-text   
+line-17-text   
+line-18-text   
+line-19-text   
+line-20-text   
+last 
+--- joined
+line-1-text
+line-2-text
+line-3-text
+line-4-text
+line-5-text
+line-6-text
+line-7-text
+line-8-text
+line-9-text
+line-10-text
+line-11-text
+line-12-text
+line-13-text
+line-14-text
+line-15-text
+line-16-text
+line-17-text
+line-18-text
+line-19-text
+line-20-text
+last
+--- ranges
+line-1-text
+line-2-text
+line-3-text
+line-4-text
+line-5-text
+line-6-text
+line-7-text
+line-8-text
+line-9-text
+line-10-text
+line-11-text
+line-12-text
+line-13-text
+line-14-text
+line-15-text
+line-16-text
+line-17-text
+line-18-text
+line-19-text
+line-20-text
+last
+---
+line-15-text   
+line-16-text   
+line-17-text   
+line-18-text   
+line-19-text   
