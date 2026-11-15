@@ -1,0 +1,4 @@
+# Text files are checked out with LF on every system, Windows included: tests compare files
+# byte for byte. Test data is never converted at all (VT fixtures hold raw CR bytes).
+* text=auto eol=lf
+testdata/** -text

@@ -3,6 +3,7 @@
 /imux-core
 *.test
 *.out
+!/testdata/vt/replies.out
 /coverage*
 /testdata/large/
 /.cache/

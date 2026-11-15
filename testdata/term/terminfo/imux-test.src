@@ -11,4 +11,5 @@ imux-test|terminal for the reader test,
 imux-test-wide|terminal for the reader test with 32-bit numbers,
 	colors#16777216, pairs#65536, use=imux-test,
 # The other entries here are copied from ncurses 6.6.20251230's compiled database, for
-# cmd/termfixture's recordings.
+# cmd/termfixture's recordings. They are in first-letter directories: Debian's and Ubuntu's
+# ncurses do not look in the hexadecimal ones macOS's uses.

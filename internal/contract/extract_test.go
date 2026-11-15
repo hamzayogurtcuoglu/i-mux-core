@@ -151,7 +151,8 @@ func TestRecord(t *testing.T) {
 	if len(c.Files) != 1 || c.Files[conf] == "" {
 		t.Fatalf("files = %v", c.Files)
 	}
-	if c.Caller == "" {
+	// The caller is named where ps(1) can name processes (not on Windows).
+	if c.Caller == "" && commandName(os.Getpid()) != "" {
 		t.Fatal("no caller")
 	}
 	copied, err := os.ReadFile(filepath.Join(cfg.Out, "files", c.Files[conf]))

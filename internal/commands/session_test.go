@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -37,8 +38,11 @@ func (h *fakeHost) SocketPath() string { return "/tmp/s" }
 func (h *fakeHost) Pid() int           { return 42 }
 
 func run(h Host, words ...string) Result {
-	return Run(h, &Client{Cwd: "/usr"}, [][]string{words})
+	return Run(h, &Client{Cwd: testCwd}, [][]string{words})
 }
+
+// testCwd is the client's directory: one that exists on every system.
+var testCwd = os.TempDir()
 
 func TestNewSession(t *testing.T) {
 	h := newFakeHost()
@@ -46,7 +50,7 @@ func TestNewSession(t *testing.T) {
 		t.Fatal(r.Stderr)
 	}
 	s := h.tree.SessionByName("a")
-	if s == nil || s.Cwd != "/usr" {
+	if s == nil || s.Cwd != testCwd {
 		t.Fatalf("session %+v", s)
 	}
 	w := s.Current.Window
@@ -54,7 +58,7 @@ func TestNewSession(t *testing.T) {
 		t.Errorf("window %q %dx%d", w.Name, w.Sx, w.Sy)
 	}
 	spec := h.specs[0]
-	if spec.Path != "/bin/sh" || !slices.Equal(spec.Argv, []string{"sh", "-c", "exec sleep 9"}) || spec.Dir != "/usr" {
+	if spec.Path != "/bin/sh" || !slices.Equal(spec.Argv, []string{"sh", "-c", "exec sleep 9"}) || spec.Dir != testCwd {
 		t.Errorf("spec %+v", spec)
 	}
 	env := strings.Join(spec.Env, "\n")
@@ -75,8 +79,9 @@ func TestNewSession(t *testing.T) {
 	if name := h.tree.SessionByName("b").Current.Window.Name; name != "sh" {
 		t.Errorf("window name %q", name)
 	}
-	run(h, "new", "-d", "-s", "c", "-n", "win", "-c", "/tmp", "printf", "%s", "x y")
-	if spec := h.specs[2]; spec.Path != "" || !slices.Equal(spec.Argv, []string{"printf", "%s", "x y"}) || spec.Dir != "/tmp" {
+	other := t.TempDir()
+	run(h, "new", "-d", "-s", "c", "-n", "win", "-c", other, "printf", "%s", "x y")
+	if spec := h.specs[2]; spec.Path != "" || !slices.Equal(spec.Argv, []string{"printf", "%s", "x y"}) || spec.Dir != other {
 		t.Errorf("argv %+v", spec)
 	}
 	if name := h.tree.SessionByName("c").Current.Window.Name; name != "win" {

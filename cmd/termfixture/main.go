@@ -15,13 +15,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
@@ -165,10 +165,13 @@ func record(bin, terminfo string, c *Case) error {
 		return err
 	}
 	defer func() { _ = p.Kill(); _ = p.Close() }()
-	go func() { // drain what tmux draws
+	var drawn safeBuffer
+	go func() { // drain what tmux draws, keeping it for errors
 		b := make([]byte, 65536)
 		for {
-			if _, err := p.Read(b); err != nil {
+			n, err := p.Read(b)
+			drawn.Write(b[:n])
+			if err != nil {
 				return
 			}
 		}
@@ -179,7 +182,7 @@ func record(bin, terminfo string, c *Case) error {
 		out, _ := run("list-clients", "-F", "#{client_name}")
 		client = strings.TrimSpace(out)
 		if time.Now().After(deadline) {
-			return errors.New("the client did not attach")
+			return fmt.Errorf("the client did not attach; it wrote %q", drawn.String())
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
@@ -202,6 +205,24 @@ func record(bin, terminfo string, c *Case) error {
 	}
 	c.TermFeatures = strings.TrimSpace(out)
 	return nil
+}
+
+// safeBuffer is a buffer written by one goroutine and read by another.
+type safeBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (s *safeBuffer) Write(p []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.b.Write(p)
+}
+
+func (s *safeBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
 }
 
 func fail(err error) {
