@@ -15,7 +15,8 @@ All notable changes to i-mux-core are listed here. The format follows
   lists exactly what i-mux uses of tmux 3.8, with `contract/expected.json` as its data.
 - The differential test harness (`make difftest`): scripts in `testdata/diff` run against tmux
   and i-mux-core, and every command's output, exit code and captured screen is compared.
-- The terminal emulator's parser, ported from tmux 3.8's `input.c` (E10).
+- The terminal emulator's parser, ported from tmux 3.8's `input.c` (E10), with tmux's ground timer
+  for strings that never end.
 - PTYs on macOS and Linux, and a pane's foreground command and working directory, without cgo
   (E11).
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends

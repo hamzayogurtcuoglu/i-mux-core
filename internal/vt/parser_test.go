@@ -135,6 +135,20 @@ func FuzzParser(f *testing.F) {
 		f.Add([]byte(s))
 	}
 	f.Fuzz(func(t *testing.T, b []byte) {
-		NewParser(&countHandler{}).Write(b)
+		p := NewParser(&countHandler{})
+		// Write in two parts, at a point the input picks, to cover split sequences.
+		cut := 0
+		if len(b) > 0 {
+			cut = int(b[0]) % (len(b) + 1)
+		}
+		p.Write(b[:cut])
+		p.Write(b[cut:])
+		// Bounded memory: no buffer outgrows tmux's limits.
+		if len(p.input) >= MaxStringLen || p.interLen > maxIntermediate || p.paramLen > maxParamBytes {
+			t.Fatalf("buffers: input %d, intermediates %d, parameters %d", len(p.input), p.interLen, p.paramLen)
+		}
+		if p.State() == "ground" && cap(p.input) > 32 {
+			t.Fatalf("the ground state keeps a %d-byte buffer", cap(p.input))
+		}
 	})
 }

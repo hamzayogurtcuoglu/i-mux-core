@@ -14,9 +14,15 @@
 
 package vt
 
+import "time"
+
 // The parser is ported from tmux 3.8's input.c: the same states, the same transition tables,
 // the same limits and the same UTF-8 handling, so that malformed input is taken apart the way
 // tmux takes it apart. It only splits bytes into actions; what they do is the Handler's job.
+//
+// C1 controls: only their 7-bit forms (ESC P, ESC [, ESC ], ESC X, ESC ^, ESC _, ESC \) are
+// controls. As in tmux, bytes 0x80 to 0x9f in the ground state start UTF-8 (and, not being lead
+// bytes, print U+FFFD); inside strings they are data.
 
 // Handler receives the parser's actions.
 type Handler interface {
@@ -305,6 +311,7 @@ type Parser struct {
 	state   state
 	discard bool
 	bel     bool
+	timer   bool // tmux's ground timer runs: a string (OSC, DCS, APC, …) has started
 
 	inter    [maxIntermediate]byte
 	interLen int
@@ -342,6 +349,28 @@ func (p *Parser) clear() {
 	p.input = p.input[:0]
 	p.discard = false
 	p.bel = false
+	p.timer = false
+}
+
+// GroundTimeout is how long tmux lets a string (OSC, DCS, APC, a rename, SOS or PM) go
+// unterminated before it gives up on it.
+const GroundTimeout = 5 * time.Second
+
+// InString reports whether a string has started and not ended: the pane's reader then calls
+// Expire once GroundTimeout passes with no more output, as tmux's ground timer does.
+func (p *Parser) InString() bool { return p.timer }
+
+// Expire gives up on an unterminated string: the parser returns to the ground state. It
+// reports whether there was one; the caller then also resets its current cell (colours and
+// attributes), as tmux's input_reset does.
+func (p *Parser) Expire() bool {
+	if !p.timer {
+		return false
+	}
+	p.clear()
+	p.state = stGround
+	p.utf8On = false
+	return true
 }
 
 // enter and exit run a state's enter and exit functions, as tmux's input_set_state does.
@@ -363,11 +392,15 @@ func (p *Parser) setState(next state) {
 	p.state = next
 	switch next {
 	case stGround:
+		p.timer = false
 		if cap(p.input) > 32 {
 			p.input = make([]byte, 0, 32) // input_ground gives back a large buffer
 		}
-	case stEscEnter, stCsiEnter, stDcsEnter, stOscString, stApcString, stRenameString, stConsumeST:
+	case stEscEnter, stCsiEnter:
 		p.clear()
+	case stDcsEnter, stOscString, stApcString, stRenameString, stConsumeST:
+		p.clear()
+		p.timer = true
 	}
 }
 
@@ -467,7 +500,11 @@ func (p *Parser) Write(b []byte) (int, error) {
 				p.h.CsiDispatch(&p.params, p.inter[:p.interLen], c)
 			}
 		case acDcsDispatch:
-			if !p.discard && p.params.split(p.param[:p.paramLen]) {
+			// tmux dispatches a DCS whatever its parameters; only sixel images read them.
+			if !p.discard {
+				if !p.params.split(p.param[:p.paramLen]) {
+					p.params.n = 0
+				}
 				p.h.DcsDispatch(&p.params, p.inter[:p.interLen], p.input)
 			}
 		}

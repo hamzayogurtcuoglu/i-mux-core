@@ -244,7 +244,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - the fd count returns to its start value.
 - **Depends on:** C0.6.
 
-### [ ] C1.2 VT parser
+### [x] C1.2 VT parser
 - **Goal:** turn bytes into well-defined actions, whatever the input.
 - **Details:**
   - DEC ANSI state machine: ground, escape, escape intermediate, CSI entry/param/intermediate/
