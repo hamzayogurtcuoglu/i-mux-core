@@ -25,3 +25,6 @@ All notable changes to i-mux-core are listed here. The format follows
 - VT fixtures whose expected screens come from the pinned tmux (`make vt-fixtures`).
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
+- Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,
+  insert/origin/wrap modes, alignment test and resets in `internal/vt`, verified against tmux 3.8
+  fixtures.

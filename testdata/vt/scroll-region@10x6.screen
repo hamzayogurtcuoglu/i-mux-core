@@ -1,0 +1,46 @@
+size 10x6
+cursor 4,3
+cursor_flag 1
+cursor_shape default
+cursor_blinking 0
+cursor_very_visible 0
+alternate_on 0
+insert_flag 0
+keypad_cursor_flag 0
+keypad_flag 0
+wrap_flag 1
+origin_flag 0
+mouse_standard_flag 0
+mouse_button_flag 0
+mouse_all_flag 0
+mouse_sgr_flag 0
+bracket_paste_flag 0
+synchronized_output_flag 0
+scroll_region_upper 1
+scroll_region_lower 4
+history_size 2
+--- screen
+L1.!......
+
+L3........
+next......
+bvtin    #
+L6.?......
+--- history and screen
+  topin   
+@2........
+L1.!......
+
+L3........
+next......
+bvtin    #
+L6.?......
+--- joined
+  topin
+@2........
+L1.!......
+
+L3........
+next......
+bvtin    #
+L6.?......

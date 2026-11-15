@@ -275,7 +275,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Fixtures with wide characters and combining marks match tmux (via C1.12).
 - **Depends on:** C1.2.
 
-### [ ] C1.4 Cursor and editing sequences
+### [x] C1.4 Cursor and editing sequences
 - **Goal:** programs that draw full screens look right.
 - **Details:**
   - Cursor movement: CUU, CUD, CUF, CUB, CNL, CPL, CHA, CUP/HVP, VPA, HPA, HPR, VPR.

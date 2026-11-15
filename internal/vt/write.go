@@ -305,3 +305,330 @@ func (s *Screen) backspace() {
 	}
 	s.setCursor(cx, cy)
 }
+
+func (s *Screen) cursorUp(ny int) {
+	cx, cy := s.Cx, s.Cy
+	if ny == 0 {
+		ny = 1
+	}
+	if cy < s.Rupper {
+		if ny > cy {
+			ny = cy
+		}
+	} else {
+		if ny > cy-s.Rupper {
+			ny = cy - s.Rupper
+		}
+	}
+	if cx == s.SizeX() {
+		cx--
+	}
+	cy -= ny
+	s.setCursor(cx, cy)
+}
+
+func (s *Screen) cursorDown(ny int) {
+	cx, cy := s.Cx, s.Cy
+	if ny == 0 {
+		ny = 1
+	}
+	if cy > s.Rlower {
+		if ny > s.SizeY()-1-cy {
+			ny = s.SizeY() - 1 - cy
+		}
+	} else {
+		if ny > s.Rlower-cy {
+			ny = s.Rlower - cy
+		}
+	}
+	if cx == s.SizeX() {
+		cx--
+	} else if ny == 0 {
+		return
+	}
+	cy += ny
+	s.setCursor(cx, cy)
+}
+
+func (s *Screen) cursorRight(nx int) {
+	cx, cy := s.Cx, s.Cy
+	if nx == 0 {
+		nx = 1
+	}
+	if cx < s.SizeX() && nx > s.SizeX()-1-cx {
+		nx = s.SizeX() - 1 - cx
+	}
+	if nx == 0 {
+		return
+	}
+	cx += nx
+	s.setCursor(cx, cy)
+}
+
+func (s *Screen) cursorLeft(nx int) {
+	cx, cy := s.Cx, s.Cy
+	if nx == 0 {
+		nx = 1
+	}
+	if nx > cx {
+		nx = cx
+	}
+	if nx == 0 {
+		return
+	}
+	cx -= nx
+	s.setCursor(cx, cy)
+}
+
+// cursorMove moves the cursor to px, py (either may be -1 to leave it alone), honoring DECOM
+// when origin is set. Unlike setCursor, it clamps x to SizeX()-1, clearing any pending wrap.
+func (s *Screen) cursorMove(px, py int, origin bool) {
+	if origin && py != -1 && s.Mode&ModeOrigin != 0 {
+		if py > s.Rlower-s.Rupper {
+			py = s.Rlower
+		} else {
+			py += s.Rupper
+		}
+	}
+	if px != -1 && px > s.SizeX()-1 {
+		px = s.SizeX() - 1
+	}
+	if py != -1 && py > s.SizeY()-1 {
+		py = s.SizeY() - 1
+	}
+	s.setCursor(px, py)
+}
+
+func (s *Screen) reverseIndex(bg Color) {
+	if s.Cy != s.Rupper {
+		if s.Cy > 0 {
+			s.setCursor(-1, s.Cy-1)
+		}
+		return
+	}
+	s.Grid.ViewScrollRegionDown(s.Rupper, s.Rlower, bg)
+}
+
+func (s *Screen) scrollRegion(rupper, rlower int) {
+	if rupper > s.SizeY()-1 {
+		rupper = s.SizeY() - 1
+	}
+	if rlower > s.SizeY()-1 {
+		rlower = s.SizeY() - 1
+	}
+	if rupper >= rlower {
+		return
+	}
+	s.setCursor(0, 0)
+	s.Rupper = rupper
+	s.Rlower = rlower
+}
+
+func (s *Screen) scrollUp(lines int, bg Color) {
+	if lines == 0 {
+		lines = 1
+	} else if lines > s.Rlower-s.Rupper+1 {
+		lines = s.Rlower - s.Rupper + 1
+	}
+	for i := 0; i < lines; i++ {
+		s.Grid.ViewScrollRegionUp(s.Rupper, s.Rlower, bg)
+	}
+}
+
+func (s *Screen) scrollDown(lines int, bg Color) {
+	if lines == 0 {
+		lines = 1
+	} else if lines > s.Rlower-s.Rupper+1 {
+		lines = s.Rlower - s.Rupper + 1
+	}
+	for i := 0; i < lines; i++ {
+		s.Grid.ViewScrollRegionDown(s.Rupper, s.Rlower, bg)
+	}
+}
+
+const lineOSC133Flags = LineStartPrompt | LineSecondPrompt | LineStartCommand | LineStartOutput | LineEndOutput
+
+func (s *Screen) clearLine(bg Color) {
+	gl := s.Grid.ViewLine(s.Cy)
+	if len(gl.cells) == 0 && bg.IsDefault() {
+		return
+	}
+	flags := gl.Flags & lineOSC133Flags
+	s.Grid.ViewClear(0, s.Cy, s.SizeX(), 1, bg)
+	s.Grid.ViewLine(s.Cy).Flags |= flags
+}
+
+func (s *Screen) clearEndOfLine(bg Color) {
+	if s.Cx == 0 {
+		s.clearLine(bg)
+		return
+	}
+	sx := s.SizeX()
+	gl := s.Grid.ViewLine(s.Cy)
+	if s.Cx > sx-1 || (s.Cx >= len(gl.cells) && bg.IsDefault()) {
+		return
+	}
+	s.Grid.ViewClear(s.Cx, s.Cy, sx-s.Cx, 1, bg)
+}
+
+func (s *Screen) clearStartOfLine(bg Color) {
+	sx := s.SizeX()
+	if s.Cx >= sx-1 {
+		s.clearLine(bg)
+		return
+	}
+	s.Grid.ViewClear(0, s.Cy, s.Cx+1, 1, bg)
+}
+
+func (s *Screen) clearEndOfScreen(bg Color) {
+	gd := s.Grid
+	sx, sy := s.SizeX(), s.SizeY()
+	if s.Cx == 0 && s.Cy == 0 && gd.History() {
+		gd.ViewClearHistory(bg)
+		return
+	}
+	if s.Cx <= sx-1 {
+		gd.ViewClear(s.Cx, s.Cy, sx-s.Cx, 1, bg)
+	}
+	gd.ViewClear(0, s.Cy+1, sx, sy-(s.Cy+1), bg)
+}
+
+func (s *Screen) clearStartOfScreen(bg Color) {
+	sx := s.SizeX()
+	if s.Cy > 0 {
+		s.Grid.ViewClear(0, 0, sx, s.Cy, bg)
+	}
+	if s.Cx > sx-1 {
+		s.Grid.ViewClear(0, s.Cy, sx, 1, bg)
+	} else {
+		s.Grid.ViewClear(0, s.Cy, s.Cx+1, 1, bg)
+	}
+}
+
+func (s *Screen) clearScreen(bg Color) {
+	if s.Grid.History() {
+		s.Grid.ViewClearHistory(bg)
+	} else {
+		s.Grid.ViewClear(0, 0, s.SizeX(), s.SizeY(), bg)
+	}
+}
+
+func (s *Screen) insertCharacter(nx int, bg Color) {
+	sx := s.SizeX()
+	if s.Cx > sx-1 {
+		return
+	}
+	if nx == 0 {
+		nx = 1
+	}
+	if nx > sx-s.Cx {
+		nx = sx - s.Cx
+	}
+	if nx == 0 {
+		return
+	}
+	s.Grid.ViewInsertCells(s.Cx, s.Cy, nx, bg)
+}
+
+func (s *Screen) deleteCharacter(nx int, bg Color) {
+	sx := s.SizeX()
+	if s.Cx > sx-1 {
+		return
+	}
+	if nx == 0 {
+		nx = 1
+	}
+	if nx > sx-s.Cx {
+		nx = sx - s.Cx
+	}
+	if nx == 0 {
+		return
+	}
+	s.Grid.ViewDeleteCells(s.Cx, s.Cy, nx, bg)
+}
+
+func (s *Screen) clearCharacter(nx int, bg Color) {
+	sx := s.SizeX()
+	if s.Cx > sx-1 {
+		return
+	}
+	if nx == 0 {
+		nx = 1
+	}
+	if nx > sx-s.Cx {
+		nx = sx - s.Cx
+	}
+	if nx == 0 {
+		return
+	}
+	s.Grid.ViewClear(s.Cx, s.Cy, nx, 1, bg)
+}
+
+func (s *Screen) insertLine(ny int, bg Color) {
+	sy := s.SizeY()
+	if ny == 0 {
+		ny = 1
+	}
+	if s.Cy < s.Rupper || s.Cy > s.Rlower {
+		if ny > sy-s.Cy {
+			ny = sy - s.Cy
+		}
+		if ny == 0 {
+			return
+		}
+		s.Grid.ViewInsertLines(s.Cy, ny, bg)
+		return
+	}
+	if ny > s.Rlower+1-s.Cy {
+		ny = s.Rlower + 1 - s.Cy
+	}
+	if ny == 0 {
+		return
+	}
+	s.Grid.ViewInsertLinesRegion(s.Rlower, s.Cy, ny, bg)
+}
+
+func (s *Screen) deleteLine(ny int, bg Color) {
+	sy := s.SizeY()
+	if ny == 0 {
+		ny = 1
+	}
+	if s.Cy < s.Rupper || s.Cy > s.Rlower {
+		if ny > sy-s.Cy {
+			ny = sy - s.Cy
+		}
+		if ny == 0 {
+			return
+		}
+		s.Grid.ViewDeleteLines(s.Cy, ny, bg)
+		return
+	}
+	if ny > s.Rlower+1-s.Cy {
+		ny = s.Rlower + 1 - s.Cy
+	}
+	if ny == 0 {
+		return
+	}
+	s.Grid.ViewDeleteLinesRegion(s.Rlower, s.Cy, ny, bg)
+}
+
+func (s *Screen) alignmentTest() {
+	gc := DefaultCell
+	gc.Data = "E"
+	for yy := 0; yy < s.SizeY(); yy++ {
+		for xx := 0; xx < s.SizeX(); xx++ {
+			s.Grid.ViewSetCell(xx, yy, &gc)
+		}
+	}
+	s.setCursor(0, 0)
+	s.Rupper = 0
+	s.Rlower = s.SizeY() - 1
+}
+
+func (s *Screen) reset() {
+	s.ResetTabs()
+	s.scrollRegion(0, s.SizeY()-1)
+	s.Mode = ModeCursor | ModeWrap
+	s.clearScreen(8)
+	s.setCursor(0, 0)
+}

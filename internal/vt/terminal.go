@@ -14,6 +14,8 @@
 
 package vt
 
+import "bytes"
+
 // Terminal is a pane's emulator: the parser, tmux's input.c handlers and the screen. Output a
 // program writes goes into Write; the screen holds the result.
 //
@@ -39,7 +41,9 @@ type input struct {
 
 	old          inputCell
 	oldCx, oldCy int
+	oldMode      int
 	last         string // the last character printed, for REP
+	lastWidth    uint8
 	lastValid    bool
 }
 
@@ -61,6 +65,25 @@ func (in *input) resetCell() {
 	in.oldCx, in.oldCy = 0, 0
 }
 
+func (in *input) saveState() {
+	s := in.t.Screen
+	in.old = in.cell
+	in.oldCx = s.Cx
+	in.oldCy = s.Cy
+	in.oldMode = s.Mode
+}
+
+func (in *input) restoreState() {
+	s := in.t.Screen
+	in.cell = in.old
+	if in.oldMode&ModeOrigin != 0 {
+		s.Mode |= ModeOrigin
+	} else {
+		s.Mode &^= ModeOrigin
+	}
+	s.cursorMove(in.oldCx, in.oldCy, false)
+}
+
 // Print writes printable ASCII (tmux's input_print, collected).
 func (in *input) Print(run []byte) {
 	s := in.t.Screen
@@ -68,17 +91,19 @@ func (in *input) Print(run []byte) {
 	if in.cell.set != 0 {
 		set = in.cell.g1set
 	}
-	gc := in.cell.cell
 	if set == 1 {
-		gc.Attr |= AttrCharset
+		in.cell.cell.Attr |= AttrCharset
 	} else {
-		gc.Attr &^= AttrCharset
+		in.cell.cell.Attr &^= AttrCharset
 	}
+	gc := in.cell.cell
 	gc.Width = 1
 	gc.Data = " "
 	s.writeASCII(&gc, run)
 	in.last = asciiString(run[len(run)-1])
+	in.lastWidth = 1
 	in.lastValid = true
+	in.cell.cell.Attr &^= AttrCharset
 }
 
 // PrintUTF8 writes one UTF-8 character (tmux's input_top_bit_set).
@@ -96,6 +121,7 @@ func (in *input) PrintUTF8(seq []byte, invalid bool) {
 		return
 	}
 	in.last = gc.Data
+	in.lastWidth = gc.Width
 	in.lastValid = true
 }
 
@@ -155,10 +181,348 @@ func (in *input) tab() {
 	s.writeCell(&gc)
 }
 
-// The sequences come with the following tasks (C1.4 to C1.8).
-func (in *input) EscDispatch(inter []byte, final byte)             {}
-func (in *input) CsiDispatch(p *Params, inter []byte, final byte)  {}
-func (in *input) OscDispatch(data []byte, bel bool)                {}
-func (in *input) DcsDispatch(p *Params, inter []byte, data []byte) {}
-func (in *input) ApcDispatch(data []byte)                          {}
-func (in *input) RenameDispatch(data []byte)                       {}
+func (in *input) backTab(p *Params) {
+	s := in.t.Screen
+	cx := s.Cx
+	if cx > s.SizeX()-1 {
+		cx = s.SizeX() - 1
+	}
+	n := p.Get(0, 1, 1)
+	if n == -1 {
+		return
+	}
+	for cx > 0 && n > 0 {
+		n--
+		for {
+			cx--
+			if cx == 0 || s.IsTab(cx) {
+				break
+			}
+		}
+	}
+	s.Cx = cx
+}
+
+func (in *input) repeatLast(p *Params) {
+	s := in.t.Screen
+	n := p.Get(0, 1, 1)
+	if n == -1 {
+		return
+	}
+	if m := s.SizeX() - s.Cx; n > m {
+		n = m
+	}
+	if !in.lastValid || in.t.parser.utf8On {
+		return
+	}
+	set := in.cell.g0set
+	if in.cell.set != 0 {
+		set = in.cell.g1set
+	}
+	if set == 1 {
+		in.cell.cell.Attr |= AttrCharset
+	} else {
+		in.cell.cell.Attr &^= AttrCharset
+	}
+	if len(in.last) == 1 && in.last[0] < 0x7f {
+		gc := in.cell.cell
+		gc.Data, gc.Width = " ", 1
+		s.writeASCII(&gc, bytes.Repeat([]byte{in.last[0]}, n))
+		return
+	}
+	gc := in.cell.cell
+	gc.Data, gc.Width = in.last, in.lastWidth
+	for i := 0; i < n; i++ {
+		s.writeCell(&gc)
+	}
+}
+
+// EscDispatch runs an ESC sequence (tmux's input_esc_dispatch).
+func (in *input) EscDispatch(inter []byte, final byte) {
+	s := in.t.Screen
+	switch string(inter) {
+	case "":
+		switch final {
+		case '7': // DECSC
+			in.saveState()
+		case '8': // DECRC
+			in.restoreState()
+		case '=': // DECKPAM
+			s.Mode |= ModeKKeypad
+		case '>': // DECKPNM
+			s.Mode &^= ModeKKeypad
+		case 'D': // IND
+			s.linefeed(false, in.cell.cell.Bg)
+		case 'E': // NEL
+			s.carriageReturn()
+			s.linefeed(false, in.cell.cell.Bg)
+		case 'H': // HTS
+			if s.Cx < s.SizeX() {
+				s.SetTab(s.Cx, true)
+			}
+		case 'M': // RI
+			s.reverseIndex(in.cell.cell.Bg)
+		case '\\': // ST
+		case 'c': // RIS
+			in.resetCell()
+			s.reset()
+		default:
+			return
+		}
+	case "#":
+		if final != '8' { // DECALN
+			return
+		}
+		s.alignmentTest()
+	case "(":
+		switch final {
+		case '0':
+			in.cell.g0set = 1
+		case 'B':
+			in.cell.g0set = 0
+		default:
+			return
+		}
+	case ")":
+		switch final {
+		case '0':
+			in.cell.g1set = 1
+		case 'B':
+			in.cell.g1set = 0
+		default:
+			return
+		}
+	default:
+		return
+	}
+	in.lastValid = false
+}
+
+// CsiDispatch runs a CSI sequence (tmux's input_csi_dispatch).
+func (in *input) CsiDispatch(p *Params, inter []byte, final byte) {
+	s := in.t.Screen
+	bg := in.cell.cell.Bg
+	switch string(inter) {
+	case "":
+		switch final {
+		case '@': // ICH
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.insertCharacter(n, bg)
+			}
+		case 'A': // CUU
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.cursorUp(n)
+			}
+		case 'B': // CUD
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.cursorDown(n)
+			}
+		case 'C': // CUF
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.cursorRight(n)
+			}
+		case 'D': // CUB
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.cursorLeft(n)
+			}
+		case 'E': // CNL
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.carriageReturn()
+				s.cursorDown(n)
+			}
+		case 'F': // CPL
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.carriageReturn()
+				s.cursorUp(n)
+			}
+		case 'G', '`': // CHA / HPA
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.cursorMove(n-1, -1, true)
+			}
+		case 'H', 'f': // CUP / HVP
+			n := p.Get(0, 1, 1)
+			m := p.Get(1, 1, 1)
+			if n != -1 && m != -1 {
+				s.cursorMove(m-1, n-1, true)
+			}
+		case 'J': // ED
+			switch p.Get(0, 0, 0) {
+			case 0:
+				s.clearEndOfScreen(bg)
+			case 1:
+				s.clearStartOfScreen(bg)
+			case 2:
+				s.clearScreen(bg)
+			case 3:
+				if p.Get(1, 0, 0) == 0 {
+					s.Grid.ClearHistory()
+				}
+			}
+		case 'K': // EL
+			switch p.Get(0, 0, 0) {
+			case 0:
+				s.clearEndOfLine(bg)
+			case 1:
+				s.clearStartOfLine(bg)
+			case 2:
+				s.clearLine(bg)
+			}
+		case 'L': // IL
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.insertLine(n, bg)
+			}
+		case 'M': // DL
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.deleteLine(n, bg)
+			}
+		case 'P': // DCH
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.deleteCharacter(n, bg)
+			}
+		case 'S': // SU
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.scrollUp(n, bg)
+			}
+		case 'T': // SD
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.scrollDown(n, bg)
+			}
+		case 'X': // ECH
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.clearCharacter(n, bg)
+			}
+		case 'Z': // CBT
+			in.backTab(p)
+		case 'b': // REP
+			in.repeatLast(p)
+		case 'c': // DA (C1.8)
+		case 'd': // VPA
+			if n := p.Get(0, 1, 1); n != -1 {
+				s.cursorMove(-1, n-1, true)
+			}
+		case 'g': // TBC
+			switch p.Get(0, 0, 0) {
+			case 0:
+				if s.Cx < s.SizeX() {
+					s.SetTab(s.Cx, false)
+				}
+			case 3:
+				s.ClearTabs()
+			}
+		case 'h': // SM
+			in.csiSM(p)
+		case 'l': // RM
+			in.csiRM(p)
+		case 'm': // SGR (C1.5)
+		case 'n': // DSR (C1.8)
+		case 'r': // DECSTBM
+			n := p.Get(0, 1, 1)
+			m := p.Get(1, 1, s.SizeY())
+			if n != -1 && m != -1 {
+				s.scrollRegion(n-1, m-1)
+			}
+		case 's': // SCP
+			in.saveState()
+		case 't': // WINOPS (C1.7/C1.8)
+		case 'u': // RCP
+			in.restoreState()
+		default:
+			return
+		}
+	case "?":
+		switch final {
+		case 'S': // SM_GRAPHICS
+		case 'h': // DECSET
+			in.csiSMPrivate(p)
+		case 'l': // DECRST
+			in.csiRMPrivate(p)
+		case 'n': // DSR_PRIVATE
+		default:
+			return
+		}
+	case ">":
+		switch final {
+		case 'c', 'm', 'n', 'q':
+		default:
+			return
+		}
+	case " ":
+		if final != 'q' { // DECSCUSR
+			return
+		}
+		if n := p.Get(0, 0, 0); n != -1 {
+			s.SetCursorStyle(n)
+			if n == 0 {
+				s.Mode &^= ModeCursorBlinkingSet
+			}
+		}
+	case "$", "?$":
+		if final != 'p' { // DECRQM (C1.6)
+			return
+		}
+	default:
+		return
+	}
+	in.lastValid = false
+}
+
+func (in *input) csiSM(p *Params) {
+	s := in.t.Screen
+	for i := 0; i < p.Len(); i++ {
+		switch p.Get(i, 0, -1) {
+		case 4: // IRM
+			s.Mode |= ModeInsert
+		case 34:
+			s.Mode &^= ModeCursorVeryVisible
+		}
+	}
+}
+
+func (in *input) csiRM(p *Params) {
+	s := in.t.Screen
+	for i := 0; i < p.Len(); i++ {
+		switch p.Get(i, 0, -1) {
+		case 4: // IRM
+			s.Mode &^= ModeInsert
+		case 34:
+			s.Mode |= ModeCursorVeryVisible
+		}
+	}
+}
+
+func (in *input) csiSMPrivate(p *Params) {
+	s := in.t.Screen
+	for i := 0; i < p.Len(); i++ {
+		switch p.Get(i, 0, -1) {
+		case 3: // DECCOLM
+			s.cursorMove(0, 0, true)
+			s.clearScreen(in.cell.cell.Bg)
+		case 6: // DECOM
+			s.Mode |= ModeOrigin
+			s.cursorMove(0, 0, true)
+		case 7: // DECAWM
+			s.Mode |= ModeWrap
+		}
+	}
+}
+
+func (in *input) csiRMPrivate(p *Params) {
+	s := in.t.Screen
+	for i := 0; i < p.Len(); i++ {
+		switch p.Get(i, 0, -1) {
+		case 3: // DECCOLM
+			s.cursorMove(0, 0, true)
+			s.clearScreen(in.cell.cell.Bg)
+		case 6: // DECOM
+			s.Mode &^= ModeOrigin
+			s.cursorMove(0, 0, true)
+		case 7: // DECAWM
+			s.Mode &^= ModeWrap
+		}
+	}
+}
+
+func (in *input) OscDispatch(data []byte, bel bool)                { in.lastValid = false }
+func (in *input) DcsDispatch(p *Params, inter []byte, data []byte) { in.lastValid = false }
+func (in *input) ApcDispatch(data []byte)                          { in.lastValid = false }
+func (in *input) RenameDispatch(data []byte)                       { in.lastValid = false }

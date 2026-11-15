@@ -31,6 +31,15 @@ func main() {
 	flag.Parse()
 	files := flag.Args()
 	if len(files) == 0 {
+		if !*check {
+			for name, data := range vtfixture.Specs {
+				p := filepath.Join(*dir, name)
+				if err := os.WriteFile(p, []byte(data), 0o644); err != nil {
+					fmt.Fprintln(os.Stderr, "vtfixture:", err)
+					os.Exit(1)
+				}
+			}
+		}
 		var err error
 		files, err = filepath.Glob(filepath.Join(*dir, "*.in"))
 		if err != nil || len(files) == 0 {
