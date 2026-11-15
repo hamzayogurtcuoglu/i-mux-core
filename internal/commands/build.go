@@ -47,11 +47,28 @@ type Error struct {
 	Msg  string
 }
 
+// Error prints as tmux's cmd_parse_get_error: with the file and line, or bare for a command
+// line or string.
 func (e *Error) Error() string {
 	if e.File != "" {
 		return fmt.Sprintf("%s:%d: %s", e.File, e.Line, e.Msg)
 	}
-	return fmt.Sprintf("%d: %s", e.Line, e.Msg)
+	return e.Msg
+}
+
+// BuildArgv builds a command line's commands (already split at ";"), as tmux's
+// cmd_parse_from_arguments does: all in one group, with aliases expanded.
+func BuildArgv(cmds [][]string, aliases []string) (*List, error) {
+	parsed := make([]*cmdlang.Command, 0, len(cmds))
+	for _, words := range cmds {
+		c := &cmdlang.Command{}
+		for _, w := range words {
+			c.Args = append(c.Args, cmdlang.Arg{String: w})
+		}
+		parsed = append(parsed, c)
+	}
+	b := &Builder{Aliases: aliases}
+	return b.Build(parsed)
 }
 
 // Build builds cmds: one group per source line, each line's commands printed with Verbose
@@ -151,6 +168,7 @@ func (b *Builder) buildCommand(c *cmdlang.Command) (*List, error) {
 	if err != nil {
 		return nil, b.fail(err.Error())
 	}
+	cmd.File, cmd.Line = b.File, b.line
 	return &List{Commands: []*Command{cmd}}, nil
 }
 

@@ -707,7 +707,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Status:** done. The 96 configs captured in C0.3 parse and print exactly as tmux's; `%if`
   conditions are still taken literally until the format engine (C3.5).
 
-### [ ] C3.2 Command table and flags
+### [x] C3.2 Command table and flags
 - **Goal:** one place that defines every command's flags and targets.
 - **Details:**
   - A table of name, alias, getopt-style flag spec, argument count, target kinds and handler.
@@ -715,6 +715,11 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - An unknown command or flag gives tmux's exact error text.
 - **Acceptance:** table tests; difftest of error messages for bad commands and flags.
 - **Depends on:** C3.1.
+- **Status:** done. `scripts/gen-command-table.sh` generates the table from tmux's source:
+  names, aliases, flag specs, argument bounds, usages, `-s`/`-t` target kinds and the
+  `CMD_*` flags; per-command argument types (`{ }` blocks) follow tmux's callbacks. Command
+  lines and config files build through one builder (aliases, groups, errors with file and line);
+  the handlers are in `implemented` and grow with C3.6. `testdata/diff/errors.txt`.
 
 ### [ ] C3.3 Targets
 - **Goal:** `-t` and `-s` find what tmux finds.

@@ -19,7 +19,13 @@ entries=$(echo "$macros" | awk -v OFS='\t' '
 FILENAME == "-" { split($0, kv, "\t"); macro[kv[1]] = kv[2]; next }
 /^const struct cmd_entry cmd_[a-z_]+_entry = \{/ {
 	v = $4; name = ""; alias = ""; tmpl = ""; lo = ""; hi = ""; start = 0; usage = ""
-	inside = 1; inusage = 0; next
+	flags = ""; source = "-"; target = "-"
+	inside = 1; inusage = 0; inflags = 0; next
+}
+inside && inflags {
+	f = f " " $0
+	if ($0 ~ /,[ \t]*$/) { inflags = 0; flags = cflags(f) }
+	next
 }
 inside && inusage {
 	u = u " " $0
@@ -40,10 +46,45 @@ inside && /\.usage = / {
 	u = $0; sub(/.*\.usage = /, "", u)
 	if (u ~ /,[ \t]*$/) usage = join(u); else inusage = 1
 }
-inside && /\.flags = .*CMD_STARTSERVER/ { start = 1 }
+inside && /\.flags = / {
+	f = $0; sub(/.*\.flags = /, "", f)
+	if (f ~ /,[ \t]*$/) flags = cflags(f); else inflags = 1
+}
+inside && /\.source = / { source = find($0) }
+inside && /\.target = / { target = find($0) }
 inside && /^};/ {
-	print v, name, alias, tmpl, lo, hi, start, usage
+	start = (flags ~ /CmdStartserver/)
+	print v, name, alias, tmpl, lo, hi, start, usage, (flags == "" ? "0" : flags), source, target
 	inside = 0
+}
+# cflags turns "CMD_A|CMD_B," into Go constants.
+function cflags(text,    n, parts, i, out, w) {
+	gsub(/[ \t,]/, "", text)
+	if (text == "0") return "0"
+	n = split(text, parts, "|")
+	out = ""
+	for (i = 1; i <= n; i++) {
+		w = gocase(parts[i])
+		out = out (out == "" ? "" : "|") w
+	}
+	return out
+}
+# find turns "{ 't', CMD_FIND_PANE, CMD_FIND_CANFAIL }," into a Go Find.
+function find(text,    a, parts, fl) {
+	a = text; sub(/.*\{ */, "", a); sub(/ *\}.*/, "", a)
+	split(a, parts, / *, */)
+	fl = parts[3]
+	if (fl == "0") fl = "0"; else fl = cflags(fl)
+	return "&TargetSpec{Flag: " parts[1] ", Type: " gocase(parts[2]) ", Flags: " fl "}"
+}
+# gocase turns CMD_FIND_WINDOW_INDEX into FindWindowIndex and CMD_AFTERHOOK into CmdAfterhook.
+function gocase(w,    n, parts, i, out) {
+	sub(/^CMD_FIND_/, "Find_", w)
+	n = split(tolower(w), parts, "_")
+	out = ""
+	for (i = 1; i <= n; i++)
+		out = out toupper(substr(parts[i], 1, 1)) substr(parts[i], 2)
+	return out
 }
 # join concatenates C string literals and usage macros.
 function join(text,    out, t) {
@@ -87,8 +128,11 @@ HEAD
 	sed -n '/^const struct cmd_entry \*cmd_table\[\]/,/^};/p' "$src/cmd.c" |
 		grep -oE 'cmd_[a-z_]+_entry' | while read -r v; do
 		echo "$entries" | awk -F '\t' -v v="$v" '$1 == v {
-			printf "\t{Name: \"%s\", Alias: \"%s\", Template: \"%s\", Lower: %s, Upper: %s, StartServer: %s,\n\t\tUsage: \"%s\"},\n", \
-				$2, $3, $4, $5, $6, ($7 ? "true" : "false"), $8
+			printf "\t{Name: \"%s\", Alias: \"%s\", Template: \"%s\", Lower: %s, Upper: %s, StartServer: %s,\n\t\tUsage: \"%s\",\n\t\tFlags: %s", \
+				$2, $3, $4, $5, $6, ($7 ? "true" : "false"), $8, $9
+			if ($10 != "-") printf ", Source: %s", $10
+			if ($11 != "-") printf ", Target: %s", $11
+			printf "},\n"
 		}'
 	done
 	echo "}"

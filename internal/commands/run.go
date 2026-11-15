@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 )
@@ -62,21 +64,38 @@ type Result struct {
 	Failed bool
 }
 
-// Run parses and runs a client's command list in order. A parse error runs nothing; a failing
-// command stops the rest of the list, as in tmux.
+// Run builds and runs a client's command line in order. A command line that does not build
+// runs nothing; a failing command stops the rest of its group, which for a command line is
+// all of it, as in tmux.
 func Run(h Host, c *Client, cmds [][]string) Result {
-	var out, errs strings.Builder
-	list, err := ParseList(cmds)
+	var out strings.Builder
+	list, err := BuildArgv(cmds, DefaultAliases)
 	if err != nil {
 		return Result{Stderr: err.Error() + "\n", Failed: true}
 	}
-	for _, cmd := range list {
-		if err := runOne(h, c, cmd, &out); err != nil {
+	return runList(h, c, list, &out)
+}
+
+// runList runs a list; a failing command skips the rest of its group.
+func runList(h Host, c *Client, list *List, out *strings.Builder) Result {
+	var errs strings.Builder
+	failed := false
+	skip := -1
+	for _, cmd := range list.Commands {
+		if cmd.Group == skip {
+			continue
+		}
+		if err := runOne(h, c, cmd, out); err != nil {
+			// A config file's errors say where they come from (tmux's cfg_add_cause).
+			if cmd.File != "" {
+				fmt.Fprintf(&errs, "%s:%d: ", cmd.File, cmd.Line)
+			}
 			errs.WriteString(err.Error() + "\n")
-			return Result{Stdout: out.String(), Stderr: errs.String(), Failed: true}
+			failed = true
+			skip = cmd.Group
 		}
 	}
-	return Result{Stdout: out.String()}
+	return Result{Stdout: out.String(), Stderr: errs.String(), Failed: failed}
 }
 
 func runOne(h Host, c *Client, cmd *Command, out *strings.Builder) error {
@@ -87,23 +106,27 @@ func runOne(h Host, c *Client, cmd *Command, out *strings.Builder) error {
 	return f(&Item{Host: h, Client: c, Cmd: cmd, Out: out})
 }
 
-// RunConfig runs a config file's commands, one line at a time: a line whose command fails does
-// not stop the next lines, as in tmux. It returns the errors, each with its line.
-func RunConfig(h Host, file string, lines [][][]string, lineNos []int) []string {
-	var causes []string
-	var out strings.Builder
-	for i, cmds := range lines {
-		list, err := ParseList(cmds)
-		if err == nil {
-			for _, cmd := range list {
-				if err = runOne(h, nil, cmd, &out); err != nil {
-					break
-				}
-			}
+// RunConfig parses and runs a config file, as tmux's source-file does: a file that does not
+// parse or build runs nothing; a failing command skips the rest of its line, and the next lines
+// still run. It returns the errors, with their file and line.
+func RunConfig(h Host, file, src string, opts cmdlang.Options) []string {
+	cmds, err := cmdlang.Parse(src, opts)
+	if err != nil {
+		var pe *cmdlang.Error
+		if errors.As(err, &pe) {
+			return []string{fmt.Sprintf("%s:%d: %s", file, pe.Line, pe.Msg)}
 		}
-		if err != nil {
-			causes = append(causes, fmt.Sprintf("%s:%d: %v", file, lineNos[i], err))
-		}
+		return []string{file + ": " + err.Error()}
 	}
-	return causes
+	b := &Builder{File: file, Aliases: DefaultAliases, Parse: opts}
+	list, err := b.Build(cmds)
+	if err != nil {
+		return []string{err.Error()}
+	}
+	var out strings.Builder
+	res := runList(h, nil, list, &out)
+	if res.Stderr == "" {
+		return nil
+	}
+	return strings.Split(strings.TrimSuffix(res.Stderr, "\n"), "\n")
 }

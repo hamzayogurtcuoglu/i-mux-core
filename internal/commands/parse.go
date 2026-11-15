@@ -18,7 +18,10 @@ type Spec struct {
 	Lower, Upper int
 	// StartServer: the command starts a server when there is none (tmux's CMD_STARTSERVER).
 	StartServer bool
-	Usage       string // what follows the name in "usage: <name> <usage>"
+	Usage       string      // what follows the name in "usage: <name> <usage>"
+	Flags       CmdFlags    // tmux's CMD_* flags
+	Source      *TargetSpec // the -s the command resolves before it runs, or nil
+	Target      *TargetSpec // the -t, or nil
 }
 
 // Find looks a command up by alias, exact name or unique prefix of its name, as tmux does.
@@ -247,7 +250,9 @@ func looksLikeFlag(w string) bool {
 type Command struct {
 	Spec  *Spec
 	Args  *Args
-	Group int // commands from one line share a group; a failing one skips the rest of it
+	Group int    // commands from one line share a group; a failing one skips the rest of it
+	File  string // the file it came from, for its errors ("" for a command line)
+	Line  int
 }
 
 // Parse looks up and parses one command's words, with tmux's messages.
@@ -328,30 +333,62 @@ var argTypes = map[string]func(a *Args, idx int) ArgType{
 	},
 }
 
-// ParseList parses a command list; the first error fails the whole list, as in tmux.
-func ParseList(cmds [][]string) ([]*Command, error) {
-	out := make([]*Command, 0, len(cmds))
-	for _, words := range cmds {
-		c, err := Parse(words)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, c)
-	}
-	return out, nil
-}
-
-// StartsServer reports whether a command list starts a server when there is none: when it
-// parses and any of its commands does, as tmux's client decides.
+// StartsServer reports whether a command line starts a server when there is none: when it
+// builds and any of its commands does, as tmux's client decides.
 func StartsServer(cmds [][]string) bool {
-	list, err := ParseList(cmds)
+	list, err := BuildArgv(cmds, DefaultAliases)
 	if err != nil {
 		return false
 	}
-	for _, c := range list {
+	for _, c := range list.Commands {
 		if c.Spec.StartServer {
 			return true
 		}
 	}
 	return false
+}
+
+// CmdFlags are a command's properties in tmux's table.
+type CmdFlags int
+
+// tmux's CMD_* flags.
+const (
+	CmdStartserver   CmdFlags = 0x1  // starts a server when there is none
+	CmdReadonly      CmdFlags = 0x2  // allowed for a read-only client
+	CmdAfterhook     CmdFlags = 0x4  // fires after-<command> hooks
+	CmdClientCflag   CmdFlags = 0x8  // -c names the client
+	CmdClientTflag   CmdFlags = 0x10 // -t names the client
+	CmdClientCanfail CmdFlags = 0x20 // the client may be missing
+)
+
+// FindType is what a target names.
+type FindType int
+
+// tmux's cmd_find types.
+const (
+	FindPane FindType = iota
+	FindWindow
+	FindSession
+)
+
+// FindFlags change how a target is found.
+type FindFlags int
+
+// tmux's CMD_FIND_* flags.
+const (
+	FindPreferUnattached FindFlags = 0x1
+	FindQuiet            FindFlags = 0x2
+	FindWindowIndex      FindFlags = 0x4
+	FindDefaultMarked    FindFlags = 0x8
+	FindExactSession     FindFlags = 0x10
+	FindExactWindow      FindFlags = 0x20
+	FindCanfail          FindFlags = 0x40
+)
+
+// TargetSpec says which flag names a command's source or target, what it names and how it is
+// found (tmux's cmd_entry_flag).
+type TargetSpec struct {
+	Flag  byte
+	Type  FindType
+	Flags FindFlags
 }

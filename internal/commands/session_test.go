@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 )
@@ -151,12 +152,9 @@ func TestSessionTargets(t *testing.T) {
 
 func TestRunConfig(t *testing.T) {
 	h := newFakeHost()
-	causes := RunConfig(h, "/c.conf", [][][]string{
-		{{"new", "-s", "one"}},
-		{{"has", "-t", "zz"}, {"new", "-s", "skipped"}},
-		{{"new", "-s", "two"}},
-	}, []int{1, 2, 4})
-	if len(causes) != 1 || causes[0] != "/c.conf:2: can't find session: zz" {
+	causes := RunConfig(h, "/c.conf", "new -s one\nhas -t zz ; new -s skipped\n\nsplitp\nnew -s two\n", cmdlang.Options{})
+	if len(causes) != 2 || causes[0] != "/c.conf:2: can't find session: zz" ||
+		causes[1] != "/c.conf:4: split-window: not implemented by imux-core yet" {
 		t.Errorf("causes %q", causes)
 	}
 	// A config file has no client: new-session is detached even without -d.

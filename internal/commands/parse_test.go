@@ -126,3 +126,75 @@ func TestStartsServer(t *testing.T) {
 		}
 	}
 }
+
+// The table's targets and flags, as tmux 3.8's cmd-*.c define them.
+func TestTableTargets(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		source, target *TargetSpec
+		flags          CmdFlags
+	}{
+		{"kill-server", nil, nil, 0},
+		{"select-pane", nil, &TargetSpec{'t', FindPane, 0}, 0},
+		{"has-session", nil, &TargetSpec{'t', FindSession, 0}, 0},
+		{"new-session", nil, &TargetSpec{'t', FindSession, FindCanfail}, CmdStartserver},
+		{"swap-pane", &TargetSpec{'s', FindPane, FindDefaultMarked}, &TargetSpec{'t', FindPane, 0}, 0},
+		{"break-pane", &TargetSpec{'s', FindPane, 0}, &TargetSpec{'t', FindWindow, FindWindowIndex}, 0},
+		{"switch-client", nil, nil, CmdReadonly | CmdClientCflag},
+	} {
+		s, err := Find(tc.name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(s.Source, tc.source) || !reflect.DeepEqual(s.Target, tc.target) || s.Flags != tc.flags {
+			t.Errorf("%s: source %+v target %+v flags %#x", tc.name, s.Source, s.Target, s.Flags)
+		}
+		if s.StartServer != (s.Flags&CmdStartserver != 0) {
+			t.Errorf("%s: StartServer %v with flags %#x", tc.name, s.StartServer, s.Flags)
+		}
+	}
+}
+
+// A command line is one group, with aliases expanded, as tmux's cmd_parse_from_arguments.
+func TestBuildArgv(t *testing.T) {
+	list, err := BuildArgv([][]string{{"splitp", "-h"}, {"info"}, {"has", "-t", "a b"}}, DefaultAliases)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := list.Print(), `split-window -h ; show-messages -JT ; has-session -t "a b"`; got != want {
+		t.Errorf("Print() = %q, want %q", got, want)
+	}
+	for _, c := range list.Commands {
+		if c.Group != list.Commands[0].Group {
+			t.Error("a command line is more than one group")
+		}
+	}
+	if _, err := BuildArgv([][]string{{"has"}, {"nosuch"}}, DefaultAliases); err == nil || err.Error() != "unknown command: nosuch" {
+		t.Errorf("error %v", err)
+	}
+}
+
+func TestEscape(t *testing.T) {
+	// What tmux 3.8 printed for these (testdata/cmdlang/quotes.golden).
+	for in, want := range map[string]string{
+		"":        "''",
+		"plain":   "plain",
+		"a b":     `"a b"`,
+		";":       `\;`,
+		"~":       `\~`,
+		"~/z":     `\~/z`,
+		"a~b":     "a~b",
+		"$":       `\$`,
+		"$x":      `"\$x"`,
+		"it's":    `"it's"`,
+		`say "x"`: `"say \"x\""`,
+		`"x"`:     `'"x"'`,
+		"\a":      `\a`,
+		"\x1b[1m": `\033[1m`,
+		"é":       "é",
+	} {
+		if got := Escape(in); got != want {
+			t.Errorf("Escape(%q) = %s, want %s", in, got, want)
+		}
+	}
+}

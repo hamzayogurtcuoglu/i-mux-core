@@ -161,24 +161,9 @@ func (s *Server) LoadConfig(path string) []string {
 		}
 		return env("HOME")
 	}
-	cmds, err := cmdlang.Parse(string(b), cmdlang.Options{Env: env, Home: home})
-	if err != nil {
-		// A parse error runs none of the file, as in tmux.
-		return []string{path + ":" + err.Error()}
-	}
-	var lines [][][]string
-	var lineNos []int
-	for _, c := range cmds {
-		if n := len(lineNos); n > 0 && lineNos[n-1] == c.Line {
-			lines[n-1] = append(lines[n-1], c.Words())
-			continue
-		}
-		lines = append(lines, [][]string{c.Words()})
-		lineNos = append(lineNos, c.Line)
-	}
 	var causes []string
 	if err := s.Do(func(_ *model.Tree) {
-		causes = commands.RunConfig(s, path, lines, lineNos)
+		causes = commands.RunConfig(s, path, string(b), cmdlang.Options{Env: env, Home: home})
 	}); err != nil {
 		return []string{err.Error()}
 	}

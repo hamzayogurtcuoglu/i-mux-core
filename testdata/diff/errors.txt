@@ -1,0 +1,35 @@
+# Command lookup and flag errors (C3.2): every message is tmux's, and a command line that does
+# not build runs nothing.
+run new-session -d -s a 'exec sleep 100'
+run nosuch
+run ne
+run kill-s
+run s
+run new-session -z
+run new-session -d -%
+run has-session -t
+run has-session extra
+run kill-session -t a extra
+run rename-session
+run has-session -?
+run kill-server -?
+run new-session -?
+run select-pane -% -t a
+run splitp -Q
+run info -Q
+run send-keys -t
+run display-message -p -F
+run set-option
+run set-option -g a b c
+run resize-pane -x
+run has-session -t a ; nosuch
+run has-session -t a ; new-session -d -s b -z
+run has-session -t =a
+run new-session -d -s x 'exec sleep 100' ; has-session -t nope ; kill-session -t x
+run has-session -t x
+run kill-session -t x
+run has-session -t a\; extra
+run has-session -t a \; has-session
+run has-session -t a; has-session -t a;
+run -- has-session
+run kill-server
