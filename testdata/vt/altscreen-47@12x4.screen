@@ -1,0 +1,31 @@
+size 12x4
+cursor 2,2
+cursor_flag 1
+cursor_shape default
+cursor_blinking 0
+cursor_very_visible 0
+alternate_on 0
+insert_flag 0
+keypad_cursor_flag 0
+keypad_flag 0
+wrap_flag 1
+origin_flag 0
+mouse_standard_flag 0
+mouse_button_flag 0
+mouse_all_flag 0
+mouse_sgr_flag 0
+bracket_paste_flag 0
+synchronized_output_flag 0
+scroll_region_upper 0
+scroll_region_lower 3
+history_size 0
+--- screen
+keep-1      
+keep-2      
+k#ep-3      
+keep-4 *    
+--- joined
+keep-1
+keep-2
+k#ep-3
+keep-4 *

@@ -74,11 +74,17 @@ type Screen struct {
 
 	savedCx, savedCy int
 	savedGrid        *Grid
+	savedCell        Cell
+	savedFlags       int
 
 	tabs []bool
 
 	Title string
 	Path  string
+
+	// NoAlternateScreen disables switching to the alternate screen (tmux's alternate-screen
+	// option when set to off).
+	NoAlternateScreen bool
 
 	// VS16Narrow turns off tmux's variation-selector-always-wide (on by default): a character
 	// followed by U+FE0F is then not made wide.
@@ -177,8 +183,113 @@ func setCursorStyle(style int, cstyle *CursorStyle, mode *int) {
 	}
 }
 
-// AlternateOn and AlternateOff are filled in with the modes (C1.6).
-func (s *Screen) AlternateOn(gc *Cell, cursor bool) {}
+// AlternateOn enters the alternate screen, saving the visible screen and disabling history
+// updates (tmux's screen_alternate_on). When cursor is true (mode 1049), the cursor position is
+// saved as well.
+func (s *Screen) AlternateOn(gc *Cell, cursor bool) bool {
+	if s.NoAlternateScreen || s.IsAlternate() {
+		return false
+	}
+	sx, sy := s.SizeX(), s.SizeY()
+	s.savedGrid = NewGrid(sx, sy, 0)
+	s.savedGrid.DuplicateLines(0, s.Grid, s.Grid.HSize, sy)
+	if cursor {
+		s.savedCx = s.Cx
+		s.savedCy = s.Cy
+	}
+	if gc != nil {
+		s.savedCell = *gc
+	}
+	s.Grid.ViewClear(0, 0, sx, sy, ColorDefault)
+	s.savedFlags = s.Grid.flags
+	s.Grid.flags &^= gridHistory
+	return true
+}
 
-// AlternateOff leaves the alternate screen.
-func (s *Screen) AlternateOff(gc *Cell, cursor bool) { s.savedGrid = nil }
+// AlternateOff leaves the alternate screen and restores the saved grid (tmux's
+// screen_alternate_off). When cursor is true (mode 1049), a previously saved cursor position and
+// cell style are restored even if not currently on the alternate screen.
+func (s *Screen) AlternateOff(gc *Cell, cursor bool) bool {
+	if s.NoAlternateScreen {
+		return false
+	}
+	if cursor && s.savedCx != noSavedCursor && s.savedCy != noSavedCursor {
+		s.Cx = s.savedCx
+		s.Cy = s.savedCy
+		if gc != nil {
+			*gc = s.savedCell
+		}
+	}
+	if !s.IsAlternate() {
+		if s.Cx > s.SizeX()-1 {
+			s.Cx = s.SizeX() - 1
+		}
+		if s.Cy > s.SizeY()-1 {
+			s.Cy = s.SizeY() - 1
+		}
+		return false
+	}
+	s.Grid.DuplicateLines(s.Grid.HSize, s.savedGrid, 0, s.savedGrid.Sy)
+	if s.savedFlags&gridHistory != 0 {
+		s.Grid.flags |= gridHistory
+	}
+	s.savedGrid = nil
+	if s.Cx > s.SizeX()-1 {
+		s.Cx = s.SizeX() - 1
+	}
+	if s.Cy > s.SizeY()-1 {
+		s.Cy = s.SizeY() - 1
+	}
+	return true
+}
+
+// HasMode reports whether all bits in m are set in s.Mode.
+func (s *Screen) HasMode(m int) bool { return s.Mode&m == m }
+
+// CursorVisible reports whether DECTCEM (mode 25) is on.
+func (s *Screen) CursorVisible() bool { return s.Mode&ModeCursor != 0 }
+
+// InsertMode reports whether IRM (SM 4) is on.
+func (s *Screen) InsertMode() bool { return s.Mode&ModeInsert != 0 }
+
+// ApplicationCursor reports whether DECCKM (mode 1) is on.
+func (s *Screen) ApplicationCursor() bool { return s.Mode&ModeKCursor != 0 }
+
+// ApplicationKeypad reports whether DECKPAM is on.
+func (s *Screen) ApplicationKeypad() bool { return s.Mode&ModeKKeypad != 0 }
+
+// AutoWrap reports whether DECAWM (mode 7) is on.
+func (s *Screen) AutoWrap() bool { return s.Mode&ModeWrap != 0 }
+
+// OriginMode reports whether DECOM (mode 6) is on.
+func (s *Screen) OriginMode() bool { return s.Mode&ModeOrigin != 0 }
+
+// BracketedPaste reports whether mode 2004 is on.
+func (s *Screen) BracketedPaste() bool { return s.Mode&ModeBracketPaste != 0 }
+
+// FocusEvents reports whether mode 1004 is on.
+func (s *Screen) FocusEvents() bool { return s.Mode&ModeFocusOn != 0 }
+
+// SynchronizedOutput reports whether mode 2026 is on.
+func (s *Screen) SynchronizedOutput() bool { return s.Mode&ModeSync != 0 }
+
+// ThemeUpdates reports whether mode 2031 is on.
+func (s *Screen) ThemeUpdates() bool { return s.Mode&ModeThemeUpdates != 0 }
+
+// MouseAny reports whether any mouse tracking mode (1000, 1002, 1003) is on.
+func (s *Screen) MouseAny() bool { return s.Mode&AllMouseModes != 0 }
+
+// MouseStandard reports whether normal mouse tracking (mode 1000) is on.
+func (s *Screen) MouseStandard() bool { return s.Mode&ModeMouseStandard != 0 }
+
+// MouseButton reports whether button-event mouse tracking (mode 1002) is on.
+func (s *Screen) MouseButton() bool { return s.Mode&ModeMouseButton != 0 }
+
+// MouseAll reports whether any-event mouse tracking (mode 1003) is on.
+func (s *Screen) MouseAll() bool { return s.Mode&ModeMouseAll != 0 }
+
+// MouseUTF8 reports whether UTF-8 mouse encoding (mode 1005) is on.
+func (s *Screen) MouseUTF8() bool { return s.Mode&ModeMouseUTF8 != 0 }
+
+// MouseSGR reports whether SGR mouse encoding (mode 1006) is on.
+func (s *Screen) MouseSGR() bool { return s.Mode&ModeMouseSGR != 0 }

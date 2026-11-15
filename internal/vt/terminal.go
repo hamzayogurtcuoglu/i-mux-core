@@ -14,16 +14,21 @@
 
 package vt
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+)
 
 // Terminal is a pane's emulator: the parser, tmux's input.c handlers and the screen. Output a
 // program writes goes into Write; the screen holds the result.
 //
 // The handlers are ported from tmux 3.8's input.c.
 type Terminal struct {
-	Screen *Screen
-	parser *Parser
-	in     input
+	Screen  *Screen
+	Reply   func([]byte) // optional callback invoked when the emulator answers a query
+	replies []byte
+	parser  *Parser
+	in      input
 }
 
 // inputCell is the current style and character sets (tmux's input_cell).
@@ -58,6 +63,24 @@ func NewTerminal(sx, sy, hlimit int) *Terminal {
 
 // Write feeds output from the program. It never fails.
 func (t *Terminal) Write(b []byte) (int, error) { return t.parser.Write(b) }
+
+// DrainReplies returns and clears any query replies queued by the emulator.
+func (t *Terminal) DrainReplies() []byte {
+	if len(t.replies) == 0 {
+		return nil
+	}
+	out := append([]byte(nil), t.replies...)
+	t.replies = t.replies[:0]
+	return out
+}
+
+func (in *input) replyf(format string, args ...any) {
+	b := fmt.Appendf(nil, format, args...)
+	in.t.replies = append(in.t.replies, b...)
+	if in.t.Reply != nil {
+		in.t.Reply(b)
+	}
+}
 
 func (in *input) resetCell() {
 	in.cell = inputCell{cell: DefaultCell}
@@ -457,14 +480,86 @@ func (in *input) CsiDispatch(p *Params, inter []byte, final byte) {
 				s.Mode &^= ModeCursorBlinkingSet
 			}
 		}
-	case "$", "?$":
-		if final != 'p' { // DECRQM (C1.6)
+	case "$":
+		if final != 'p' { // DECRQM
 			return
 		}
+		in.csiQuery(p)
+	case "?$":
+		if final != 'p' { // DECRQM private
+			return
+		}
+		in.csiQueryPrivate(p)
 	default:
 		return
 	}
 	in.lastValid = false
+}
+
+func modeReply(on bool) int {
+	if on {
+		return 1
+	}
+	return 2
+}
+
+func (in *input) csiQuery(p *Params) {
+	s := in.t.Screen
+	m := p.Get(0, 0, 0)
+	n := 0
+	if m == 4 { // IRM
+		n = modeReply(s.Mode&ModeInsert != 0)
+	}
+	if m > 0 {
+		in.replyf("\x1b[%d;%d$y", m, n)
+	}
+}
+
+func (in *input) csiQueryPrivate(p *Params) {
+	s := in.t.Screen
+	m := p.Get(0, 0, 0)
+	n := 0
+	switch m {
+	case 1: // DECCKM
+		n = modeReply(s.Mode&ModeKCursor != 0)
+	case 3: // DECCOLM: always reset
+		n = 4
+	case 6: // DECOM
+		n = modeReply(s.Mode&ModeOrigin != 0)
+	case 7: // DECAWM
+		n = modeReply(s.Mode&ModeWrap != 0)
+	case 12: // cursor blink: 1 = blink, 2 = steady
+		if s.CStyle != CursorDefault || s.Mode&ModeCursorBlinkingSet != 0 {
+			n = modeReply(s.Mode&ModeCursorBlinking != 0)
+		} else {
+			n = modeReply(s.DefaultMode&ModeCursorBlinking != 0)
+		}
+	case 25: // DECTCEM
+		n = modeReply(s.Mode&ModeCursor != 0)
+	case 47, 1047, 1049: // alternate screen
+		n = modeReply(s.IsAlternate())
+	case 1000: // mouse: normal tracking
+		n = modeReply(s.Mode&ModeMouseStandard != 0)
+	case 1002: // mouse: button-event tracking
+		n = modeReply(s.Mode&ModeMouseButton != 0)
+	case 1003: // mouse: any-event tracking
+		n = modeReply(s.Mode&ModeMouseAll != 0)
+	case 1004: // focus reporting
+		n = modeReply(s.Mode&ModeFocusOn != 0)
+	case 1005: // mouse: UTF-8
+		n = modeReply(s.Mode&ModeMouseUTF8 != 0)
+	case 1006: // mouse: SGR
+		n = modeReply(s.Mode&ModeMouseSGR != 0)
+	case 2004: // bracketed paste
+		n = modeReply(s.Mode&ModeBracketPaste != 0)
+	case 2026: // synchronized output
+		n = modeReply(s.Mode&ModeSync != 0)
+	case 2031: // theme update notifications
+		n = modeReply(s.Mode&ModeThemeUpdates != 0)
+	}
+	if m > 0 {
+		in.replyf("\x1b[?%d;%d$y", m, n)
+	}
 }
 
 func (in *input) csiSM(p *Params) {
@@ -493,32 +588,90 @@ func (in *input) csiRM(p *Params) {
 
 func (in *input) csiSMPrivate(p *Params) {
 	s := in.t.Screen
+	gc := &in.cell.cell
 	for i := 0; i < p.Len(); i++ {
 		switch p.Get(i, 0, -1) {
+		case 1: // DECCKM
+			s.Mode |= ModeKCursor
 		case 3: // DECCOLM
 			s.cursorMove(0, 0, true)
-			s.clearScreen(in.cell.cell.Bg)
+			s.clearScreen(gc.Bg)
 		case 6: // DECOM
 			s.Mode |= ModeOrigin
 			s.cursorMove(0, 0, true)
 		case 7: // DECAWM
 			s.Mode |= ModeWrap
+		case 12:
+			s.Mode |= ModeCursorBlinking | ModeCursorBlinkingSet
+		case 25: // TCEM
+			s.Mode |= ModeCursor
+		case 1000:
+			s.Mode &^= AllMouseModes
+			s.Mode |= ModeMouseStandard
+		case 1002:
+			s.Mode &^= AllMouseModes
+			s.Mode |= ModeMouseButton
+		case 1003:
+			s.Mode &^= AllMouseModes
+			s.Mode |= ModeMouseAll
+		case 1004:
+			s.Mode |= ModeFocusOn
+		case 1005:
+			s.Mode |= ModeMouseUTF8
+		case 1006:
+			s.Mode |= ModeMouseSGR
+		case 47, 1047:
+			s.AlternateOn(gc, false)
+		case 1049:
+			s.AlternateOn(gc, true)
+		case 2004:
+			s.Mode |= ModeBracketPaste
+		case 2026:
+			s.Mode |= ModeSync
+		case 2031:
+			s.Mode |= ModeThemeUpdates
 		}
 	}
 }
 
 func (in *input) csiRMPrivate(p *Params) {
 	s := in.t.Screen
+	gc := &in.cell.cell
 	for i := 0; i < p.Len(); i++ {
 		switch p.Get(i, 0, -1) {
+		case 1: // DECCKM
+			s.Mode &^= ModeKCursor
 		case 3: // DECCOLM
 			s.cursorMove(0, 0, true)
-			s.clearScreen(in.cell.cell.Bg)
+			s.clearScreen(gc.Bg)
 		case 6: // DECOM
 			s.Mode &^= ModeOrigin
 			s.cursorMove(0, 0, true)
 		case 7: // DECAWM
 			s.Mode &^= ModeWrap
+		case 12:
+			s.Mode &^= ModeCursorBlinking
+			s.Mode |= ModeCursorBlinkingSet
+		case 25: // TCEM
+			s.Mode &^= ModeCursor
+		case 1000, 1001, 1002, 1003:
+			s.Mode &^= AllMouseModes
+		case 1004:
+			s.Mode &^= ModeFocusOn
+		case 1005:
+			s.Mode &^= ModeMouseUTF8
+		case 1006:
+			s.Mode &^= ModeMouseSGR
+		case 47, 1047:
+			s.AlternateOff(gc, false)
+		case 1049:
+			s.AlternateOff(gc, true)
+		case 2004:
+			s.Mode &^= ModeBracketPaste
+		case 2026:
+			s.Mode &^= ModeSync
+		case 2031:
+			s.Mode &^= ModeThemeUpdates
 		}
 	}
 }

@@ -31,3 +31,6 @@ All notable changes to i-mux-core are listed here. The format follows
 - SGR colours and text attributes in `internal/vt` (ANSI 8/16, 256-colour and RGB in `;` and `:`
   forms, underline styles `4:0`–`4:5`, underline colours 58/59, and resets), verified against
   tmux 3.8 `capture-pane -e` fixtures.
+- Terminal modes (`DECSET`/`DECRST` for cursor, mouse, bracketed paste, focus, synchronized output,
+  theme updates, and alternate screen 47/1047/1049), `DECRQM` replies, and alternate-screen switching
+  in `internal/vt`.

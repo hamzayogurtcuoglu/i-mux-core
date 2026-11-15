@@ -301,7 +301,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** fixtures for every attribute and colour form match tmux's `capture-pane -e`.
 - **Depends on:** C1.3.
 
-### [ ] C1.6 Modes and the alternate screen
+### [x] C1.6 Modes and the alternate screen
 - **Goal:** the modes programs turn on are tracked and acted on.
 - **Details:**
   - DECSET/DECRST for:

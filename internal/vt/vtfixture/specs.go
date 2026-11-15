@@ -167,4 +167,20 @@ var Specs = map[string]string{
 		"\x1b[3;1H\x1b[41mabcdef\x1b[3;3H\x1b[2@\x1b[3;8H\x1b[1P\r\n" +
 		"\x1b[4;1H\x1b[43mXXXXXX\x1b[4;3H\x1b[1K\r\n" +
 		"\x1b[5;1H\x1b[45mYYYY\x1b[0J\x1b[0m",
+
+	// C1.6 Modes and the alternate screen.
+	"altscreen-1049@12x5.in": "hist-line\r\n" +
+		"main-1\r\nmain-2\r\nmain-3\r\nmain-4\r\nmain-5" +
+		"\x1b[2;4H\x1b[32m" +
+		"\x1b[?1049h" +
+		"\x1b[1;1HALT-TOP\r\nALT-2\r\nALT-3\r\nALT-4\r\nALT-5\r\nALT-SCROLL" +
+		"\x1b[31m" +
+		"\x1b[?1049l" +
+		"RESTORED\x1b[0m",
+	"altscreen-stay@12x4.in": "p-hist\r\np-1\r\np-2\r\np-3\r\np-4" +
+		"\x1b[?1049h\x1b[1;1H" +
+		"alt-row-1\r\nalt-row-2\r\nalt-row-3\r\nalt-row-4\r\nalt-row-5",
+	"altscreen-47@12x4.in": "keep-1\r\nkeep-2\r\nkeep-3\r\nkeep-4" +
+		"\x1b[2;3H\x1b[?47h\x1b[1;1Htemp47\x1b[4;8H\x1b[?47l*" +
+		"\x1b[?1047h\x1b[1;1Htemp1047\x1b[3;2H\x1b[?1047l#",
 }
