@@ -33,7 +33,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 
 ## Phase 0: Foundations
 
-### [ ] C0.1 Repository skeleton
+### [x] C0.1 Repository skeleton
 - **Goal:** a buildable, lintable, testable repository from day one.
 - **Details:**
   - Module `github.com/hamzayogurtcuoglu/i-mux-core`, with the same Go version as `../i-mux/go.mod`.

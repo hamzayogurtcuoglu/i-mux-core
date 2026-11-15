@@ -1,0 +1,44 @@
+version: "2"
+
+run:
+  timeout: 5m
+  build-tags:
+    - difftest
+
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - misspell
+    - ineffassign
+    - unused
+  settings:
+    errcheck:
+      exclude-functions:
+        - (*os.File).Close
+        - (io.Closer).Close
+        - (net.Conn).Close
+        - os.Remove
+        - os.RemoveAll
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fprint
+    misspell:
+      locale: US
+      # tmux's own names use British spellings (colour, pane-colours); the engine must match them.
+      ignore-rules:
+        - colour
+        - colours
+        - cancelled
+        - behaviour
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofumpt

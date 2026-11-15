@@ -1,0 +1,7 @@
+/bin/
+/dist/
+/imux-core
+*.test
+*.out
+/coverage*
+/testdata/large/
