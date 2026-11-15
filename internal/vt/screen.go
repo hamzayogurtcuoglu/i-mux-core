@@ -79,8 +79,15 @@ type Screen struct {
 
 	tabs []bool
 
-	Title string
-	Path  string
+	Title             string
+	Titles            []string
+	DisallowSetTitle  bool
+	Path              string
+	Cwd               string
+	Hyperlinks        *Hyperlinks
+	ProgressState     int
+	ProgressValue     int
+	LastCommandStatus int
 
 	// NoAlternateScreen disables switching to the alternate screen (tmux's alternate-screen
 	// option when set to off).
@@ -97,10 +104,11 @@ const noSavedCursor = -1
 // NewScreen returns a sx×sy screen keeping up to hlimit lines of history.
 func NewScreen(sx, sy, hlimit int) *Screen {
 	s := &Screen{
-		Grid:           NewGrid(sx, sy, hlimit),
-		Mode:           ModeCursor,
-		CColour:        -1,
-		DefaultCColour: -1,
+		Grid:              NewGrid(sx, sy, hlimit),
+		Mode:              ModeCursor,
+		CColour:           -1,
+		DefaultCColour:    -1,
+		LastCommandStatus: -1,
 	}
 	s.Reinit()
 	return s
@@ -123,6 +131,18 @@ func (s *Screen) Reinit() {
 	s.savedCx, s.savedCy = noSavedCursor, noSavedCursor
 	s.ResetTabs()
 	s.Grid.ClearLines(s.Grid.HSize, s.Grid.Sy, 8)
+	s.Titles = nil
+	s.ProgressState, s.ProgressValue = 0, 0
+	s.ResetHyperlinks()
+}
+
+// ResetHyperlinks clears or initializes the screen's hyperlink table.
+func (s *Screen) ResetHyperlinks() {
+	if s.Hyperlinks == nil {
+		s.Hyperlinks = NewHyperlinks()
+	} else {
+		s.Hyperlinks.Reset()
+	}
 }
 
 // ResetTabs sets a tab stop every 8 columns.

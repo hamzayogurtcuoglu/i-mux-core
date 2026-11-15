@@ -319,7 +319,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - DECRQM replies match tmux (via the probe in C1.8).
 - **Depends on:** C1.4.
 
-### [ ] C1.7 OSC and DCS
+### [x] C1.7 OSC and DCS
 - **Goal:** titles, links, clipboard and colour queries work.
 - **Details:**
   - Titles and cwd:

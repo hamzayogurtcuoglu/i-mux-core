@@ -335,10 +335,14 @@ func (s *Screen) Capture(o CaptureOptions) string {
 	if !o.Join && !o.KeepTrailing {
 		flags |= StringTrimSpaces
 	}
+	links := o.Hyperlinks
+	if links == nil && s.Hyperlinks != nil {
+		links = s.Hyperlinks.Get
+	}
 	last := DefaultCell
 	var b strings.Builder
 	for i := top; i <= bottom; i++ {
-		b.WriteString(gd.StringCells(0, i, sx, &last, flags, o.Hyperlinks))
+		b.WriteString(gd.StringCells(0, i, sx, &last, flags, links))
 		if !o.Join || gd.lines[i].Flags&LineWrapped == 0 {
 			b.WriteByte('\n')
 		}

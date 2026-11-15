@@ -42,6 +42,8 @@ func fixtureState(t *Terminal, cols, rows int) string {
 			"synchronized_output_flag": flag01(s.Mode&ModeSync != 0),
 			"scroll_region_upper":      strconv.Itoa(s.Rupper),
 			"scroll_region_lower":      strconv.Itoa(s.Rlower),
+			"pane_title":               s.Title,
+			"pane_path":                s.Path,
 		},
 		Screen: s.Capture(CaptureOptions{Sequences: true, KeepTrailing: true}),
 		Joined: s.Capture(CaptureOptions{Join: true, StartAll: true, EndAll: true}),
@@ -72,6 +74,7 @@ func TestFixtures(t *testing.T) {
 			}
 			cols, rows := vtfixture.Size(in)
 			term := NewTerminal(cols, rows, 2000)
+			term.Screen.Title = vtfixture.InitialTitle // tmux starts a pane with the host's name
 			term.Write(data)
 			got := fixtureState(term, cols, rows)
 			if got != string(want) {

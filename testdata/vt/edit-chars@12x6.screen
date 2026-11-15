@@ -18,6 +18,8 @@ bracket_paste_flag 0
 synchronized_output_flag 0
 scroll_region_upper 0
 scroll_region_lower 5
+pane_title HOST
+pane_path 
 history_size 0
 --- screen
 abc  defghij

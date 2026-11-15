@@ -183,4 +183,17 @@ var Specs = map[string]string{
 	"altscreen-47@12x4.in": "keep-1\r\nkeep-2\r\nkeep-3\r\nkeep-4" +
 		"\x1b[2;3H\x1b[?47h\x1b[1;1Htemp47\x1b[4;8H\x1b[?47l*" +
 		"\x1b[?1047h\x1b[1;1Htemp1047\x1b[3;2H\x1b[?1047l#",
+
+	// C1.7 OSC and DCS.
+	"osc8-links@24x5.in": "\x1b]8;;https://example.com\x1b\\ANON\x1b]8;;\x1b\\ plain\r\n" +
+		"\x1b]8;foo=1:id=k1:bar=2;https://a.example\x07NAMED\x1b]8;;\x07\r\n" +
+		"\x1b]8;;https://x.test\x1b\\A1\x1b]8;;https://x.test\x1b\\A2\x1b]8;;\x1b\\\r\n" +
+		"\x1b]8;id=s;https://y.test\x1b\\N1\x1b]8;id=s;https://y.test\x1b\\N2\x1b]8;;\x1b\\\r\n" +
+		"\x1b]8;;https://z.test\x1b\\\x1b[1mB\x1b[0mP\x1b]8;;\x1b\\!",
+	"osc-titles@20x3.in": "\x1b]2;first\x07a" +
+		"\x1b]1;icon\x07b" +
+		"\x1b]0;run #(id)\x1b\\c" +
+		"\x1b_apc title\x1b\\d" +
+		"\x1b[22;0t\x1b]2;a\\b\x07\x1b[22;0t\x1b]2;tab\there\x07\x1b[23;0t\x1b[23;0t\x1b[23;0t" +
+		"\x1b]7;file://h/tmp/x%20y\x07\x1b]9;9;C:\\x\x07e",
 }

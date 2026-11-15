@@ -23,6 +23,9 @@ All notable changes to i-mux-core are listed here. The format follows
   `utf8-combined.c`): cells, wide characters, combining, tabs, wrapping, history and
   `capture-pane`, with tmux's widths from the pinned utf8proc 2.12.0.
 - VT fixtures whose expected screens come from the pinned tmux (`make vt-fixtures`).
+- OSC and DCS, ported from tmux 3.8: titles and the title stack, OSC 7 paths, OSC 8 hyperlinks
+  (kept per cell and given back by `capture-pane -e`), OSC 4/10/11/12 colours and queries with
+  their resets, OSC 52 under `set-clipboard`, OSC 133 prompt marks, OSC 9;4 progress, and DECRQSS.
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
 - Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,

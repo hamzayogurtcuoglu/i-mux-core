@@ -51,8 +51,11 @@ var StateFormats = []string{
 	"insert_flag", "keypad_cursor_flag", "keypad_flag", "wrap_flag", "origin_flag",
 	"mouse_standard_flag", "mouse_button_flag", "mouse_all_flag", "mouse_sgr_flag",
 	"bracket_paste_flag", "synchronized_output_flag", "scroll_region_upper",
-	"scroll_region_lower",
+	"scroll_region_lower", "pane_title", "pane_path",
 }
+
+// InitialTitle stands for a pane's first title, which tmux sets to the host's name.
+const InitialTitle = "HOST"
 
 // Format writes a state as a .screen file.
 func Format(s *State) string {
@@ -133,8 +136,12 @@ func FromTmux(tmux, self, in string, timeout time.Duration) (string, error) {
 	s.CursorX, _ = strconv.Atoi(v[0])
 	s.CursorY, _ = strconv.Atoi(v[1])
 	s.HistorySize, _ = strconv.Atoi(v[2])
+	host, _ := os.Hostname()
 	for i, f := range StateFormats {
 		s.Values[f] = v[3+i]
+		if f == "pane_title" && host != "" && s.Values[f] == host {
+			s.Values[f] = InitialTitle
+		}
 	}
 	if s.Screen, err = run("capture-pane", "-p", "-e", "-N", "-t", "%0"); err != nil {
 		return "", err

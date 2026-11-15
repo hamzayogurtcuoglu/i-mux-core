@@ -18,6 +18,8 @@ bracket_paste_flag 0
 synchronized_output_flag 0
 scroll_region_upper 0
 scroll_region_lower 4
+pane_title HOST
+pane_path 
 history_size 1
 --- screen
 main-1      

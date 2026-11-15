@@ -1,0 +1,5 @@
+]8;;https://example.com\ANON]8;;\ plain
+]8;foo=1:id=k1:bar=2;https://a.exampleNAMED]8;;
+]8;;https://x.test\A1]8;;https://x.test\A2]8;;\
+]8;id=s;https://y.test\N1]8;id=s;https://y.test\N2]8;;\
+]8;;https://z.test\[1mB[0mP]8;;\!

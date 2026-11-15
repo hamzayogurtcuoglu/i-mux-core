@@ -25,11 +25,28 @@ import (
 // The handlers are ported from tmux 3.8's input.c.
 type Terminal struct {
 	Screen  *Screen
+	Palette Palette
 	Reply   func([]byte) // optional callback invoked when the emulator answers a query
-	replies []byte
-	parser  *Parser
-	in      input
+	// ClipboardMode is tmux's set-clipboard: a program's OSC 52 is taken only when it is on.
+	ClipboardMode ClipboardMode
+	SetClipboard  func(clip string, b []byte) // called on an OSC 52 that is taken
+	Clipboard     []byte                      // the last OSC 52 taken
+	ClipboardName string                      // its selection targets (c, p, q, s, 0 to 7)
+	Rename        func(name string)           // called on ESC k … ST (the server applies allow-rename)
+	replies       []byte
+	parser        *Parser
+	in            input
 }
+
+// ClipboardMode is tmux's set-clipboard option.
+type ClipboardMode int
+
+// set-clipboard values.
+const (
+	ClipboardOff      ClipboardMode = 0
+	ClipboardExternal ClipboardMode = 1 // tmux's default
+	ClipboardOn       ClipboardMode = 2
+)
 
 // inputCell is the current style and character sets (tmux's input_cell).
 type inputCell struct {
@@ -54,7 +71,8 @@ type input struct {
 
 // NewTerminal returns an emulator with a sx×sy screen keeping hlimit lines of history.
 func NewTerminal(sx, sy, hlimit int) *Terminal {
-	t := &Terminal{Screen: NewScreen(sx, sy, hlimit)}
+	t := &Terminal{Screen: NewScreen(sx, sy, hlimit), ClipboardMode: ClipboardExternal}
+	t.Palette.Init()
 	t.in.t = t
 	t.in.resetCell()
 	t.parser = NewParser(&t.in)
@@ -287,6 +305,7 @@ func (in *input) EscDispatch(inter []byte, final byte) {
 			s.reverseIndex(in.cell.cell.Bg)
 		case '\\': // ST
 		case 'c': // RIS
+			in.t.Palette.Clear()
 			in.resetCell()
 			s.reset()
 		default:
@@ -448,6 +467,7 @@ func (in *input) CsiDispatch(p *Params, inter []byte, final byte) {
 		case 's': // SCP
 			in.saveState()
 		case 't': // WINOPS (C1.7/C1.8)
+			in.csiWinOps(p)
 		case 'u': // RCP
 			in.restoreState()
 		default:
@@ -896,7 +916,18 @@ func (in *input) csiSGR(p *Params) {
 	}
 }
 
-func (in *input) OscDispatch(data []byte, bel bool)                { in.lastValid = false }
-func (in *input) DcsDispatch(p *Params, inter []byte, data []byte) { in.lastValid = false }
-func (in *input) ApcDispatch(data []byte)                          { in.lastValid = false }
-func (in *input) RenameDispatch(data []byte)                       { in.lastValid = false }
+func (in *input) csiWinOps(p *Params) {
+	s := in.t.Screen
+	switch p.Get(0, 0, -1) {
+	case 22:
+		switch p.Get(1, 0, -1) {
+		case 0, 2:
+			s.PushTitle()
+		}
+	case 23:
+		switch p.Get(1, 0, -1) {
+		case 0, 2:
+			s.PopTitle()
+		}
+	}
+}
