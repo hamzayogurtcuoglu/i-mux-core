@@ -22,7 +22,9 @@ All notable changes to i-mux-core are listed here. The format follows
 - The emulator's screen, ported from tmux 3.8 (`grid.c`, `grid-view.c`, `screen-write.c`,
   `utf8-combined.c`): cells, wide characters, combining, tabs, wrapping, history and
   `capture-pane`, with tmux's widths from the pinned utf8proc 2.12.0.
-- VT fixtures whose expected screens come from the pinned tmux (`make vt-fixtures`).
+- VT fixtures whose expected screens come from the pinned tmux (`make vt-fixtures`): every
+  sequence of tasks C1.4 to C1.7, wide characters, wrapping, history and resizing; CI checks that
+  tmux still gives them.
 - OSC and DCS, ported from tmux 3.8: titles and the title stack, OSC 7 paths, OSC 8 hyperlinks
   (kept per cell and given back by `capture-pane -e`), OSC 4/10/11/12 colours and queries with
   their resets, OSC 52 under `set-clipboard`, OSC 133 prompt marks, OSC 9;4 progress, and DECRQSS.

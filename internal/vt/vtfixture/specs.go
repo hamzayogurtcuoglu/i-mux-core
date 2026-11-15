@@ -221,6 +221,21 @@ var Specs = map[string]string{
 		"\x1b[?1049h\x1b[Halternate line that wraps\r\nalt2",
 	"reflow-alternate-off@20x5-8x4.in": "main line that wraps\r\nsecond" +
 		"\x1b[?1049h\x1b[Halternate text here\x1b[?1049l*",
+
+	// C1.12: the modes the state lines show, set and then reset.
+	"modes-cursor-keypad@20x3.in": "\x1b[?1h\x1b=\x1b[?25l\x1b[?12h\x1b[4 qon",
+	"modes-cursor-keypad-off@20x3.in": "\x1b[?1h\x1b=\x1b[?25l\x1b[?12h\x1b[4 q" +
+		"\x1b[?1l\x1b>\x1b[?25h\x1b[?12l\x1b[0 qoff",
+	"modes-cursor-shapes@20x3.in":      "\x1b[6 q\x1b[2 q\x1b[5 qbar",
+	"modes-mouse-standard@20x3.in":     "\x1b[?1000h\x1b[?1006h\x1b[?2004hm",
+	"modes-mouse-button@20x3.in":       "\x1b[?1000h\x1b[?1002hm",
+	"modes-mouse-all@20x3.in":          "\x1b[?1003h\x1b[?1006hm",
+	"modes-mouse-off@20x3.in":          "\x1b[?1003h\x1b[?1006h\x1b[?2004h\x1b[?1003l\x1b[?1006l\x1b[?2004lm",
+	"modes-sync@20x3.in":               "\x1b[?2026hinside sync\r\n\x1b[?2026lafter",
+	"modes-origin-wrap-insert@10x4.in": "\x1b[2;3r\x1b[?6h\x1b[Ho\x1b[?7l0123456789XY\x1b[4hab",
+	"modes-1048@20x4.in":               "\x1b[2;3H\x1b[?1048h\x1b[4;5Hx\x1b[?1048ly",
+	"modes-deccolm@20x4.in":            "text\r\nmore\x1b[2;3H\x1b[?3hz",
+	"charset-so-si@20x3.in":            "\x1b)0\x0eqxl\x0fabc\r\n\x1b(0lqk\x1b(Bdone",
 }
 
 // history5000 is the output of seq 1 5000 on a terminal.
