@@ -127,3 +127,23 @@ func cleanName(name string, untrusted bool) (string, bool) {
 	}
 	return utf8Strvis(name, visOctal|visCStyle|visTab|visNL), true
 }
+
+// StrnVis encodes s byte by byte as tmux's strnvis with VIS_OCTAL, VIS_CSTYLE, VIS_TAB and
+// VIS_NL does into a buffer of size bytes: it stops before an encoding that does not fit.
+func StrnVis(s string, size int) string {
+	var b strings.Builder
+	limit := size - 1
+	for i := 0; i < len(s); i++ {
+		var nextc byte
+		if i+1 < len(s) {
+			nextc = s[i+1]
+		}
+		var one strings.Builder
+		visByte(&one, s[i], visOctal|visCStyle|visTab|visNL, nextc)
+		if b.Len()+one.Len() > limit {
+			break
+		}
+		b.WriteString(one.String())
+	}
+	return b.String()
+}

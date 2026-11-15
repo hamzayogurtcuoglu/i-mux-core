@@ -1,0 +1,14 @@
+# Two small entries for internal/termout's reader test, compiled with
+#   tic -x -o testdata/term/terminfo testdata/term/terminfo/imux-test.src
+# (Homebrew's tic writes the 32-bit format for imux-test-wide, whose colors do not fit in 16 bits).
+imux-test|terminal for the reader test,
+	am, xenl,
+	cols#80, lines#24, colors#256,
+	clear=\E[H\E[2J, cup=\E[%i%p1%d;%p2%dH, smcup=\E[?1049h$<5>, el=\E[K,
+	AX, XT, Ext@,
+	Smulx=\E[4\:%p1%dm, Ss=\E[%p1%d q, Sync=\E[?2026%?%p1%{1}%-%tl%eh%;,
+	Num#7,
+imux-test-wide|terminal for the reader test with 32-bit numbers,
+	colors#16777216, pairs#65536, use=imux-test,
+# The other entries here are copied from ncurses 6.6.20251230's compiled database, for
+# cmd/termfixture's recordings.

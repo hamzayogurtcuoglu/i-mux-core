@@ -49,5 +49,5 @@ The target is at most 2× tmux's.
 
 `make fuzz` runs every fuzz target briefly; the nightly workflow (`.github/workflows/nightly.yml`)
 runs each for 10 minutes: `FuzzParser` and `FuzzTerminal` (internal/vt), `FuzzParse`
-(internal/cmdlang), `FuzzWalk` (internal/format), `FuzzReader` (internal/ipc) and
-`FuzzLayoutParse` (internal/layout).
+(internal/cmdlang), `FuzzWalk` (internal/format), `FuzzReader` (internal/ipc),
+`FuzzLayoutParse` (internal/layout) and `FuzzParseTerminfo` (internal/termout).

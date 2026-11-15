@@ -27,6 +27,8 @@ jobs:
             package: ./internal/ipc/
           - target: FuzzLayoutParse
             package: ./internal/layout/
+          - target: FuzzParseTerminfo
+            package: ./internal/termout/
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

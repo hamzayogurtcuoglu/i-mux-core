@@ -1,0 +1,14 @@
+# Client terminals recorded by cmd/termfixture:
+# name|TERM|COLORTERM|terminal-features entries added|terminal-overrides entries added
+xterm-256color|xterm-256color
+xterm-256color-truecolor|xterm-256color|truecolor
+xterm-256color-colorterm256|xterm-256color|xterm-256
+imux|xterm-256color||*:RGB *:extkeys|*:Sync=\E[?2026%?%p1%{1}%-%tl%eh%;
+xterm|xterm
+tmux-256color|tmux-256color
+screen-256color|screen-256color
+alacritty|alacritty|truecolor
+wezterm|wezterm
+linux|linux
+vt100|vt100
+removed|xterm-256color||xterm*:clipboard@:title@ *:sync|xterm*:AX@:smcup@:kmous=\E[M:colors=88

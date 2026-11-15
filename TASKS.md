@@ -593,6 +593,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     output to `vt` and comparing modes before and after).
   - The enter and leave sequences match tmux's.
 - **Depends on:** C2.6.
+- **Status:** in progress. Done: terminal descriptions (`internal/termout`: terminfo reader,
+  `tparm`, features, overrides), matching tmux's `show-messages -T` for 12 recorded terminals
+  (`cmd/termfixture`, `testdata/term`). Left: console, attach and detach, the start and stop
+  sequences.
 
 ### [ ] C2.8 Renderer
 - **Goal:** each client sees its session drawn correctly, with minimal output.
