@@ -38,6 +38,10 @@ linters:
       - path: _test\.go
         linters:
           - errcheck
+      # Spikes are diagnostics that print what failed; they never ship.
+      - path: ^spikes/
+        linters:
+          - errcheck
 
 formatters:
   enable:

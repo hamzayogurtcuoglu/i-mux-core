@@ -189,6 +189,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Decisions **E12** (ConPTY use and minimum Windows build) and **E13** (IPC transport and
     its security) are recorded with the evidence tables.
   - The spike's test runs on `windows-latest`.
+- **Status:** the spike (`spikes/conpty`) and its CI job (`conpty-spike`, which uploads the
+  evidence as the `conpty-evidence` artifact) are in. E12 and E13 wait for that job's first run,
+  which needs the owner to push: no Windows machine is available here.
 - **Depends on:** C0.2.
 
 ### [ ] C0.8 Spike: shell commands on Windows

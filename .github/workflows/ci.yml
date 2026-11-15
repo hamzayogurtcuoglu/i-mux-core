@@ -85,3 +85,23 @@ jobs:
         env:
           IMUX_DIFFTEST_REQUIRE: "1"
         run: make difftest
+
+  conpty-spike:
+    name: ConPTY and IPC evidence (C0.7)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Gather the evidence
+        env:
+          CONPTY_EVIDENCE: ${{ runner.temp }}/conpty-evidence.md
+        run: go test -count=1 -v -run 'TestEvidence|TestConsoleRoundTrip' ./spikes/conpty/
+      - name: Upload the evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conpty-evidence
+          path: ${{ runner.temp }}/conpty-evidence.md
