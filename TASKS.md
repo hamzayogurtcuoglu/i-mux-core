@@ -76,10 +76,16 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 ### [ ] C0.3 Record the contract from i-mux
 - **Goal:** COMPATIBILITY.md lists exactly what i-mux uses: nothing missing, no guesses.
 - **Details:**
-  - `scripts/contract.sh` runs i-mux's e2e suite (`../i-mux`, `make e2e` or `go test -tags e2e
-    ./e2e/...`) with `IMUX_TMUX_RECORD` set to a temp file. This changes nothing in i-mux: the
-    variable only makes i-mux log its tmux calls.
-  - It also copies the generated `tmux.conf` files from the test homes.
+  - `scripts/contract.sh` runs i-mux's e2e suite (`../i-mux`, `go test -tags e2e ./e2e/...`)
+    with a recording shim, `cmd/tmuxrec`, installed as `tmux` first on `PATH`. The shim logs
+    each invocation and its caller, then execs the pinned tmux. `IMUX_TMUX_RECORD` cannot be
+    used: i-mux's e2e harness sets it to a temporary file per test and deletes it. This changes
+    nothing in i-mux.
+  - The shim also copies the generated `tmux.conf` files (`-f`, and files given to
+    `source-file`) out of the test homes.
+  - Calls from the e2e test binary itself are kept apart: they are the harness's, not i-mux's.
+  - A scan of i-mux's Go source (`tmux.Cmd{…}` literals, the flags appended to them, and
+    command strings) adds what the e2e suite does not run.
   - `cmd/contract` (a small Go tool) reads the records and configs and writes
     `contract/recorded.json`, holding:
     - every command and the flags it was given;

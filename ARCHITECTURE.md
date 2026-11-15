@@ -66,6 +66,8 @@ it removes its socket.
 
 ```
 cmd/imux-core/            main: argv → client or server
+cmd/contract/             development tool: extracts and checks the contract (C0.3)
+cmd/tmuxrec/              development tool: a recording tmux shim (C0.3)
 internal/
   cli/                    argv parsing (-L -S -f -u -V -N …), the command client, the attached client
   ipc/                    framing, messages, protocol version, peer checks (§5, §7)
@@ -93,6 +95,8 @@ internal/
   platform/               paths, socket directory, process info (current command and path), shell, console
   difftest/               the differential harness (tests only)
   version/                the engine's version and the tmux version it implements (E9)
+  contract/               development tool: what i-mux uses of tmux (C0.3); the engine never imports it
+contract/                 recorded.json (what i-mux was seen using) and expected.json (COMPATIBILITY.md as data)
 testdata/
   vt/                     byte-stream fixtures and their expected screens
   faketui/                a small full-screen program for tests (task C1.9)
