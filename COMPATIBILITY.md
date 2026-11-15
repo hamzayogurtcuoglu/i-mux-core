@@ -333,5 +333,6 @@ tmux, and in `%COMSPEC% /d /s /c` on Windows (E14).
 | K2 | Windows: `pane_dead_signal` is always empty | There are no signals |
 | K3 | No control mode | Non-goal |
 | K4 | Killing a pane (`kill-pane`, `kill-window`, `kill-session`, `respawn-pane -k`) sends SIGHUP and then, after a grace period, SIGKILL to the pane's process group and its terminal's foreground group. tmux only closes the PTY, so a program that ignores SIGHUP outlives its pane | An agent left running after its pane is gone keeps working unseen; tested by `internal/pty`'s kill test |
+| K5 | A program's OSC 52 query (`ESC ] 52 ; c ; ?`) gets no answer. tmux answers it with the newest paste buffer when `set-clipboard` is `on`; with i-mux's setting, tmux's default `external`, tmux ignores OSC 52 from programs altogether, as the engine does | A program must not read the clipboard through the engine (ARCHITECTURE.md §7) |
 
 New rows are added only with a test showing the difference and a reason.
