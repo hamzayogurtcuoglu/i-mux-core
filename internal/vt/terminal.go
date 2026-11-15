@@ -17,6 +17,8 @@ package vt
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/version"
 )
 
 // Terminal is a pane's emulator: the parser, tmux's input.c handlers and the screen. Output a
@@ -33,9 +35,17 @@ type Terminal struct {
 	Clipboard     []byte                      // the last OSC 52 taken
 	ClipboardName string                      // its selection targets (c, p, q, s, 0 to 7)
 	Rename        func(name string)           // called on ESC k … ST (the server applies allow-rename)
-	replies       []byte
-	parser        *Parser
-	in            input
+
+	// XPixel and YPixel are a cell's size in pixels, for CSI 14, 15 and 16 t (tmux's
+	// defaults until a client tells its own).
+	XPixel, YPixel int
+	// Theme is the client terminal's light or dark theme, for CSI ? 996 n.
+	Theme Theme
+	// ExtendedKeys is tmux's extended-keys option, for CSI > 4 m.
+	ExtendedKeys ExtendedKeysOption
+	replies      []byte
+	parser       *Parser
+	in           input
 }
 
 // ClipboardMode is tmux's set-clipboard option.
@@ -46,6 +56,32 @@ const (
 	ClipboardOff      ClipboardMode = 0
 	ClipboardExternal ClipboardMode = 1 // tmux's default
 	ClipboardOn       ClipboardMode = 2
+)
+
+// Theme is a terminal's colour theme, as tmux reports it.
+type Theme int
+
+// Themes.
+const (
+	ThemeUnknown Theme = iota
+	ThemeDark
+	ThemeLight
+)
+
+// ExtendedKeysOption is tmux's extended-keys option.
+type ExtendedKeysOption int
+
+// extended-keys values.
+const (
+	ExtendedKeysOff    ExtendedKeysOption = 0 // tmux's default
+	ExtendedKeysOn     ExtendedKeysOption = 1
+	ExtendedKeysAlways ExtendedKeysOption = 2
+)
+
+// Default cell size in pixels (tmux's DEFAULT_XPIXEL and DEFAULT_YPIXEL).
+const (
+	DefaultXPixel = 16
+	DefaultYPixel = 32
 )
 
 // inputCell is the current style and character sets (tmux's input_cell).
@@ -71,7 +107,7 @@ type input struct {
 
 // NewTerminal returns an emulator with a sx×sy screen keeping hlimit lines of history.
 func NewTerminal(sx, sy, hlimit int) *Terminal {
-	t := &Terminal{Screen: NewScreen(sx, sy, hlimit), ClipboardMode: ClipboardExternal}
+	t := &Terminal{Screen: NewScreen(sx, sy, hlimit), ClipboardMode: ClipboardExternal, XPixel: DefaultXPixel, YPixel: DefaultYPixel}
 	t.Palette.Init()
 	t.in.t = t
 	t.in.resetCell()
@@ -308,6 +344,9 @@ func (in *input) EscDispatch(inter []byte, final byte) {
 			in.t.Palette.Clear()
 			in.resetCell()
 			s.reset()
+			if in.t.ExtendedKeys == ExtendedKeysAlways { // as tmux's screen_reinit
+				s.Mode = s.Mode&^ExtendedKeyModes | ModeKeysExtended
+			}
 		default:
 			return
 		}
@@ -437,7 +476,10 @@ func (in *input) CsiDispatch(p *Params, inter []byte, final byte) {
 			in.backTab(p)
 		case 'b': // REP
 			in.repeatLast(p)
-		case 'c': // DA (C1.8)
+		case 'c': // DA
+			if p.Get(0, 0, 0) == 0 {
+				in.replyf("\x1b[?1;2c")
+			}
 		case 'd': // VPA
 			if n := p.Get(0, 1, 1); n != -1 {
 				s.cursorMove(-1, n-1, true)
@@ -457,7 +499,13 @@ func (in *input) CsiDispatch(p *Params, inter []byte, final byte) {
 			in.csiRM(p)
 		case 'm': // SGR
 			in.csiSGR(p)
-		case 'n': // DSR (C1.8)
+		case 'n': // DSR
+			switch p.Get(0, 0, 0) {
+			case 5:
+				in.replyf("\x1b[0n")
+			case 6:
+				in.replyf("\x1b[%d;%dR", s.Cy+1, s.Cx+1)
+			}
 		case 'r': // DECSTBM
 			n := p.Get(0, 1, 1)
 			m := p.Get(1, 1, s.SizeY())
@@ -481,12 +529,31 @@ func (in *input) CsiDispatch(p *Params, inter []byte, final byte) {
 		case 'l': // DECRST
 			in.csiRMPrivate(p)
 		case 'n': // DSR_PRIVATE
+			if p.Get(0, 0, 0) == 996 {
+				switch in.t.Theme {
+				case ThemeDark:
+					in.replyf("\x1b[?997;1n")
+				case ThemeLight:
+					in.replyf("\x1b[?997;2n")
+				}
+			}
 		default:
 			return
 		}
 	case ">":
 		switch final {
-		case 'c', 'm', 'n', 'q':
+		case 'c': // DA2
+			if p.Get(0, 0, 0) == 0 {
+				in.replyf("\x1b[>84;0;0c")
+			}
+		case 'm': // modifyOtherKeys
+			in.csiModSet(p)
+		case 'n':
+			in.csiModOff(p)
+		case 'q': // XTVERSION
+			if p.Get(0, 0, 0) == 0 {
+				in.replyf("\x1bP>|tmux %s\x1b\\", version.Tmux)
+			}
 		default:
 			return
 		}
@@ -916,18 +983,91 @@ func (in *input) csiSGR(p *Params) {
 	}
 }
 
+// csiWinOps is tmux's input_csi_dispatch_winops: size reports, the title stack, and the
+// window operations tmux reads past and ignores.
 func (in *input) csiWinOps(p *Params) {
 	s := in.t.Screen
-	switch p.Get(0, 0, -1) {
-	case 22:
-		switch p.Get(1, 0, -1) {
-		case 0, 2:
-			s.PushTitle()
+	x, y := s.SizeX(), s.SizeY()
+	xp, yp := in.t.XPixel, in.t.YPixel
+	for m := 0; ; m++ {
+		n := p.Get(m, 0, -1)
+		if n == -1 {
+			return
 		}
-	case 23:
-		switch p.Get(1, 0, -1) {
-		case 0, 2:
-			s.PopTitle()
+		switch n {
+		case 1, 2, 5, 6, 7, 11, 13, 20, 21, 24:
+		case 3, 4, 8:
+			m++
+			if p.Get(m, 0, -1) == -1 {
+				return
+			}
+			m++
+			if p.Get(m, 0, -1) == -1 {
+				return
+			}
+		case 9, 10:
+			m++
+			if p.Get(m, 0, -1) == -1 {
+				return
+			}
+		case 14:
+			in.replyf("\x1b[4;%d;%dt", y*yp, x*xp)
+		case 15:
+			in.replyf("\x1b[5;%d;%dt", y*yp, x*xp)
+		case 16:
+			in.replyf("\x1b[6;%d;%dt", yp, xp)
+		case 18:
+			in.replyf("\x1b[8;%d;%dt", y, x)
+		case 19:
+			in.replyf("\x1b[9;%d;%dt", y, x)
+		case 22:
+			m++
+			switch p.Get(m, 0, -1) {
+			case -1:
+				return
+			case 0, 2:
+				s.PushTitle()
+			}
+		case 23:
+			m++
+			switch p.Get(m, 0, -1) {
+			case -1:
+				return
+			case 0, 2:
+				s.PopTitle()
+			}
 		}
+	}
+}
+
+// csiModSet is CSI > 4 ; Pm m (modifyOtherKeys), as tmux sets extended keys per its
+// extended-keys option.
+func (in *input) csiModSet(p *Params) {
+	s := in.t.Screen
+	if p.Get(0, 0, 0) != 4 {
+		return
+	}
+	m := p.Get(1, 0, 0)
+	ek := in.t.ExtendedKeys
+	if ek == ExtendedKeysOff {
+		return
+	}
+	s.Mode &^= ExtendedKeyModes
+	if m == 2 {
+		s.Mode |= ModeKeysExtended2
+	} else if m == 1 || ek == ExtendedKeysAlways {
+		s.Mode |= ModeKeysExtended
+	}
+}
+
+// csiModOff is CSI > 4 n.
+func (in *input) csiModOff(p *Params) {
+	s := in.t.Screen
+	if p.Get(0, 0, 0) != 4 {
+		return
+	}
+	s.Mode &^= ExtendedKeyModes
+	if in.t.ExtendedKeys == ExtendedKeysAlways {
+		s.Mode |= ModeKeysExtended
 	}
 }

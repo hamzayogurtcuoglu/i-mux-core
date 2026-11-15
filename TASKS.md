@@ -352,6 +352,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     the probe in i-mux-core's panes too.
 - **Acceptance:** every probe reply is identical, or the difference is recorded in
   COMPATIBILITY.md §13 with a reason.
+- **Status:** the unit part is done: every reply in the probe matches tmux 3.8. The difftest run
+  waits for C2.6.
 - **Depends on:** C1.7, C2.6 (for the difftest run; the unit part can come earlier).
 
 ### [ ] C1.9 Fake TUI for tests

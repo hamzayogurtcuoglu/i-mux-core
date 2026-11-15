@@ -26,6 +26,8 @@ All notable changes to i-mux-core are listed here. The format follows
 - OSC and DCS, ported from tmux 3.8: titles and the title stack, OSC 7 paths, OSC 8 hyperlinks
   (kept per cell and given back by `capture-pane -e`), OSC 4/10/11/12 colours and queries with
   their resets, OSC 52 under `set-clipboard`, OSC 133 prompt marks, OSC 9;4 progress, and DECRQSS.
+- Replies to programs as tmux 3.8 gives them (DA1, DA2, XTVERSION, DSR, DECRQM, window sizes,
+  colour queries, DECRQSS, the theme report), checked against tmux by a probe.
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
 - Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,

@@ -158,3 +158,43 @@ func FromTmux(tmux, self, in string, timeout time.Duration) (string, error) {
 }
 
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
+
+// ProbeFromTmux runs a probe file on an 80x24 tmux pane and returns the replies.out text.
+func ProbeFromTmux(tmux, self, probe string, timeout time.Duration) (string, error) {
+	probe, err := filepath.Abs(probe)
+	if err != nil {
+		return "", err
+	}
+	dir, err := os.MkdirTemp("/tmp", "imux-vt-")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(dir)
+	sock, out, marker := filepath.Join(dir, "s"), filepath.Join(dir, "out"), filepath.Join(dir, "done")
+	env := []string{"HOME=" + dir, "TMUX_TMPDIR=" + dir, "TERM=xterm-256color", "LANG=C.UTF-8", "LC_ALL=C.UTF-8", "TZ=UTC", "PATH=/usr/bin:/bin"}
+	run := func(args ...string) error {
+		cmd := exec.Command(tmux, append([]string{"-S", sock, "-f", "/dev/null", "-u"}, args...)...)
+		cmd.Env = env
+		if b, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("tmux %s: %v: %s", strings.Join(args, " "), err, b)
+		}
+		return nil
+	}
+	defer func() { _ = run("kill-server") }()
+	helper := shellQuote(self) + " __probe " + shellQuote(probe) + " " + shellQuote(out) + " " + shellQuote(marker)
+	if err := run("new-session", "-d", "-x", strconv.Itoa(DefaultCols), "-y", strconv.Itoa(DefaultRows), helper); err != nil {
+		return "", err
+	}
+	deadline := time.Now().Add(timeout)
+	for {
+		if _, err := os.Stat(marker); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("the probe did not finish within %v", timeout)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	b, err := os.ReadFile(out)
+	return string(b), err
+}

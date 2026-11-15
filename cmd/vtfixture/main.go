@@ -25,6 +25,9 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "__write" {
 		os.Exit(vtfixture.Helper(os.Args[2:]))
 	}
+	if len(os.Args) > 1 && os.Args[1] == "__probe" {
+		os.Exit(vtfixture.ProbeHelper(os.Args[2:]))
+	}
 	tmux := flag.String("tmux", ".cache/tmux/3.8/bin/tmux", "the pinned tmux")
 	check := flag.Bool("check", false, "compare with the saved screens instead of writing them")
 	dir := flag.String("dir", "testdata/vt", "the fixtures' directory")
@@ -80,6 +83,28 @@ func main() {
 		if err := os.WriteFile(out, []byte(got), 0o644); err != nil {
 			fmt.Fprintln(os.Stderr, "vtfixture:", err)
 			failed++
+		}
+	}
+	// The reply probe: testdata/vt/replies.txt, answered by tmux into replies.out.
+	if probe := filepath.Join(*dir, "replies.txt"); len(flag.Args()) == 0 {
+		if _, err := os.Stat(probe); err == nil {
+			got, err := vtfixture.ProbeFromTmux(tmuxPath, self, probe, 60*time.Second)
+			out := filepath.Join(*dir, "replies.out")
+			switch {
+			case err != nil:
+				fmt.Fprintf(os.Stderr, "vtfixture: %s: %v\n", probe, err)
+				failed++
+			case *check:
+				if want, err := os.ReadFile(out); err != nil || string(want) != got {
+					fmt.Fprintf(os.Stderr, "vtfixture: %s differs from tmux\n", out)
+					failed++
+				}
+			default:
+				if err := os.WriteFile(out, []byte(got), 0o644); err != nil {
+					fmt.Fprintln(os.Stderr, "vtfixture:", err)
+					failed++
+				}
+			}
 		}
 	}
 	if failed > 0 {
