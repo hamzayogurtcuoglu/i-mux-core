@@ -55,16 +55,16 @@ func TestParse(t *testing.T) {
 	if got := c.Args.All('e'); !reflect.DeepEqual(got, []string{"A=1", "B=2"}) {
 		t.Errorf("-e %q", got)
 	}
-	if !reflect.DeepEqual(c.Args.Values, []string{"-sh", "x"}) {
-		t.Errorf("values %q", c.Args.Values)
+	if !reflect.DeepEqual(c.Args.Strings(), []string{"-sh", "x"}) {
+		t.Errorf("values %q", c.Args.Strings())
 	}
 	// A lone "-" is an argument; the last of a repeated flag wins.
 	c, err = Parse([]string{"new", "-s", "a", "-s", "b", "-"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v, _ := c.Args.Get('s'); v != "b" || c.Args.Count('s') != 2 || !reflect.DeepEqual(c.Args.Values, []string{"-"}) {
-		t.Errorf("-s %q, count %d, values %q", v, c.Args.Count('s'), c.Args.Values)
+	if v, _ := c.Args.Get('s'); v != "b" || c.Args.Count('s') != 2 || !reflect.DeepEqual(c.Args.Strings(), []string{"-"}) {
+		t.Errorf("-s %q, count %d, values %q", v, c.Args.Count('s'), c.Args.Strings())
 	}
 
 	for _, tc := range []struct {
@@ -88,21 +88,21 @@ func TestParse(t *testing.T) {
 
 func TestParseOptionalValue(t *testing.T) {
 	// A flag with an optional value ("c::") takes the next word unless it looks like a flag.
-	a, err := ParseArgs("c::d", 0, -1, []string{"x", "-c", "-d"})
+	a, err := ParseArgs("c::d", 0, -1, Strings([]string{"x", "-c", "-d"}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if v, ok := a.Get('c'); ok || !a.Has('c') || !a.Has('d') {
 		t.Errorf("-c %q %v, -d %v", v, ok, a.Has('d'))
 	}
-	a, err = ParseArgs("c::d", 0, -1, []string{"x", "-c", "val"})
+	a, err = ParseArgs("c::d", 0, -1, Strings([]string{"x", "-c", "val"}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if v, _ := a.Get('c'); v != "val" {
 		t.Errorf("-c %q", v)
 	}
-	if a, err = ParseArgs("c::", 0, -1, []string{"x", "-c"}); err != nil || !a.Has('c') {
+	if a, err = ParseArgs("c::", 0, -1, Strings([]string{"x", "-c"}), nil); err != nil || !a.Has('c') {
 		t.Errorf("-c at the end: %v", err)
 	}
 }

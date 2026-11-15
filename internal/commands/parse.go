@@ -56,49 +56,110 @@ func Find(name string) (*Spec, error) {
 	return found, nil
 }
 
+// Value is an argument: a string, or a { … } block of commands.
+type Value struct {
+	String   string
+	Commands *List // a block, when IsBlock
+	IsBlock  bool
+}
+
+// Strings makes values of strings.
+func Strings(words []string) []Value {
+	out := make([]Value, len(words))
+	for i, w := range words {
+		out[i] = Value{String: w}
+	}
+	return out
+}
+
+// text is a value as a string: a block is printed.
+func (v Value) text() string {
+	if v.IsBlock {
+		return v.Commands.Print()
+	}
+	return v.String
+}
+
+type flagEntry struct {
+	count    int
+	values   []Value
+	optional bool // given without its optional value (tmux's ARGS_ENTRY_OPTIONAL_VALUE)
+}
+
 // Args are a command's parsed flags and arguments.
 type Args struct {
-	flags  map[byte][]string // the values of each flag given, in order
-	counts map[byte]int      // how many times each flag was given
-	Values []string          // the arguments after the flags
+	flags  map[byte]*flagEntry
+	Values []Value // the arguments after the flags
 }
 
 // Has reports whether flag f was given.
-func (a *Args) Has(f byte) bool { return a.counts[f] > 0 }
+func (a *Args) Has(f byte) bool { return a.flags[f] != nil }
 
 // Count returns how many times flag f was given.
-func (a *Args) Count(f byte) int { return a.counts[f] }
+func (a *Args) Count(f byte) int {
+	if e := a.flags[f]; e != nil {
+		return e.count
+	}
+	return 0
+}
 
 // Get returns flag f's value; tmux takes the last one when it is given more than once.
 func (a *Args) Get(f byte) (string, bool) {
-	v := a.flags[f]
-	if len(v) == 0 {
+	e := a.flags[f]
+	if e == nil || len(e.values) == 0 {
 		return "", false
 	}
-	return v[len(v)-1], true
+	return e.values[len(e.values)-1].text(), true
 }
 
 // All returns every value given for flag f, in order.
-func (a *Args) All(f byte) []string { return a.flags[f] }
+func (a *Args) All(f byte) []string {
+	var out []string
+	if e := a.flags[f]; e != nil {
+		for _, v := range e.values {
+			out = append(out, v.text())
+		}
+	}
+	return out
+}
+
+// Strings returns the arguments after the flags as strings.
+func (a *Args) Strings() []string {
+	out := make([]string, len(a.Values))
+	for i, v := range a.Values {
+		out[i] = v.text()
+	}
+	return out
+}
 
 // errUsage is tmux's -? : the command's usage is wanted.
 var errUsage = errors.New("usage")
 
+// ArgType says what an argument may be, as tmux's per-command args_parse callbacks do.
+type ArgType int
+
+// Argument types.
+const (
+	ArgString           ArgType = iota // a string only
+	ArgCommandsOrString                // a { … } block or a string
+)
+
 // ParseArgs parses words (words[0] is the command's name) by template and bounds, as tmux's
-// args_parse does: flags until the first word that is not one, or "--".
-func ParseArgs(template string, lower, upper int, words []string) (*Args, error) {
-	a := &Args{flags: map[byte][]string{}, counts: map[byte]int{}}
+// args_parse does: flags until the first word that is not one, or "--". argType says what
+// each argument after the flags may be (nil: strings only).
+func ParseArgs(template string, lower, upper int, words []Value, argType func(a *Args, idx int) ArgType) (*Args, error) {
+	a := &Args{flags: map[byte]*flagEntry{}}
 	i := 1
 	for i < len(words) {
 		w := words[i]
-		if len(w) < 2 || w[0] != '-' {
+		if w.IsBlock || len(w.String) < 2 || w.String[0] != '-' {
 			break
 		}
 		i++
-		if w == "--" {
+		if w.String == "--" {
 			break
 		}
-		s := w[1:]
+		s := w.String[1:]
 		for len(s) > 0 {
 			f := s[0]
 			s = s[1:]
@@ -113,28 +174,40 @@ func ParseArgs(template string, lower, upper int, words []string) (*Args, error)
 				return nil, fmt.Errorf("unknown flag -%c", f)
 			}
 			if at+1 >= len(template) || template[at+1] != ':' {
-				a.counts[f]++
+				a.set(f, nil, false)
 				continue
 			}
 			optional := at+2 < len(template) && template[at+2] == ':'
 			switch {
 			case s != "":
-				a.set(f, s, true)
+				a.set(f, &Value{String: s}, false)
 			case i == len(words):
 				if !optional {
 					return nil, fmt.Errorf("-%c expects an argument", f)
 				}
-				a.set(f, "", false)
-			case optional && looksLikeFlag(words[i]):
-				a.set(f, "", false)
+				a.set(f, nil, true)
+			case words[i].IsBlock:
+				return nil, fmt.Errorf("-%c argument must be a string", f)
+			case optional && looksLikeFlag(words[i].String):
+				a.set(f, nil, true)
 			default:
-				a.set(f, words[i], true)
+				v := words[i]
+				a.set(f, &v, false)
 				i++
 			}
 			s = ""
 		}
 	}
-	a.Values = append([]string(nil), words[i:]...)
+	for ; i < len(words); i++ {
+		t := ArgString
+		if argType != nil {
+			t = argType(a, len(a.Values))
+		}
+		if t == ArgString && words[i].IsBlock {
+			return nil, fmt.Errorf("argument %d must be \"string\"", len(a.Values)+1)
+		}
+		a.Values = append(a.Values, words[i])
+	}
 	if lower != -1 && len(a.Values) < lower {
 		return nil, fmt.Errorf("too few arguments (need at least %d)", lower)
 	}
@@ -144,10 +217,15 @@ func ParseArgs(template string, lower, upper int, words []string) (*Args, error)
 	return a, nil
 }
 
-func (a *Args) set(f byte, v string, hasValue bool) {
-	a.counts[f]++
-	if hasValue {
-		a.flags[f] = append(a.flags[f], v)
+func (a *Args) set(f byte, v *Value, optional bool) {
+	e := a.flags[f]
+	if e == nil {
+		e = &flagEntry{optional: optional}
+		a.flags[f] = e
+	}
+	e.count++
+	if v != nil {
+		e.values = append(e.values, *v)
 	}
 }
 
@@ -169,26 +247,85 @@ func looksLikeFlag(w string) bool {
 type Command struct {
 	Spec  *Spec
 	Args  *Args
-	Words []string
+	Group int // commands from one line share a group; a failing one skips the rest of it
 }
 
 // Parse looks up and parses one command's words, with tmux's messages.
-func Parse(words []string) (*Command, error) {
-	if len(words) == 0 {
+func Parse(words []string) (*Command, error) { return ParseValues(Strings(words)) }
+
+// ParseValues is Parse for words that may be { … } blocks.
+func ParseValues(words []Value) (*Command, error) {
+	if len(words) == 0 || words[0].IsBlock {
 		return nil, errors.New("no command")
 	}
-	spec, err := Find(words[0])
+	spec, err := Find(words[0].String)
 	if err != nil {
 		return nil, err
 	}
-	args, err := ParseArgs(spec.Template, spec.Lower, spec.Upper, words)
+	args, err := ParseArgs(spec.Template, spec.Lower, spec.Upper, words, argTypes[spec.Name])
 	if errors.Is(err, errUsage) {
 		return nil, fmt.Errorf("usage: %s %s", spec.Name, spec.Usage)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("command %s: %w", spec.Name, err)
 	}
-	return &Command{Spec: spec, Args: args, Words: words}, nil
+	return &Command{Spec: spec, Args: args}, nil
+}
+
+func setOptionArgType(a *Args, idx int) ArgType {
+	if a.Has('B') || idx == 1 {
+		return ArgCommandsOrString
+	}
+	return ArgString
+}
+
+// argTypes are tmux's args_parse callbacks: which arguments may be { … } blocks.
+var argTypes = map[string]func(a *Args, idx int) ArgType{
+	"bind-key":       func(*Args, int) ArgType { return ArgCommandsOrString },
+	"choose-tree":    func(*Args, int) ArgType { return ArgCommandsOrString },
+	"choose-client":  func(*Args, int) ArgType { return ArgCommandsOrString },
+	"choose-buffer":  func(*Args, int) ArgType { return ArgCommandsOrString },
+	"switch-mode":    func(*Args, int) ArgType { return ArgCommandsOrString },
+	"display-panes":  func(*Args, int) ArgType { return ArgCommandsOrString },
+	"confirm-before": func(*Args, int) ArgType { return ArgCommandsOrString },
+	"command-prompt": func(*Args, int) ArgType { return ArgCommandsOrString },
+	"display-menu": func(a *Args, idx int) ArgType {
+		// Menu items are a name, a key and a command; an empty name is a separator.
+		i := 0
+		for {
+			if i == idx {
+				return ArgString
+			}
+			if a.Values[i].text() == "" {
+				i++
+				continue
+			}
+			i++
+			if i == idx {
+				return ArgString
+			}
+			i++
+			if i == idx {
+				return ArgCommandsOrString
+			}
+			i++
+		}
+	},
+	"if-shell": func(_ *Args, idx int) ArgType {
+		if idx == 1 || idx == 2 {
+			return ArgCommandsOrString
+		}
+		return ArgString
+	},
+	"set-option":        setOptionArgType,
+	"set-window-option": setOptionArgType,
+	"set-hook":          setOptionArgType,
+	"run-shell": func(a *Args, _ int) ArgType {
+		if a.Has('C') {
+			return ArgCommandsOrString
+		}
+		return ArgString
+	},
 }
 
 // ParseList parses a command list; the first error fails the whole list, as in tmux.

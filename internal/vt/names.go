@@ -83,6 +83,14 @@ func utf8Strvis(s string, flag int) string {
 				}
 			}
 		}
+		if flag&visDQ != 0 && c == '$' && i+1 < len(s) {
+			if n := s[i+1]; n >= 'a' && n <= 'z' || n >= 'A' && n <= 'Z' || n == '_' || n == '{' {
+				b.WriteByte('\\')
+			}
+			b.WriteByte('$')
+			i++
+			continue
+		}
 		var nextc byte
 		if i+1 < len(s) {
 			nextc = s[i+1]
@@ -91,6 +99,16 @@ func utf8Strvis(s string, flag int) string {
 		i++
 	}
 	return b.String()
+}
+
+// ArgVis encodes a command argument as tmux's args_escape does before quoting it
+// (utf8_stravis with VIS_OCTAL, VIS_CSTYLE, VIS_TAB and VIS_NL, and VIS_DQ inside "…").
+func ArgVis(s string, doubleQuoted bool) string {
+	flag := visOctal | visCStyle | visTab | visNL
+	if doubleQuoted {
+		flag |= visDQ
+	}
+	return utf8Strvis(s, flag)
 }
 
 // cleanName sanitizes a title or path as tmux's clean_name does.

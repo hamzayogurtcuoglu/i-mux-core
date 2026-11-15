@@ -1,0 +1,4 @@
+stdout:
+<conf>:3: syntax error
+stderr:
+exit 1

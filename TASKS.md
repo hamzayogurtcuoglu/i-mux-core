@@ -682,7 +682,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 
 ## Phase 3: Commands, options, formats
 
-### [ ] C3.1 Command syntax parser
+### [x] C3.1 Command syntax parser
 - **Goal:** the config and command strings i-mux writes parse exactly as tmux parses them.
 - **Details:**
   - `internal/cmdlang`:
@@ -704,6 +704,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     compare (`IMUX_CMDLANG_EXTRA` for the captured ones, which are not committed). The same
     check through `list-keys` and `show-options -g` comes with C3.8 and C3.4.
 - **Depends on:** C0.3.
+- **Status:** done. The 96 configs captured in C0.3 parse and print exactly as tmux's; `%if`
+  conditions are still taken literally until the format engine (C3.5).
 
 ### [ ] C3.2 Command table and flags
 - **Goal:** one place that defines every command's flags and targets.

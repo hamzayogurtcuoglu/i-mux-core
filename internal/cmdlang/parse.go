@@ -264,6 +264,9 @@ func (p *parser) command() *Command {
 			}
 			c.Args = append(c.Args, Arg{Block: true, Commands: block})
 		default:
+			// tmux records a command's line when it has read past its end: the line it ends
+			// on (after a continued line, or the line after a comment).
+			c.Line = p.lex.line
 			return c
 		}
 	}

@@ -340,9 +340,8 @@ func (l *lexer) token(c int) (string, bool) {
 		last = state
 		c = l.getc()
 	}
-	if state != stNone {
-		return "", false
-	}
+	// The end of the input ends a token even inside quotes, as in tmux: an unclosed quote runs
+	// to the end of the file.
 	l.ungetc(c)
 	return b.String(), true
 }

@@ -156,8 +156,6 @@ func TestParseVariables(t *testing.T) {
 
 func TestParseErrors(t *testing.T) {
 	for _, src := range []string{
-		"set a 'unterminated",
-		"set a \"unterminated",
 		"%if #{x}\nset a b\n",
 		"%endif\n",
 		"bind x { display a",
@@ -168,6 +166,26 @@ func TestParseErrors(t *testing.T) {
 		if _, err := Parse(src, Options{}); err == nil {
 			t.Errorf("Parse(%q): no error", src)
 		}
+	}
+}
+
+// An unclosed quote is not an error: it runs to the end of the input, newlines included, as in
+// tmux 3.8 (testdata/cmdlang/error-quote.conf). A command's line is the one it ends on.
+func TestUnclosedQuote(t *testing.T) {
+	cmds, err := Parse("set a 1\nset b \"open\nset c 3\n", Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cmds) != 2 || cmds[1].Args[2].String != "open\nset c 3\n" || cmds[1].Line != 4 {
+		t.Errorf("%+v", cmds[1])
+	}
+	cmds, _ = Parse("set a 'x", Options{})
+	if len(cmds) != 1 || cmds[0].Args[2].String != "x" {
+		t.Errorf("%+v", cmds)
+	}
+	cmds, _ = Parse("set a #c\nset b \\\nx\n", Options{})
+	if cmds[0].Line != 2 || cmds[1].Line != 3 {
+		t.Errorf("lines %d and %d, want 2 and 3", cmds[0].Line, cmds[1].Line)
 	}
 }
 

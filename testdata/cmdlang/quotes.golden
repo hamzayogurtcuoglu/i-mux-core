@@ -1,0 +1,23 @@
+stdout:
+<conf>:2: send-keys plain
+<conf>:3: send-keys "single quoted \$FOO \"x\""
+<conf>:4: send-keys "double \"quoted\" \\ \$FOO bar barx"
+<conf>:5: send-keys "tab\there\nnewline \033[1m é 😀 A x41"
+<conf>:6: send-keys "a b" "c;d"
+<conf>:7: send-keys '' ''
+<conf>:8: send-keys $HOME $HOME/x $HOME/y \~/z a~b
+<conf>:9: send-keys '' '' x
+<conf>:10: send-keys "a b" "a b"
+<conf>:12: send-keys ; send-keys "a#b" "a#b" "#{pane_id}" "#[fg=red]"
+<conf>:13: send-keys "a;b" "c;d" "{x}" "%y" \$ "\$x" "\${y}"
+<conf>:14: send-keys "it's" mixedquotes
+<conf>:16: send-keys xy
+<conf>:18: send-keys "line one line two"
+<conf>:19: send-keys é 日本 é é
+<conf>:20: send-keys - -- - a -x
+<conf>:21: send-keys \$ \\ \\ \\ \a q
+<conf>:22: send-keys \; \; \;
+<conf>:23: send-keys a=b A=1 x=y
+<conf>:24: send-keys '' '' ''
+stderr:
+exit 0

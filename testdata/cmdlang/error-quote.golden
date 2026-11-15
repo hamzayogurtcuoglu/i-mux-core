@@ -1,0 +1,5 @@
+stdout:
+<conf>:1: set-option -g @a 1
+<conf>:4: set-option -g @b "unterminated\nset -g @c 3\n"
+stderr:
+exit 0

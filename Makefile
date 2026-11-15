@@ -10,7 +10,7 @@ PKGS      ?= ./...
 
 export CGO_ENABLED = 0
 
-.PHONY: all build test lint fmt tmux difftest vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check contract contract-record fuzz bench ci clean
+.PHONY: all build test lint fmt tmux difftest vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check contract contract-record fuzz bench ci clean
 
 all: lint test build
 
@@ -40,7 +40,7 @@ TMUX_PINNED ?= $(CURDIR)/.cache/tmux/3.8/bin/tmux
 tmux: ## Build the pinned tmux 3.8 into .cache/tmux
 	./scripts/build-tmux.sh
 
-difftest: build vt-fixtures-check layout-fixtures-check ## Differential tests against the pinned tmux
+difftest: build vt-fixtures-check layout-fixtures-check parse-fixtures-check ## Differential tests against the pinned tmux
 	IMUX_CORE_BIN=$(CURDIR)/bin/$(BINARY) IMUX_DIFFTEST_TMUX=$(TMUX_PINNED) \
 		$(GO) test -count=1 -tags difftest ./internal/difftest/...
 
@@ -70,6 +70,20 @@ layout-fixtures-check: ## Check that the pinned tmux still gives testdata/layout
 		echo "layout-fixtures-check: the pinned tmux is not built"; exit 1; \
 	else \
 		echo "layout-fixtures-check: the pinned tmux is not built (make tmux): fixtures NOT checked"; \
+	fi
+
+# How the pinned tmux parses testdata/cmdlang/*.conf (cmd/parsefixture, source-file -nv).
+parse-fixtures: ## Regenerate testdata/cmdlang/*.golden from the pinned tmux
+	$(GO) build -o bin/parsefixture ./cmd/parsefixture
+	./bin/parsefixture -tmux $(TMUX_PINNED)
+
+parse-fixtures-check: ## Check that the pinned tmux still gives testdata/cmdlang/*.golden
+	@if [ -x "$(TMUX_PINNED)" ]; then \
+		$(GO) build -o bin/parsefixture ./cmd/parsefixture && ./bin/parsefixture -check -tmux $(TMUX_PINNED); \
+	elif [ "$$IMUX_DIFFTEST_REQUIRE" = 1 ]; then \
+		echo "parse-fixtures-check: the pinned tmux is not built"; exit 1; \
+	else \
+		echo "parse-fixtures-check: the pinned tmux is not built (make tmux): fixtures NOT checked"; \
 	fi
 
 # The contract (TASKS.md C0.3): contract-record runs i-mux's e2e suite with a

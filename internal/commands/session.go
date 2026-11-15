@@ -146,10 +146,10 @@ func newSession(it *Item) error {
 	if n, ok := a.Get('n'); ok {
 		w.Name = n
 	} else {
-		w.Name = defaultWindowName(a.Values, it.shell())
+		w.Name = defaultWindowName(a.Strings(), it.shell())
 	}
 	p := t.NewPane(w, nil, false, sx, sy)
-	spec := it.spawnSpec(s, p, a.Values, cwd, a.All('e'))
+	spec := it.spawnSpec(s, p, a.Strings(), cwd, a.All('e'))
 	if err := it.Host.Spawn(p, spec); err != nil {
 		t.RemoveSession(s)
 		return fmt.Errorf("create window failed: %v", err)

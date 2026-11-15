@@ -1,0 +1,8 @@
+stdout:
+<conf>:3: set-option -g @a yes
+<conf>:8: set-option -g @b elif
+<conf>:15: set-option -g @c else
+<conf>:21: set-option -g @d nested-else
+<conf>:26: set-option -g @e ''
+stderr:
+exit 0

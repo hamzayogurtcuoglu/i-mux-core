@@ -38,6 +38,7 @@ const (
 	visCStyle = 0x02
 	visTab    = 0x08
 	visNL     = 0x10
+	visDQ     = 0x200 // escape '"', and '$' before a name (utf8_strvis)
 )
 
 func isVisVisible(c byte, flag int) bool {
@@ -60,7 +61,7 @@ func isVisVisible(c byte, flag int) bool {
 
 func visByte(b *strings.Builder, c byte, flag int, nextc byte) {
 	if isVisVisible(c, flag) {
-		if c == '\\' {
+		if c == '\\' || (c == '"' && flag&visDQ != 0) {
 			b.WriteByte('\\')
 		}
 		b.WriteByte(c)

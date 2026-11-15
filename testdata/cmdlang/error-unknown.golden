@@ -1,0 +1,5 @@
+stdout:
+<conf>:1: set-option -g @a 1
+<conf>:2: unknown command: bogus-command
+stderr:
+exit 1

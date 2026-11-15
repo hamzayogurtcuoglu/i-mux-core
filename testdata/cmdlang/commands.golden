@@ -1,0 +1,41 @@
+stdout:
+<conf>:2: set-option -g @a 1 ; set-option -g @b 2
+<conf>:3: set-option -g @c 3 ; set-option -g @d 4
+<conf>:4: send-keys "5;" ; send-keys 6 \; send 7
+<conf>:5: send-keys 8 ; send-keys 9
+<conf>:6: display-message hi ; split-window
+<conf>:6: bind-key a { display-message hi ; split-window }
+<conf>:8: display-message one
+<conf>:9: display-message two ; display-message three
+<conf>:9: bind-key b { display-message one ;; display-message two ; display-message three }
+<conf>:11: display-message deep
+<conf>:11: bind-key d { display-message deep }
+<conf>:11: bind-key c { bind-key d { display-message deep } }
+<conf>:12: set-option -g @h 8
+<conf>:12: set-option -g @h 9
+<conf>:12: if-shell true { set-option -g @h 8 } { set-option -g @h 9 }
+<conf>:13: set-option -gq status-style fg=red
+<conf>:14: set-option -gw pane-border-status top
+<conf>:15: set-window-option -g mode-keys vi
+<conf>:16: set-option -gs escape-time 0
+<conf>:17: resize-pane -R --
+<conf>:18: resize-pane -R 3 -t "%0"
+<conf>:19: display-message -p -F x -t "%0"
+<conf>:20: new-session -d -s x -x
+<conf>:21: send-keys -l -N 3 -t "%0" -a
+<conf>:22: send-keys -llll x
+<conf>:23: bind-key -n M-Left select-pane -L
+<conf>:24: bind-key -T copy-mode-vi v send -X begin-selection
+<conf>:25: set-option -g @z "a b" ; set-option -g @y "c d"
+<conf>:26: run-shell -b "echo \"#{pane_id}\""
+<conf>:27: split-window -h -t "%0"
+<conf>:27: split-window -h -t "%0"
+<conf>:28: show-messages -JT
+<conf>:28: show-messages -JT
+<conf>:29: bind-key x splitp
+<conf>:30: split-window -v
+<conf>:30: show-messages -JT
+<conf>:30: split-window -v ; show-messages -JT
+<conf>:30: bind-key y { split-window -v ; show-messages -JT }
+stderr:
+exit 0
