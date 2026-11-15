@@ -520,7 +520,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - No goroutine leak after the server shuts down.
 - **Depends on:** C1.1, C1.3.
 
-### [ ] C2.5 Layouts
+### [x] C2.5 Layouts
 - **Goal:** splits, resizes, swaps, zoom and saved layouts match tmux exactly.
 - **Details:**
   - A layout tree of horizontal and vertical containers and pane leaves, with sizes in cells
@@ -545,6 +545,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   scenario (`testdata/layout/*.txt`) on the pinned tmux and records every step (`.golden`), and
   the tree replays them; C3.6 adds the same scenarios as difftest scripts.
 - **Depends on:** C2.4.
+- **Status:** done. `internal/layout` is a port of tmux 3.8's layout.c and layout-custom.c
+  (tiled panes only, K6); six scenarios (about 140 steps) match tmux exactly, step by step.
 
 ### [ ] C2.6 The command client
 - **Goal:** `imux-core [-L|-S] [-f] [-u] cmd ; cmd` works like tmux's command line.

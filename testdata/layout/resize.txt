@@ -1,0 +1,16 @@
+# Window resizes shrink and grow the layout as tmux does, to its minimum and back.
+new 120x40
+split %0 -h
+split %1 -h
+split %0 -v
+split %3 -v
+split %2 -v -l 30
+window 60x20
+window 20x10
+window 5x5
+window 200x60
+window 121x41
+resize %4 -x 100
+resize %4 -y 100
+resize %4 -L 1000
+resize %4 -U 1000

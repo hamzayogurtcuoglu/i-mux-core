@@ -1,0 +1,20 @@
+# Splits: both directions, before, sizes, full width and height, and running out of space.
+new 80x24
+split %0 -h
+split %1 -v
+split %0 -v -b
+split %2 -h -l 10
+split %0 -v -l 3
+split %4 -h -b -l 5
+split %3 -v -f
+split %1 -h -f -b -l 12
+split %0 -v -l 50%
+split %8 -h -l 30%
+split %6 -h
+split %6 -h
+split %6 -h
+split %6 -h
+split %6 -h
+split %2 -v -d
+split %0 -h -l 200
+split %0 -h -b -l 200

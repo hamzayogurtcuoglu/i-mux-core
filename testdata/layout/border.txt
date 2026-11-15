@@ -1,0 +1,14 @@
+# pane-border-status top and bottom take a line from the panes on that edge.
+new 80x24
+border top
+split %0 -v
+split %1 -h
+split %0 -v -l 3
+resize %2 -y 5
+resize %0 -y 8
+border bottom
+resize %1 -y 6
+split %2 -v
+kill %0
+border off
+window 60x20

@@ -25,6 +25,8 @@ jobs:
             package: ./internal/cmdlang/
           - target: FuzzReader
             package: ./internal/ipc/
+          - target: FuzzLayoutParse
+            package: ./internal/layout/
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
@@ -19,6 +20,9 @@ import (
 
 // Tree is the server's sessions, windows and panes.
 type Tree struct {
+	// Resized is called when a pane's size changes (its program and screen are resized).
+	Resized func(p *Pane)
+
 	sessions map[int]*Session
 	windows  map[int]*Window
 	panes    map[int]*Pane
@@ -56,6 +60,11 @@ type Window struct {
 	Panes  []*Pane
 	Active *Pane
 	last   []*Pane
+
+	Layout *layout.Layout // made with the first pane
+
+	// ManualSx and ManualSy are the size resize-window set (window-size manual), or 0.
+	ManualSx, ManualSy int
 
 	link *Winlink // windows are in one session: link-window is a non-goal
 }
@@ -254,6 +263,10 @@ func (t *Tree) NewPane(w *Window, at *Pane, before bool, sx, sy int) *Pane {
 	if w.Active == nil {
 		w.Active = p
 	}
+	if w.Layout == nil {
+		w.Layout = layout.New(p.ID, w.Sx, w.Sy)
+		p.Xoff, p.Yoff = 0, 0
+	}
 	t.panes[p.ID] = p
 	return p
 }
@@ -332,6 +345,12 @@ func removeLink(l []*Winlink, wl *Winlink) []*Winlink {
 // which case the caller removes the window. The pane's process is the caller's to end.
 func (t *Tree) RemovePane(p *Pane) (windowEmpty bool) {
 	w := p.Window
+	if w.Layout != nil && len(w.Panes) > 1 {
+		// tmux unzooms, closes the pane's cell, and gives its space to a neighbor.
+		w.Layout.Unzoom()
+		w.Layout.Close(p.ID)
+		defer t.fixPanes(w)
+	}
 	i := w.PaneIndex(p)
 	if i >= 0 {
 		w.Panes = append(w.Panes[:i], w.Panes[i+1:]...)

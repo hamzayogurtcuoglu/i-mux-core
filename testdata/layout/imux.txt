@@ -1,0 +1,26 @@
+# i-mux's layouts: a sidebar (-h -b -f -l 30), agent splits, kill in the middle, resize, swap,
+# zoom, save and restore.
+new 200x50
+split %0 -h -b -f -l 30
+split %0 -h
+split %2 -v
+split %0 -v
+select %0
+kill %4
+resize %1 -x 40
+resize %2 -L 7
+resize %3 -U 4
+resize %0 -R 3
+resize %0 -D 2
+swap %0 %3
+swap %2 %1 -d
+zoom %3
+window 150x40
+zoom %3
+window 220x60
+layout $10
+layout v1$4
+layout $8
+kill %1
+split %3 -h -f -l 25
+layout $22

@@ -189,3 +189,33 @@ func TestGroundTimer(t *testing.T) {
 	p := newPane(t, s, "a", sh("printf '\\033]2;never ends'; sleep 1; printf 'visible'; exec sleep 100"))
 	waitFor(t, "text after the dropped string", func() bool { return strings.Contains(screen(p), "visible") })
 }
+
+// A split resizes the first pane's screen and its program's terminal (TASKS.md C2.5).
+func TestSplitResizesPane(t *testing.T) {
+	s := startServer(t, Options{})
+	p := newPane(t, s, "a", sh(`trap 'echo "size $(stty size)"' WINCH; echo ready; while :; do sleep 0.05; done`))
+	waitFor(t, "ready", func() bool { return strings.Contains(screen(p), "ready") })
+	var q *model.Pane
+	if err := s.Do(func(tr *model.Tree) {
+		var err error
+		if q, err = tr.SplitPane(p, model.SplitOptions{Horizontal: true, Size: -1}); err != nil {
+			t.Error(err)
+			return
+		}
+		if err := s.Spawn(q, sh("exec sleep 100")); err != nil {
+			t.Error(err)
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if p.Sx != 40 || q.Sx != 39 || q.Xoff != 41 {
+		t.Errorf("panes %dx%d and %dx%d at %d", p.Sx, p.Sy, q.Sx, q.Sy, q.Xoff)
+	}
+	waitFor(t, "the new size", func() bool { return strings.Contains(screen(p), "size 24 40") })
+	p.Mu.Lock()
+	cols := p.Term.Screen.Grid.Sx
+	p.Mu.Unlock()
+	if cols != 40 {
+		t.Errorf("the screen is %d columns wide", cols)
+	}
+}

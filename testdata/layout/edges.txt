@@ -1,0 +1,46 @@
+# Edge cases: zoom with splits, kills and selects; nested cells collapsing; percentages; full
+# splits against a root of the same and the other type; the smallest panes.
+new 100x30
+split %0 -h
+split %1 -v
+split %2 -h
+zoom %1
+split %1 -v
+zoom %0
+kill %4
+zoom %3
+select %0
+zoom %2
+layout $3
+kill %3
+kill %2
+split %0 -v -f -l 25%
+split %5 -h -f -b -l 10%
+split %6 -v -f -b
+resize %0 -x 50%
+resize %7 -y 20%
+resize %0 -L 0
+split %6 -v -l 0
+resize %6 -U 100
+kill %6
+kill %7
+kill %0
+kill %8
+window 10x5
+split %5 -h
+split %9 -h
+split %10 -h
+split %11 -h
+split %5 -v
+split %13 -v
+window 3x3
+window 1x1
+window 100x30
+border bottom
+split %9 -v
+split %1 -v -b
+resize %10 -y 5
+resize %1 -y 3
+zoom %9
+window 90x20
+kill %10

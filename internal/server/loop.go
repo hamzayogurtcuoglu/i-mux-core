@@ -79,7 +79,7 @@ func New(o Options) *Server {
 	if o.HoldTimeout == 0 {
 		o.HoldTimeout = 5 * time.Second
 	}
-	return &Server{
+	s := &Server{
 		opts:   o,
 		tree:   model.NewTree(),
 		events: make(chan func(), 256),
@@ -88,6 +88,21 @@ func New(o Options) *Server {
 		panes:  map[*model.Pane]*paneState{},
 		held:   o.HoldForClient,
 		conns:  map[net.Conn]struct{}{},
+	}
+	s.tree.Resized = s.paneResized
+	return s
+}
+
+// paneResized resizes a pane's screen and its program's terminal when its layout cell changes
+// size (in the loop).
+func (s *Server) paneResized(p *model.Pane) {
+	if p.Term != nil {
+		p.Mu.Lock()
+		p.Term.Resize(p.Sx, p.Sy)
+		p.Mu.Unlock()
+	}
+	if p.Proc != nil {
+		_ = p.Proc.Resize(p.Sx, p.Sy)
 	}
 }
 
