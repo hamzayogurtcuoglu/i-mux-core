@@ -356,7 +356,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   waits for C2.6.
 - **Depends on:** C1.7, C2.6 (for the difftest run; the unit part can come earlier).
 
-### [ ] C1.9 Fake TUI for tests
+### [x] C1.9 Fake TUI for tests
 - **Goal:** a stand-in for agent CLIs that exercises what they do to a terminal, without
   running one.
 - **Details:**

@@ -28,6 +28,8 @@ All notable changes to i-mux-core are listed here. The format follows
   their resets, OSC 52 under `set-clipboard`, OSC 133 prompt marks, OSC 9;4 progress, and DECRQSS.
 - Replies to programs as tmux 3.8 gives them (DA1, DA2, XTVERSION, DSR, DECRQM, window sizes,
   colour queries, DECRQSS, the theme report), checked against tmux by a probe.
+- `testdata/faketui`, a stand-in for agent CLIs in tests: a full-screen frame in synchronized
+  output, key, mouse and paste echo, resizing, streaming, title, cwd and copy, and exits.
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
 - Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,
