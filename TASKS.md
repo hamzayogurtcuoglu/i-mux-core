@@ -231,8 +231,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     - the child as session leader with the PTY as its controlling terminal;
     - `Resize` sends `TIOCSWINSZ`, which raises SIGWINCH in the child;
     - `Wait` returns code or signal;
-    - `Kill` signals the process group: SIGHUP, then SIGKILL after a grace period, as tmux does
-      on kill-pane.
+    - `Kill` hangs up the pane: SIGHUP to the program's process group and the terminal's
+      foreground group, as closing the PTY does under tmux's kill-pane, then SIGKILL to both
+      after a grace period, which tmux does not do (COMPATIBILITY.md K4).
   - No goroutine leak and no fd leak after `Close`.
 - **Acceptance:** tests run `sh` scripts to check:
   - output is read;

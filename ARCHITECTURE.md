@@ -217,15 +217,16 @@ type Proc interface {
     io.ReadWriter
     Resize(cols, rows int) error
     Wait() (ExitStatus, error)  // code, signal (Unix), or NTSTATUS (Windows)
-    Kill() error                // the whole process tree (process group / job object)
+    Kill() error                // the whole process tree (process group / job object), K4
     Pid() int
+    Fd() int                    // the PTY master, for ProcInfo
     Close() error
 }
 
 // platform
-type ProcInfo interface {
-    ForegroundCommand(p Proc) string // #{pane_current_command}
-    CurrentPath(p Proc) string       // #{pane_current_path}
+type ProcInfo interface {           // given the pane's PTY master (Proc.Fd)
+    ForegroundCommand(fd int) string // #{pane_current_command}
+    CurrentPath(fd int) string       // #{pane_current_path}
 }
 type Shell interface {
     Command(line string) (argv []string) // for run-shell, if-shell, default-command

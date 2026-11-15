@@ -332,5 +332,6 @@ tmux, and in `%COMSPEC% /d /s /c` on Windows (E14).
 | K1 | Windows: `pane_current_path` is the last OSC 7 / OSC 9;9 path, else the start directory | Reading another process's cwd is unreliable on Windows |
 | K2 | Windows: `pane_dead_signal` is always empty | There are no signals |
 | K3 | No control mode | Non-goal |
+| K4 | Killing a pane (`kill-pane`, `kill-window`, `kill-session`, `respawn-pane -k`) sends SIGHUP and then, after a grace period, SIGKILL to the pane's process group and its terminal's foreground group. tmux only closes the PTY, so a program that ignores SIGHUP outlives its pane | An agent left running after its pane is gone keeps working unseen; tested by `internal/pty`'s kill test |
 
 New rows are added only with a test showing the difference and a reason.
