@@ -240,12 +240,17 @@ type Listener interface { /* Listen, Dial, PeerUser */ }
 
 ### Unix
 
-- **PTY:** `openpty` (via `github.com/creack/pty` or `golang.org/x/sys/unix`, decided in C0.6).
-  The child runs `setsid`, takes the PTY as its controlling terminal and gets its own process
+- **PTY (E11):** opened with `golang.org/x/sys/unix` directly: `/dev/ptmx`, then
+  `TIOCSPTLCK`/`TIOCGPTN` on Linux and `TIOCPTYGRANT`/`TIOCPTYUNLK`/`TIOCPTYGNAME` on macOS. The
+  child runs `setsid`, takes the PTY as its controlling terminal and so leads its own process
   group.
-- **Foreground command and path:**
-  - Linux: `tcgetpgrp`, then `/proc/<pgrp>/comm` and `/proc/<pgrp>/cwd`;
-  - macOS: `tcgetpgrp`, then `proc_pidinfo` / `sysctl` (`KERN_PROC_PID`), as tmux's osdep does.
+- **Foreground command and path (E11),** as tmux's osdep files do, without cgo:
+  - Linux: `tcgetpgrp`, then the first word of `/proc/<pgrp>/cmdline` and the link
+    `/proc/<pgrp>/cwd` (else the session leader's, found with `TIOCGSID`);
+  - macOS: `tcgetpgrp`, then `proc_pidinfo` with `PROC_PIDT_SHORTBSDINFO` (`pbsi_comm`) and
+    `PROC_PIDVNODEPATHINFO` (`pvi_cdir`). `proc_pidinfo` is called in libSystem through an
+    assembly trampoline and `syscall.syscall6`, the way `golang.org/x/sys/unix` calls libSystem.
+  - The name then goes through tmux's `parse_window_name` (C3.7).
 - **Shell:** `default-shell` (or `$SHELL`, else `/bin/sh`). `run-shell` uses `/bin/sh -c`, as tmux
   does.
 
@@ -455,3 +460,4 @@ Measured by benchmarks in Phase 6, each against tmux on the same machine:
 | E8 | Windows work starts after parity on macOS and Linux (Phase 8) | The hard part, the emulator and the command surface, is proven where tmux can check it |
 | E9 | `imux-core -V` prints `imux-core X.Y.Z (tmux 3.8 compatible)`; `#{version}` is `3.8` | i-mux gates features on tmux's version; the engine declares the level it implements. 3.8, not 3.6: i-mux handles 3.7's and 3.8's changes, and its e2e suite passes on 3.8 but not on 3.6 (decided by the owner on 2026-11-15) |
 | E10 | `internal/vt` is our own port of tmux 3.8's `input.c`, `screen-write.c` and `grid.c`, not an existing Go emulator package | The candidates lack the line wrap flag and tmux's reflow, and parse 11 to 40 times slower than the port (§8) |
+| E11 | Unix PTYs and process information through `golang.org/x/sys/unix` and, on macOS, libSystem's `proc_pidinfo` without cgo; no `github.com/creack/pty` | x/sys is needed anyway (`tcgetpgrp`, `ioctl`s, signals); opening a PTY is a few `ioctl`s per system; no cgo keeps cross-compiled release builds simple. Shown by C0.6's test on macOS and Linux |
