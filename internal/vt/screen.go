@@ -388,6 +388,9 @@ func (s *Screen) resizeY(sy int, eatEmpty bool, cy *int) {
 			available = 0
 		}
 		needed -= available
+		// tmux sized its line array before pulling lines out of the history; the line past
+		// the screen it leaves unused is dropped here, so the array is the history and screen.
+		gd.AdjustLines(gd.HSize + sy)
 		for i := gd.HSize + sy - needed; i < gd.HSize+sy; i++ {
 			gd.emptyLine(i, 8)
 		}
