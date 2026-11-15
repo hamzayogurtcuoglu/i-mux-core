@@ -161,8 +161,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
       `proc_pidinfo` / `sysctl`, without cgo if possible).
 - **Acceptance:**
   - Decision **E11** is recorded.
-  - A test on CI shows that a pane running `sh -c 'cd /tmp && sleep 5'` reports `sleep` and
-    `/tmp` (resolved through symlinks) on both systems.
+  - A test on CI shows that a pane running `sh -c 'cd /tmp && exec sleep 5'` reports `sleep`
+    and `/tmp` (resolved through symlinks) on both systems. Without `exec`, `sleep` runs in the
+    shell's process group and the group's leader is the shell, so tmux reports the shell
+    (`bash` for macOS's `/bin/sh`, checked on tmux 3.8); the test checks that too.
 - **Depends on:** C0.2.
 
 ### [ ] C0.7 Spike: Windows ConPTY and IPC
