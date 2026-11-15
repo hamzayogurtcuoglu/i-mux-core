@@ -30,6 +30,8 @@ All notable changes to i-mux-core are listed here. The format follows
   colour queries, DECRQSS, the theme report), checked against tmux by a probe.
 - `testdata/faketui`, a stand-in for agent CLIs in tests: a full-screen frame in synchronized
   output, key, mouse and paste echo, resizing, streaming, title, cwd and copy, and exits.
+- History and `capture-pane` ranges checked against tmux with 5000 lines and wrapped lines, and
+  a memory benchmark for a full 50000-line history.
 - `internal/pty`: programs on PTYs with resizing, exit codes and signals, and a kill that ends
   programs which ignore SIGHUP (K4).
 - Cursor movement, erasing, line/character editing, scroll regions, tab stops, cursor save/restore,

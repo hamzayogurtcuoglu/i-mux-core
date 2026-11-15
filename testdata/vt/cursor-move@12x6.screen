@@ -44,3 +44,15 @@ mnopqr!tuvwx
 +...........
 ----------/-
            $
+--- ranges
+*123456789ab
+%bc#efghijkl
+mnopqr!tuvwx
+=z01234~6^89
++...........
+----------/-
+           $
+---
+*123456789ab
+%bc#efghijkl
+mnopqr!tuvwx

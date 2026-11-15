@@ -432,6 +432,13 @@ Measured by benchmarks in Phase 6, each against tmux on the same machine:
 | Memory per pane with `history-limit 50000`, full | ≤ 2× tmux's |
 | i-mux startup to first frame (`imux` in a project) | no slower than on tmux |
 
+**Measured so far** (on the owner's Apple M-series Mac, 2026-11-15; Phase 6 measures them all
+properly):
+
+| What | i-mux-core | tmux 3.8 |
+| --- | --- | --- |
+| A full 50000-line history of 80-column text, a third of it coloured (C1.10) | 23.4 MiB Go heap for 50024 lines, 527 bytes a line (`BenchmarkHistoryMemory`) | 16.0 MiB more server RSS for the same output (46643 lines kept, as tmux collects a tenth at the limit) |
+
 ---
 
 ## 11. Testing strategy

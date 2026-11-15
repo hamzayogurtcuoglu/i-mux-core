@@ -50,6 +50,9 @@ func fixtureState(t *Terminal, cols, rows int) string {
 	}
 	if st.HistorySize > 0 {
 		st.All = s.Capture(CaptureOptions{Sequences: true, KeepTrailing: true, StartAll: true, EndAll: true})
+		from, to, start := -3, 1, -2000
+		st.Ranges = s.Capture(CaptureOptions{Join: true, Start: &start}) + "---\n" +
+			s.Capture(CaptureOptions{Sequences: true, KeepTrailing: true, Start: &from, End: &to})
 	}
 	return vtfixture.Format(st)
 }

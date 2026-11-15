@@ -1,5 +1,10 @@
 package vtfixture
 
+import (
+	"strconv"
+	"strings"
+)
+
 // Specs are the byte streams of the VT fixture suite (testdata/vt/*.in), kept in Go so their
 // escape sequences stay readable. Running cmd/vtfixture writes each entry to testdata/vt/<name>
 // and records what the pinned tmux shows for it in the matching .screen file.
@@ -199,4 +204,18 @@ var Specs = map[string]string{
 
 	// C1.4: sequences tmux 3.8 does not act on (HPR, VPR, CHT, DECSTR, LNM): nothing moves.
 	"csi-ignored@12x4.in": "ab\x1b[3acd\x1b[2eef\r\n\x1b[2Igh\x1b[!pij\x1b[20h\nkl",
+
+	// C1.10: history past the limit (2000), as seq 1 5000 gives, and wrapped lines in it.
+	"history-5000@20x5.in": history5000(),
+	"history-wrapped@10x4.in": "short\r\n" + strings.Repeat("abcdefghij", 3) + "xyz   \r\n" +
+		"\x1b[31m" + strings.Repeat("red", 7) + "\x1b[0m\r\n" + "next\r\nlast",
+}
+
+// history5000 is the output of seq 1 5000 on a terminal.
+func history5000() string {
+	var b strings.Builder
+	for i := 1; i <= 5000; i++ {
+		b.WriteString(strconv.Itoa(i) + "\r\n")
+	}
+	return b.String()
 }

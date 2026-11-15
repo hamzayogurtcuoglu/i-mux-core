@@ -376,7 +376,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - The program has no dependencies beyond the standard library and `x/sys`.
 - **Depends on:** C0.1.
 
-### [ ] C1.10 Scrollback and history
+### [x] C1.10 Scrollback and history
 - **Goal:** history and `capture-pane` behave like tmux.
 - **Details:**
   - A ring of lines up to `history-limit`. Only the main screen scrolls into history.

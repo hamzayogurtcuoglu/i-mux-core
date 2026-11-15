@@ -42,6 +42,7 @@ type State struct {
 	Screen      string            // capture-pane -p -e -N
 	All         string            // capture-pane -p -e -N -S - -E -, when there is history
 	Joined      string            // capture-pane -p -J -S - -E -
+	Ranges      string            // with history: -p -J -S -2000, then -p -e -N -S -3 -E 1
 	HistorySize int
 }
 
@@ -74,6 +75,10 @@ func Format(s *State) string {
 	}
 	b.WriteString("--- joined\n")
 	b.WriteString(s.Joined)
+	if s.HistorySize > 0 {
+		b.WriteString("--- ranges\n")
+		b.WriteString(s.Ranges)
+	}
 	return b.String()
 }
 
@@ -153,6 +158,17 @@ func FromTmux(tmux, self, in string, timeout time.Duration) (string, error) {
 	}
 	if s.Joined, err = run("capture-pane", "-p", "-J", "-S", "-", "-E", "-", "-t", "%0"); err != nil {
 		return "", err
+	}
+	if s.HistorySize > 0 {
+		a, err := run("capture-pane", "-p", "-J", "-S", "-2000", "-t", "%0")
+		if err != nil {
+			return "", err
+		}
+		b, err := run("capture-pane", "-p", "-e", "-N", "-S", "-3", "-E", "1", "-t", "%0")
+		if err != nil {
+			return "", err
+		}
+		s.Ranges = a + "---\n" + b
 	}
 	return Format(s), nil
 }
