@@ -120,6 +120,9 @@ func (s *Server) clearOverlay(c *attachedClient) {
 	if pd.done != nil {
 		pd.done(pd.status)
 	}
+	if c.session != nil {
+		s.updateFocus(c.window())
+	}
 	s.markDirty(c)
 }
 
@@ -182,6 +185,7 @@ func (s *Server) DisplayPopup(spec commands.PopupSpec, done func(status int)) bo
 	}
 	pd.term.ExtendedKeys = s.extendedKeys()
 	c.popup = pd
+	s.updateFocus(c.window())
 	s.readers.Add(1)
 	go s.readPopup(pd)
 	s.markDirty(c)

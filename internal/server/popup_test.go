@@ -88,3 +88,16 @@ func TestPopups(t *testing.T) {
 	w.run(t, "detach-client")
 	w.waitPopup(t, false)
 }
+
+// While a popup is open, the active pane loses the focus, and gets it back when it closes
+// (server_client_set_overlay and server_client_clear_overlay update the window's focus).
+func TestPopupFocus(t *testing.T) {
+	w := newInputWorld(t, "focus")
+	w.waitPane("focus: 1b5b49 in")
+	kw := &keyWorld{inputWorld: w}
+	kw.run(t, "bind", "-n", "F2", "display-popup", "exec cat")
+	w.typed("\x1bOQ")
+	w.waitPane("focus: 1b5b4f out")
+	kw.run(t, "display-popup", "-C")
+	w.waitPane("focus: 1b5b49 in")
+}

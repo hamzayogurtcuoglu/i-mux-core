@@ -253,7 +253,8 @@ func (s *Server) updateFocus(w *model.Window) {
 		focused := false
 		if p == w.Active {
 			for _, c := range s.attached {
-				if !c.gone && c.in.focused && c.window() == w {
+				// A client showing an overlay does not give the pane its focus.
+				if !c.gone && c.in.focused && c.window() == w && c.popup == nil {
 					focused = true
 					break
 				}
