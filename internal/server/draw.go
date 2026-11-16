@@ -51,6 +51,9 @@ func (s *Server) view(c *attachedClient) *render.View {
 		v.Freeze = !c.message.noFreeze
 		v.NoCursor = true
 	}
+	if c.popup != nil {
+		v.Popup = s.popupView(c)
+	}
 	return v
 }
 

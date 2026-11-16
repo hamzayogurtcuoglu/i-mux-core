@@ -118,6 +118,8 @@ type View struct {
 	// Freeze keeps the panes as the last frame showed them (TTY_FREEZE: a message is shown);
 	// NoCursor hides the cursor (TTY_NOCURSOR).
 	Freeze, NoCursor bool
+	// Popup is the popup the client shows over everything, if any.
+	Popup *Popup
 
 	Styles Styles
 	Mouse  bool // the session's mouse option (on by default in tmux 3.8)
@@ -496,6 +498,13 @@ func (sc *scene) markTwoPaneColours() {
 	}
 }
 
+// WindowOffset is tty_window_offset: where a client of sx×sy (less its status lines) shows
+// the window from.
+func WindowOffset(w *model.Window, sx, sy int) (ox, oy int) {
+	ox, oy, _, _ = windowOffset(w, sx, sy)
+	return ox, oy
+}
+
 // windowOffset is tty_window_offset1: where the window area starts and its size. A window
 // larger than the client is shown around the active pane's cursor.
 func windowOffset(w *model.Window, sx, sy int) (ox, oy, wsx, wsy int) {
@@ -768,10 +777,14 @@ func resolve(gc *vt.Cell, defFg, defBg vt.Color, pal *vt.Palette, v *View) {
 // wide character that does not fit is blank, and padding at the start (a wide character cut
 // off) is blank in the colour of the character it belongs to.
 func paneLine(out []vt.Cell, p *model.Pane, s *vt.Screen, px, py int, links *linkTable, v *View) {
+	screenLine(out, s, px, py, p.Term.Palette.Fg, p.Term.Palette.Bg, &p.Term.Palette, links, v)
+}
+
+// screenLine is tty_draw_line for line py of a screen from column px, with the default
+// colours defFg and defBg and the palette pal.
+func screenLine(out []vt.Cell, s *vt.Screen, px, py int, defFg, defBg vt.Color, pal *vt.Palette, links *linkTable, v *View) {
 	gd := s.Grid
 	n := len(out)
-	defFg, defBg := p.Term.Palette.Fg, p.Term.Palette.Bg
-	pal := &p.Term.Palette
 	blank := func(bg vt.Color) vt.Cell {
 		c := vt.DefaultCell
 		c.Flags = vt.FlagCleared

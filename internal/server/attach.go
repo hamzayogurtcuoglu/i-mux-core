@@ -43,6 +43,9 @@ type attachedClient struct {
 	message      *message
 	messageTimer *time.Timer
 
+	// The popup the client shows (its overlay, task C4.6).
+	popup *popup
+
 	// The key table the client is in (tmux's keytable), when it was set (its
 	// activity_time), and the repeat state (CLIENT_REPEAT, last_key, repeat_timer).
 	keyTable    string
@@ -140,6 +143,7 @@ func (s *Server) endClient(c *attachedClient, t ipc.Type, reason string, code in
 		c.messageTimer.Stop()
 		c.messageTimer = nil
 	}
+	s.clearOverlay(c)
 	c.tty.Stop(c.tty.Sy)
 	s.send(c)
 	c.gone = true
@@ -162,6 +166,8 @@ func (s *Server) removeAttached(c *attachedClient) {
 	}
 	s.updateFocus(c.window())
 	s.updatePaneColours()
+	// server_client_lost: the client's overlay goes with it.
+	s.clearOverlay(c)
 	s.lostClient(c)
 }
 
@@ -202,6 +208,7 @@ func (s *Server) serveAttached(conn net.Conn, r *ipc.Reader, c *attachedClient) 
 				s.post(func() {
 					if !c.gone {
 						c.tty.Sx, c.tty.Sy = size.Cols, size.Rows
+						s.popupResized(c)
 						s.updateLatest(c)
 						s.recalculateSizes()
 						s.invalidate(c)

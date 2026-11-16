@@ -99,6 +99,7 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 			f.Cells[i] = vt.DefaultCell
 		}
 		r.status(f, v, lines)
+		r.popup(f, v)
 		return f
 	}
 	sc := buildScene(v, areaSy, r.scene)
@@ -181,7 +182,12 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 		}
 	}
 	r.status(f, v, lines)
-	r.cursor(f, v, sc, areaY)
+	r.popup(f, v)
+	if v.Popup != nil {
+		r.popupCursor(f, v)
+	} else {
+		r.cursor(f, v, sc, areaY)
+	}
 	if r.links.full {
 		// The link table started again: ids in the last frame mean other links now.
 		r.Invalidate()

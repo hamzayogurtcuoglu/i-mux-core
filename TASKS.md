@@ -1144,7 +1144,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** frame difftests at the moment of display, and after expiry.
 - **Depends on:** C4.2.
 
-### [ ] C4.6 Popups
+### [x] C4.6 Popups
 - **Goal:** i-mux's popups (menus, pickers, install and update windows, editors) work like tmux's.
 - **Details:**
   - `display-popup` with every flag in COMPATIBILITY.md §3:

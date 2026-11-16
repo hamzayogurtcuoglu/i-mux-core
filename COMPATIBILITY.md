@@ -490,8 +490,14 @@ modifyOtherKeys).
   last line when the status is off. A key binding's error shows there, capitalised.
   `testdata/diff/messages.txt` checks these against tmux, typing into the client with the
   harness's `type` step.
-- **Popups:** `-w -h` (cells or percentages), `-x -y`, `-E` close on exit, `-d` start
-  directory, `-c` client and `-t` pane, and focus and mouse inside the popup.
+- **Popups:** `-w -h` (cells or percentages), `-x -y` (numbers, formats with the `popup_*`
+  variables, and the letters `C R P W S`), `-E` close on exit (`-EE` on status 0), `-d` start
+  directory, `-e` environment, `-c` client and `-t` pane, `-T` title, `-s -S` styles, `-b -B`
+  border lines, `-C` closes it, `-k`; a popup open on the client is changed instead. The
+  program runs in its own PTY and screen; keys go to it, and mouse events inside the popup if
+  it asked for them; a drag on the border (or with Meta) moves or resizes it. The command waits
+  for the popup, and a command-line client exits with its status. It closes when its client
+  detaches. `testdata/diff/popups.txt` checks these against tmux with the fake TUI.
 - **Menus:** keyboard (keys, arrows, Enter, Escape) and mouse (`-M`, `-O` stay open on release),
   disabled items, separators, title (`-T`), position (`-x -y` with formats such as
   `#{e|+:#{popup_pane_left},N}`).

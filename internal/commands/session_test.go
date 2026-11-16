@@ -15,6 +15,8 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/status"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/style"
 	tgt "github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 )
 
@@ -80,6 +82,12 @@ func (h *fakeHost) Pid() int           { return 42 }
 func (h *fakeHost) ServerInfo() *format.Server {
 	return &format.Server{Pid: 42, Start: time.Unix(1e9, 0), SocketPath: "/tmp/s", Version: "3.8"}
 }
+
+func (h *fakeHost) Overlay(string) (bool, bool)            { return false, false }
+func (h *fakeHost) ClearOverlay(string)                    {}
+func (h *fakeHost) DisplayPopup(PopupSpec, func(int)) bool { return false }
+func (h *fakeHost) ModifyPopup(string, PopupChange)        {}
+func (h *fakeHost) ClientGeometry(string) ClientGeometry   { return ClientGeometry{StatusAt: -1} }
 
 func (h *fakeHost) ShowMessage(client, msg string, _ MessageOptions) {
 	h.messages = append(h.messages, client+": "+msg)
@@ -271,3 +279,30 @@ func (h *fakeHost) RunJob(spec JobSpec, done func(out []byte, status pty.ExitSta
 	done(nil, pty.ExitStatus{}, errors.New("no jobs in the fake host"))
 }
 func (h *fakeHost) After(time.Duration, func()) {}
+
+// popupFormats: the popup_* variables tmux gives -x and -y.
+func TestPopupFormats(t *testing.T) {
+	tr := model.NewTree()
+	s, _ := tr.NewSession("s", "/", time.Unix(0, 0))
+	wl, _ := tr.NewWindow(s, -1, 0, 80, 23)
+	p := tr.NewPane(wl.Window, nil, false, 80, 23)
+	g := ClientGeometry{
+		Sx: 80, Sy: 24, StatusAt: 23, StatusLines: 1,
+		Ranges: [][]status.Range{{{Type: style.RangeWindow, Arg: uint32(wl.Index), Start: 5, End: 9}}},
+	}
+	v := map[string]string{}
+	popupFormats(v, g, tgt.State{S: s, WL: wl, P: p}, 20, 10)
+	want := map[string]string{
+		"popup_centre_x": "29", "popup_centre_y": "16", "popup_width": "20", "popup_height": "10",
+		"popup_status_line_y": "23", "popup_window_status_line_x": "5", "popup_window_status_line_y": "23",
+		"popup_pane_left": "0", "popup_pane_right": "60", "popup_pane_top": "10", "popup_pane_bottom": "23",
+	}
+	for k, w := range want {
+		if v[k] != w {
+			t.Errorf("%s = %q, want %q", k, v[k], w)
+		}
+	}
+	if strtol(" 12x") != 12 || strtol("-3") != -3 || strtol("x") != 0 {
+		t.Error("strtol")
+	}
+}

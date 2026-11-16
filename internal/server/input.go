@@ -161,6 +161,13 @@ func (s *Server) inputKey(c *attachedClient, ev *input.Event) {
 	if !s.messageKey(c) {
 		return
 	}
+	// An overlay takes the keys while it is open.
+	if c.popup != nil {
+		if s.popupKey(c, ev) {
+			s.clearOverlay(c)
+		}
+		return
+	}
 	// A key makes the client its window's latest and its session active
 	// (server_client_key_callback).
 	c.session.Activity = c.activity

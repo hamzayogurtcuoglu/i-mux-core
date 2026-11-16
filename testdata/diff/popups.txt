@@ -1,0 +1,56 @@
+# Popups (C4.6): display-popup with the fake TUI (faketui, on the engines' PATH) at the sizes
+# and positions i-mux uses, keys and mouse into it, and how it closes. A popup's command waits
+# for it, so most are opened from a key binding typed into the client.
+conf messages.conf
+size 80x24
+run new-session -d -s a -n w 'exec cat' ; split-window -h -t a 'exec cat'
+client c 80x24
+# -E, a percentage size, centred: keys go to the popup's program; ^D ends it and closes it.
+run bind -n F2 display-popup -E -w 80% -h 70% 'faketui -mode keys'
+type c '\x1bOQ'
+screen c
+type c 'hi'
+screen c
+type c '\x04'
+screen c
+# A size in cells and a title; without -E the popup stays after its program ends, and Escape
+# closes it.
+run bind -n F2 display-popup -w 72 -h 13 -T '#[align=centre] install ' 'faketui -mode exit -code 0'
+type c '\x1bOQ'
+screen c
+type c '\x1b'
+screen c
+# Positions from formats, as i-mux's file menu gives them, and styles.
+run bind -n F2 display-popup -E -w 30 -h 8 -x '#{e|+:#{popup_pane_left},2}' -y '#{e|+:#{popup_pane_top},3}' -s 'bg=blue' -S 'fg=red' -b rounded 'faketui -mode keys'
+type c '\x1bOQ'
+screen c
+type c '\x04'
+# No border, at the top left.
+run bind -n F2 display-popup -E -B -w 20 -h 5 -x 0 -y 5 'faketui -mode keys'
+type c '\x1bOQ'
+screen c
+# -C closes the open popup.
+run display-popup -C
+screen c
+# The mouse reaches a program that asked for it, at its own coordinates.
+run bind -n F2 display-popup -E -w 40 -h 10 'faketui -mode mouse'
+type c '\x1bOQ'
+screen c
+type c '\x1b[<0;30;12M'
+screen c
+type c '\x1b[<0;30;12m'
+screen c
+type c '\x04'
+screen c
+# -d and -e: the program's directory and environment.
+run bind -n F2 display-popup -E -d /tmp -e IMUXV=set -w 40 -h 6 'echo "$PWD $IMUXV"; exec cat'
+type c '\x1bOQ'
+screen c
+type c '\x04'
+# A command-line client waits for its popup and exits with its status.
+run display-popup -E 'exit 3'
+# Too big, or too small: no popup.
+run display-popup -w 81 -h 5 'exec cat' ; display-popup -w 2 -h 2 'exec cat'
+run display-popup -h 0 'exec cat'
+screen c
+run kill-server

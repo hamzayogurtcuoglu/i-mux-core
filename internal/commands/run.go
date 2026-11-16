@@ -57,6 +57,17 @@ type Host interface {
 	After(d time.Duration, f func())
 	// ShowMessage shows a message on a client's status line (tmux's status_message_set).
 	ShowMessage(client, msg string, o MessageOptions)
+	// Overlay reports whether a client shows an overlay, and whether it is a popup.
+	Overlay(client string) (shown, popup bool)
+	// ClearOverlay closes a client's overlay (server_client_clear_overlay).
+	ClearOverlay(client string)
+	// DisplayPopup opens a popup (popup_display); done gets its status when it closes. It
+	// reports false when the popup could not open.
+	DisplayPopup(spec PopupSpec, done func(status int)) bool
+	// ModifyPopup changes a client's open popup (popup_modify).
+	ModifyPopup(client string, c PopupChange)
+	// ClientGeometry is what places a popup or menu on a client.
+	ClientGeometry(client string) ClientGeometry
 }
 
 // MessageOptions are how a message is shown (status_message_set's arguments).
@@ -214,6 +225,7 @@ func init() {
 		"select-window":       selectWindow,
 		"select-pane":         selectPane,
 		"display-message":     displayMessage,
+		"display-popup":       displayPopup,
 		"list-sessions":       listSessions,
 		"list-windows":        listWindows,
 		"list-panes":          listPanes,
