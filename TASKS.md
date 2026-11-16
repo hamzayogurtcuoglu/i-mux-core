@@ -934,7 +934,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   i-mux's `automatic-rename-format`, titles and renames against tmux 3.8. The difftest harness
   now fails a script whose `wait` times out on tmux itself.
 
-### [ ] C3.8 Key tables and bindings
+### [x] C3.8 Key tables and bindings
 - **Goal:** the keys i-mux binds do what they do in tmux.
 - **Details:**
   - `bind-key` with `-n` and `-T`, and commands or `{ … }` blocks; `unbind-key -q -T`.
@@ -950,6 +950,16 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Engine tests drive keys through a headless client and check the effects, including the
     `imux-resize` table.
 - **Depends on:** C3.6, C2.10.
+- **Status:** done. `internal/keys` holds the tables; the server loads tmux 3.8's 308 default
+  bindings (`keydefaults_gen.go`, written by `scripts/gen-key-defaults.py` from its
+  `key-bindings.c`) and dispatches keys as `server_client_key_callback` does (the prefix,
+  `Any`, the default table, repeat bindings, `prefix-timeout`); a binding's commands run for
+  the client that pressed the key. `bind-key` (`-n -N -r -T`, commands, strings and blocks),
+  `unbind-key` (`-n -q -T`), `list-keys` (`-T`, a key), `send-prefix` and `switch-client -T`
+  are implemented. `testdata/diff/keys.txt` loads i-mux's generated config and compares
+  `list-keys` (every table) and the commands' errors with tmux 3.8; `internal/server`'s
+  binding tests drive keys through an attached client, the `imux-resize` table included.
+  Commands that bindings run but that come later (menus, copy mode, …) fail until then.
 
 ### [ ] C3.9 Hooks
 - **Goal:** i-mux's hooks fire at the same moments, with the same context.

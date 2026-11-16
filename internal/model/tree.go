@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/options"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
@@ -26,6 +27,9 @@ type Tree struct {
 	Resized func(p *Pane)
 	// Options are the global options, the parents of every session's, window's and pane's.
 	Options *options.Globals
+	// Keys are the key tables (tmux's key_tables), loaded with tmux's defaults when the
+	// server starts.
+	Keys *keys.Tables
 
 	sessions map[int]*Session
 	windows  map[int]*Window
@@ -129,6 +133,7 @@ func NewTree() *Tree {
 	return &Tree{
 		sessions: map[int]*Session{}, windows: map[int]*Window{}, panes: map[int]*Pane{},
 		Options: options.NewGlobals(),
+		Keys:    keys.NewTables(),
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/render"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/termout"
@@ -28,6 +29,14 @@ type attachedClient struct {
 	gone     bool           // detached or exited: nothing more is sent
 	draw     drawState
 	in       inputState
+
+	// The key table the client is in (tmux's keytable), when it was set (its
+	// activity_time), and the repeat state (CLIENT_REPEAT, last_key, repeat_timer).
+	keyTable    string
+	keyTableAt  time.Time
+	repeating   bool
+	lastKey     keys.Key
+	repeatTimer *time.Timer
 }
 
 // Detach implements commands.Host: the client is told it is detached from its session.
@@ -73,6 +82,10 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	}
 	s.startInput(c, erase)
 	s.send(c)
+	// The client starts in its session's default key table (tmux's root, or the session's
+	// key-table option); the fields are set here, not through setKeyTable, so nothing is
+	// drawn before the client is ready.
+	c.keyTable, c.keyTableAt = s.defaultKeyTable(sess), now
 	// server_client_set_session: the client is its window's latest, sizes follow, and the
 	// session was active now (which the best session is chosen by).
 	if w := c.window(); w != nil {
@@ -100,6 +113,10 @@ func (s *Server) send(c *attachedClient) {
 func (s *Server) endClient(c *attachedClient, t ipc.Type, reason string, code int) {
 	if c.gone {
 		return
+	}
+	if c.repeatTimer != nil {
+		c.repeatTimer.Stop()
+		c.repeatTimer = nil
 	}
 	c.tty.Stop(c.tty.Sy)
 	s.send(c)

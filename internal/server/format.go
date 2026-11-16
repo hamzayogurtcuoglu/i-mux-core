@@ -23,13 +23,17 @@ func (s *Server) formatClient(c *attachedClient) *format.Client {
 		flags = append(flags, "UTF-8")
 	}
 	term := c.tty.Term
+	table := c.keyTable
+	if table == "" {
+		table = s.defaultKeyTable(c.session)
+	}
 	return &format.Client{
 		Name: c.name, TTY: c.name, Session: c.session, Last: c.last,
 		Activity: c.activity, Created: c.created, Pid: c.pid, UID: os.Getuid(),
 		Flags: flags, UTF8: c.tty.UTF8,
 		Width: c.tty.Sx, Height: c.tty.Sy, Started: true,
 		TermName: c.termName, Features: c.features.String(),
-		KeyTable: "root", Colours: term.Colours(),
+		KeyTable: table, Prefix: table != s.defaultKeyTable(c.session), Colours: term.Colours(),
 		HasCapability: term.Has,
 		HasFeature: func(name string) bool {
 			return slices.Contains(strings.Split(c.features.String(), ","), name)

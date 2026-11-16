@@ -116,6 +116,8 @@ func New(o Options) *Server {
 	s.started = o.Now()
 	s.tree.Resized = s.paneResized
 	s.startOptions()
+	// tmux's default key bindings (task C3.8), before any config file changes them.
+	commands.LoadDefaultKeyBindings(s)
 	return s
 }
 

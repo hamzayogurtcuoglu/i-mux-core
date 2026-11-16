@@ -83,11 +83,11 @@ func textKeys(s string) []keys.Key {
 	return out
 }
 
-// switchClient is switch-client -t: the client (-c, else the current client) shows the target
-// session, selecting a target window and pane when given.
+// switchClient is switch-client: the client (-c, else the current client) shows the target
+// session, selecting a target window and pane when given; -T only puts it in a key table.
 func switchClient(it *Item) error {
 	a := it.Cmd.Args
-	for _, f := range []byte("EFlnOprTZ") {
+	for _, f := range []byte("EFlnOprZ") {
 		if a.Has(f) {
 			return fmt.Errorf("switch-client -%c: not implemented by imux-core yet", f)
 		}
@@ -95,6 +95,14 @@ func switchClient(it *Item) error {
 	c, err := it.findClient('c')
 	if err != nil {
 		return err
+	}
+	if name, ok := a.Get('T'); ok {
+		// One key table, for one key (task C3.8): the client leaves it again with the
+		// first key it presses there.
+		if it.Host.Tree().Keys.Get(name) == nil {
+			return fmt.Errorf("table %s doesn't exist", name)
+		}
+		return it.Host.SetKeyTable(c.Name, name)
 	}
 	tflag, _ := a.Get('t')
 	// A session target prefers a session no client shows, as in tmux.

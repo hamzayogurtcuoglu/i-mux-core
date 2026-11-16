@@ -54,7 +54,10 @@ func newSession(it *Item) error {
 			return fmt.Errorf("new-session -%c: not implemented by imux-core yet", f)
 		}
 	}
-	attach := !a.Has('d') && it.Client != nil
+	// A command-line client attaches to the new session; an attached one (a key binding's)
+	// switches to it.
+	attach := !a.Has('d') && it.Client != nil && it.Client.Session == nil
+	switchTo := !a.Has('d') && it.Client != nil && it.Client.Session != nil
 	if attach {
 		if err := it.checkAttach(); err != nil {
 			return err
@@ -138,6 +141,11 @@ func newSession(it *Item) error {
 	if attach {
 		it.Client.AttachTo = s
 	}
+	if switchTo {
+		if err := it.Host.SwitchClient(it.Client.Name, s); err != nil {
+			return err
+		}
+	}
 	if !a.Has('d') {
 		it.setCurrent(sessionState(s))
 	}
@@ -176,7 +184,7 @@ func attachSession(it *Item) error {
 	if it.Client == nil {
 		return nil
 	}
-	if it.Client.Env["TMUX"] != "" && it.Client.TTY {
+	if it.Client.Session == nil && it.Client.Env["TMUX"] != "" && it.Client.TTY {
 		return errors.New("sessions should be nested with care, unset $TMUX to force")
 	}
 	tflag, _ := a.Get('t')
@@ -196,7 +204,7 @@ func attachSession(it *Item) error {
 		s.SelectWindow(st.WL)
 		it.setCurrent(target.State{S: s, WL: st.WL, Idx: st.WL.Index, W: st.WL.Window, P: st.WL.Window.Active})
 	}
-	if !it.Client.TTY {
+	if it.Client.Session == nil && !it.Client.TTY {
 		return errors.New("open terminal failed: not a terminal")
 	}
 	if a.Has('d') {
@@ -205,6 +213,10 @@ func attachSession(it *Item) error {
 				it.Host.Detach(c.Name)
 			}
 		}
+	}
+	if it.Client.Session != nil {
+		// An attached client (a key binding's) switches to the session.
+		return it.Host.SwitchClient(it.Client.Name, s)
 	}
 	it.Client.AttachTo = s
 	return nil

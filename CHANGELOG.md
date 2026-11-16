@@ -90,3 +90,5 @@ All notable changes to i-mux-core are listed here. The format follows
   `-P -F` on the commands that make sessions, windows and panes.
 - Names and titles: automatic-rename as tmux does it, default window names, `select-pane -T`,
   `allow-set-title` and `allow-rename`.
+- Key bindings: tmux 3.8's key tables and default bindings, the prefix, `bind-key`,
+  `unbind-key`, `list-keys`, `send-prefix` and `switch-client -T`.

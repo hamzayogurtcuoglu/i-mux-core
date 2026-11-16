@@ -1,0 +1,41 @@
+# Key tables and bindings (C3.8): tmux's default bindings, i-mux's config on top, list-keys
+# (all tables, one table, one key), bind-key and unbind-key with their flags and errors.
+conf imux.conf
+size 80x24
+run new-session -d -s k 'exec cat'
+run list-keys
+run list-keys -T imux-resize ; list-keys -T root ; list-keys -T prefix
+run list-keys C-b ; list-keys -T prefix r ; list-keys -T copy-mode q
+run list-keys -T nope
+run list-keys Nonsense-Key
+run list-keys F12
+# bind-key: commands, strings, blocks, -n, -T, -r, -N; a key with flags is the key.
+run bind -n F12 display-message hello ; bind -T custom x 'set -g @a 1 ; set -g @b 2' ; bind -r -N 'a note' M-Up resize-pane -U
+run bind -T custom y "if -F '#{pane_active}' 'set -g @c 1' 'set -g @c 2'" ; bind -T custom 'C-\' send-keys 'C-\'
+run list-keys -T custom ; list-keys -T root F12 ; list-keys M-Up
+run bind -r M-Up ; bind -N 'other note' M-Up ; list-keys M-Up ; bind -N 'no binding' M-Down ; list-keys -T prefix M-Down
+run bind -T custom
+run bind -T custom NotAKey ls
+run bind -T custom z 'select-pane -Q'
+run bind -T custom z 'unclosed "quote'
+# unbind-key: -n, -T, -q; a table the user made goes with its last binding.
+run unbind -n F12 ; list-keys -T root F12
+run unbind -T custom x ; unbind -T custom y ; unbind -T custom 'C-\' ; list-keys -T custom
+run unbind -T custom x
+run unbind -q -T custom x
+run unbind -T nope x
+run unbind -q -T nope x
+run unbind -q -T nope x ; set -g @after 1 ; show -gqv @after
+run unbind NotAKey
+run unbind -q NotAKey
+run unbind
+run unbind -T prefix r ; list-keys -T prefix r
+run unbind -n MouseDown1Pane ; unbind -n z ; list-keys -T root MouseDown1Pane
+# A default table emptied stays.
+run unbind -T imux-resize h ; list-keys -T imux-resize
+# switch-client -T needs a client and a table that exists.
+run switch-client -T imux-resize
+client c1 80x24
+run switch-client -T nope
+run switch-client -T imux-resize ; display -p '#{client_key_table} #{client_prefix}'
+run kill-server

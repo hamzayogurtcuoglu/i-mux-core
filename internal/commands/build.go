@@ -171,16 +171,24 @@ func (b *Builder) buildCommand(c *cmdlang.Command) (*List, error) {
 	return &List{Commands: []*Command{cmd}}, nil
 }
 
-// Print prints a list as tmux's cmd_list_print does: " ; " between commands of one group,
-// " ;; " between groups.
-func (l *List) Print() string {
+// Print prints a list as tmux's cmd_list_print does: " ; " between commands of one
+// group, " ;; " between groups.
+func (l *List) Print() string { return l.PrintList(false, false) }
+
+// PrintList prints as tmux's cmd_list_print with flags does: escaped picks the \;
+// separators, noGroups prints the single separator between all groups.
+func (l *List) PrintList(escaped, noGroups bool) string {
+	single, double := " ; ", " ;; "
+	if escaped {
+		single, double = " \\; ", " \\;\\; "
+	}
 	var s strings.Builder
 	for i, c := range l.Commands {
 		if i > 0 {
-			if c.Group != l.Commands[i-1].Group {
-				s.WriteString(" ;; ")
+			if !noGroups && c.Group != l.Commands[i-1].Group {
+				s.WriteString(double)
 			} else {
-				s.WriteString(" ; ")
+				s.WriteString(single)
 			}
 		}
 		s.WriteString(c.Print())

@@ -30,6 +30,7 @@ type fakeHost struct {
 	sent     []string // PaneKey: "%id key"
 	options  []string // SetServerOption: "name=choice"
 	switched []string // SwitchClient: "client session"
+	tables   []string // SetKeyTable: "client table"
 }
 
 func newFakeHost() *fakeHost { return &fakeHost{tree: model.NewTree()} }
@@ -66,6 +67,11 @@ func (h *fakeHost) RemovePane(p *model.Pane) {
 
 func (h *fakeHost) SwitchClient(name string, s *model.Session) error {
 	h.switched = append(h.switched, name+" "+s.Name)
+	return nil
+}
+
+func (h *fakeHost) SetKeyTable(client, table string) error {
+	h.tables = append(h.tables, client+" "+table)
 	return nil
 }
 
@@ -192,16 +198,17 @@ func TestSessionTargets(t *testing.T) {
 	if r := run(h, "kill-server"); r.Failed || !h.killed {
 		t.Errorf("kill-server %+v", r)
 	}
-	if r := run(h, "list-keys"); r.Stderr != "list-keys: not implemented by imux-core yet\n" {
-		t.Errorf("%+v", r)
+	// list-keys works (C3.8); with no bindings it prints nothing.
+	if r := run(h, "list-keys"); r.Failed || r.Stdout != "" {
+		t.Errorf("list-keys %+v", r)
 	}
 }
 
 func TestRunConfig(t *testing.T) {
 	h := newFakeHost()
-	causes := RunConfig(h, "/c.conf", "new -s one\nhas -t zz ; new -s skipped\n\nlsk\nnew -s two\n", cmdlang.Options{})
+	causes := RunConfig(h, "/c.conf", "new -s one\nhas -t zz ; new -s skipped\n\nhas -t zz\nnew -s two\n", cmdlang.Options{})
 	if len(causes) != 2 || causes[0] != "/c.conf:2: can't find session: zz" ||
-		causes[1] != "/c.conf:4: list-keys: not implemented by imux-core yet" {
+		causes[1] != "/c.conf:4: can't find session: zz" {
 		t.Errorf("causes %q", causes)
 	}
 	// A config file has no client: new-session is detached even without -d.
@@ -245,3 +252,17 @@ func TestWindowsAndPanesAndCurrentTarget(t *testing.T) {
 }
 
 func (h *fakeHost) Respawn(p *model.Pane, spec pty.Spec) error { return h.Spawn(p, spec) }
+
+// A quiet error (unbind-key -q) stops the rest of its group with no message, and the client
+// does not fail: tmux sets the exit status only with an error message.
+func TestQuietErrorStopsGroup(t *testing.T) {
+	h := newFakeHost()
+	r := Run(h, nil, [][]string{{"unbind", "-q", "-T", "nope", "x"}, {"new", "-d", "-s", "after"}})
+	if r.Failed || r.Stderr != "" || h.tree.SessionByName("after") != nil {
+		t.Errorf("%+v, after %v", r, h.tree.SessionByName("after") != nil)
+	}
+	r = Run(h, nil, [][]string{{"unbind", "-T", "nope", "x"}})
+	if !r.Failed || r.Stderr != "table nope doesn't exist\n" {
+		t.Errorf("%+v", r)
+	}
+}

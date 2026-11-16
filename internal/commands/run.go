@@ -40,6 +40,8 @@ type Host interface {
 	OptionChanged(name string)
 	// SwitchClient makes an attached client show another session.
 	SwitchClient(name string, s *model.Session) error
+	// SetKeyTable puts the client named (an attached one) in a key table.
+	SetKeyTable(client, table string) error
 	// DefaultSize is the size of a new window of s (tmux's default_window_size).
 	DefaultSize(s *model.Session) (sx, sy int)
 	// RemovePane takes a pane out, killing its program, and its window and session if empty.
@@ -66,6 +68,9 @@ type Client struct {
 	// AttachTo is set by attach-session and new-session: the client attaches to it once its
 	// commands are done.
 	AttachTo *model.Session
+	// Session is the session an attached client shows: such a client runs the commands of
+	// the key bindings it presses (tmux's cmdq_get_client for a binding).
+	Session *model.Session
 }
 
 // Item is one command being run.
@@ -86,6 +91,13 @@ func (it *Item) targetContext() *target.Context {
 		ctx.Clients = append(ctx.Clients, target.Client{Name: c.Name, Session: c.Session, Activity: c.Activity})
 	}
 	if it.Client != nil {
+		if it.Client.Session != nil {
+			for i := range ctx.Clients {
+				if ctx.Clients[i].Name == it.Client.Name {
+					ctx.Client = &ctx.Clients[i]
+				}
+			}
+		}
 		if it.Client.AttachTo != nil {
 			tc := target.Client{Name: it.Client.Name, Session: it.Client.AttachTo, Activity: it.Host.Now()}
 			ctx.Clients = append(ctx.Clients, tc)
@@ -134,6 +146,10 @@ var implemented = map[string]execFunc{
 	"attach-session":      attachSession,
 	"detach-client":       detachClient,
 	"send-keys":           sendKeys,
+	"send-prefix":         sendPrefix,
+	"bind-key":            bindKey,
+	"unbind-key":          unbindKey,
+	"list-keys":           listKeys,
 	"set-option":          setOption,
 	"set-window-option":   setOption,
 	"show-options":        showOptions,
@@ -180,28 +196,43 @@ func Run(h Host, c *Client, cmds [][]string) Result {
 
 // runList runs a list; a failing command skips the rest of its group.
 func runList(h Host, c *Client, list *List, out *strings.Builder) Result {
+	return runListFrom(h, c, list, out, &target.State{Idx: -1})
+}
+
+// runListFrom is runList starting from st as the current target.
+func runListFrom(h Host, c *Client, list *List, out *strings.Builder, st *target.State) Result {
 	var errs strings.Builder
 	failed := false
 	skip := -1
-	current := &target.State{Idx: -1}
+	current := st
 	for _, cmd := range list.Commands {
 		if cmd.Group == skip {
 			continue
 		}
 		if err := runOne(h, c, cmd, out, current); err != nil {
-			// A quiet error (a target not found quietly) fails with no message.
+			// A quiet error (unbind-key -q, a target not found quietly) stops the group
+			// with no message; only a message makes the client fail (tmux's cmdq_error
+			// sets its retval).
 			if err.Error() != "" {
 				// A config file's errors say where they come from (tmux's cfg_add_cause).
 				if cmd.File != "" {
 					fmt.Fprintf(&errs, "%s:%d: ", cmd.File, cmd.Line)
 				}
 				errs.WriteString(err.Error() + "\n")
+				failed = true
 			}
-			failed = true
 			skip = cmd.Group
 		}
 	}
 	return Result{Stdout: out.String(), Stderr: errs.String(), Failed: failed}
+}
+
+// RunList runs a command list for client c (an attached client, or nil), starting from st
+// as the current target: what a key binding runs. Its output and errors are the caller's to
+// show; tmux puts them on the client's message line.
+func RunList(h Host, c *Client, list *List, st *target.State) Result {
+	var out strings.Builder
+	return runListFrom(h, c, list, &out, st)
 }
 
 func runOne(h Host, c *Client, cmd *Command, out *strings.Builder, current *target.State) error {
