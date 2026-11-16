@@ -91,3 +91,16 @@ func TestSourceFixtures(t *testing.T) {
 		})
 	}
 }
+
+// A config warns once for each command it uses that the engine does not implement yet, and
+// the rest of it still loads (COMPATIBILITY.md §10).
+func TestConfigWarnsOnce(t *testing.T) {
+	h := newFakeHost()
+	causes := RunConfig(h, "/l.conf", "clock-mode\nset -g @a 1\nclock-mode\nset -g @b 2\n", cmdlang.Options{})
+	if len(causes) != 1 || causes[0] != "/l.conf:1: clock-mode: not implemented by imux-core yet" {
+		t.Errorf("causes %q", causes)
+	}
+	if h.tree.Options.Session.GetString("@a") != "1" || h.tree.Options.Session.GetString("@b") != "2" {
+		t.Error("the rest of the config did not load")
+	}
+}

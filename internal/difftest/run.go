@@ -127,6 +127,22 @@ func Execute(ctx context.Context, script *Script, eng Engine) (*Transcript, erro
 			if err := os.WriteFile(env.Config, b, 0o600); err != nil {
 				return nil, err
 			}
+		case "file":
+			src := st.Args[1]
+			if !filepath.IsAbs(src) {
+				src = filepath.Join(filepath.Dir(script.Path), src)
+			}
+			b, err := os.ReadFile(src)
+			if err != nil {
+				return nil, fmt.Errorf("%s:%d: %w", script.Path, st.Line, err)
+			}
+			dst := filepath.Join(env.Dir, st.Args[0])
+			if err := os.MkdirAll(filepath.Dir(dst), 0o700); err != nil {
+				return nil, err
+			}
+			if err := os.WriteFile(dst, b, 0o600); err != nil {
+				return nil, err
+			}
 		case "size":
 			width, height = parseSize(st.Args[0])
 		case "normalize":

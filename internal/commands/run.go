@@ -221,6 +221,7 @@ func init() {
 		"set-hook":            setHook,
 		"run-shell":           runShell,
 		"if-shell":            ifShell,
+		"source-file":         sourceFile,
 	}
 }
 
@@ -296,7 +297,7 @@ func RunConfigAsync(h Host, file, src string, opts cmdlang.Options, done func([]
 		return
 	}
 	rs := newRun(h, nil, &target.State{Idx: -1})
-	rs.config = true
+	rs.config, rs.warned = true, map[string]bool{}
 	rs.start(list, func(res Result) {
 		if res.Stderr == "" {
 			done(nil)

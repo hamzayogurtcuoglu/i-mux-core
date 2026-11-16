@@ -203,5 +203,8 @@ func (s *Server) LoadConfig(path string) []string {
 	case <-finished:
 	case <-s.done:
 	}
+	// tmux shows them in the first attached client's view mode (cfg_show_causes), which
+	// comes with copy mode (task C4.8); they are kept until then.
+	_ = s.Do(func(*model.Tree) { s.cfgCauses = append(s.cfgCauses, causes...) })
 	return causes
 }

@@ -97,3 +97,5 @@ All notable changes to i-mux-core are listed here. The format follows
   and `remain-on-exit`.
 - `run-shell` and `if-shell`, with jobs, delays and the argv form; command lists wait for
   their jobs as tmux's queue does.
+- Config loading: `source-file` with nesting, globs and tmux's error reporting; i-mux's
+  config and reload give tmux's options and key tables.

@@ -231,7 +231,7 @@ func runServer(g globals, stderr io.Writer) int {
 	s := server.New(server.Options{SocketPath: path, Environ: os.Environ(), HoldForClient: true})
 	go s.Run()
 	if g.config != "" {
-		_ = s.LoadConfig(g.config) // the errors are shown to the first attached client (C3)
+		_ = s.LoadConfig(g.config) // the server keeps the errors for the first client (C4.8)
 	}
 	l, err := ipc.Listen(path)
 	if err != nil {

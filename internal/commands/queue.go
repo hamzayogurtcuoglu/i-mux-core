@@ -21,6 +21,13 @@ var errWait = errors.New("waiting")
 type afterItem struct {
 	hook *Event
 	list *List
+	// A list may run with its own current target and formats (source-file's files).
+	current *target.State
+	formats map[string]string
+	depth   int
+	warned  map[string]bool
+	// fn is a callback item (cmdq_get_callback).
+	fn func()
 }
 
 // runState is a command list's run (tmux's cmdq state): its client, output, current target,
@@ -34,6 +41,11 @@ type runState struct {
 	noHooks bool
 	// config is set while a config file's commands run (tmux's !cfg_finished).
 	config bool
+	// depth is how many source-file levels deep the list is.
+	depth int
+	// warned are the commands a config has already warned about not being implemented:
+	// each warns once (COMPATIBILITY.md §10).
+	warned map[string]bool
 
 	list   *List
 	i      int
@@ -52,7 +64,7 @@ func newRun(h Host, c *Client, st *target.State) *runState {
 func (rs *runState) child() *runState {
 	return &runState{
 		h: rs.h, c: rs.c, out: rs.out, current: rs.current, formats: rs.formats,
-		noHooks: rs.noHooks, config: rs.config,
+		noHooks: rs.noHooks, config: rs.config, depth: rs.depth, warned: rs.warned,
 	}
 }
 
@@ -94,7 +106,15 @@ func (rs *runState) next() {
 func (rs *runState) exec(cmd *Command, k func()) {
 	f := implemented[cmd.Spec.Name]
 	if f == nil {
-		rs.fail(cmd, fmt.Errorf("%s: not implemented by imux-core yet", cmd.Spec.Name))
+		if rs.warned != nil && rs.warned[cmd.Spec.Name] {
+			// A config warns once for each command it uses that is not implemented.
+			rs.skip = cmd.Group
+		} else {
+			if rs.warned != nil {
+				rs.warned[cmd.Spec.Name] = true
+			}
+			rs.fail(cmd, fmt.Errorf("%s: not implemented by imux-core yet", cmd.Spec.Name))
+		}
 		k()
 		return
 	}
@@ -139,8 +159,9 @@ func (rs *runState) fail(cmd *Command, err error) {
 	if err.Error() == "" {
 		return
 	}
-	// A config file's errors say where they come from (tmux's cfg_add_cause).
-	if cmd.File != "" {
+	// A config file's errors say where they come from (tmux's cfg_add_cause); a client's
+	// errors are the message alone, even for commands from a file it sourced.
+	if cmd.File != "" && rs.c == nil {
 		fmt.Fprintf(&rs.errs, "%s:%d: ", cmd.File, cmd.Line)
 	}
 	rs.errs.WriteString(err.Error() + "\n")
@@ -159,11 +180,27 @@ func (rs *runState) runAfter(items []afterItem, k func()) {
 		rs.merge(res)
 		rs.runAfter(rest, k)
 	}
-	if last.hook != nil {
+	switch {
+	case last.fn != nil:
+		last.fn()
+		rs.runAfter(rest, k)
+	case last.hook != nil:
 		rs.runHooks(*last.hook, then)
-		return
+	default:
+		c := rs.child()
+		if last.current != nil {
+			cur := *last.current
+			c.current = &cur
+		}
+		if last.formats != nil {
+			c.formats = last.formats
+		}
+		c.depth += last.depth
+		if last.warned != nil {
+			c.warned = last.warned
+		}
+		c.start(last.list, then)
 	}
-	rs.child().start(last.list, then)
 }
 
 // merge takes an inserted list's errors and exit status as the command's client's.

@@ -1010,7 +1010,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   `testdata/diff/shell.txt` matches tmux 3.8 for every form and the `-d` order. Output that
   tmux shows in a pane's view mode is dropped until copy mode (C4.8).
 
-### [ ] C3.11 Config loading
+### [x] C3.11 Config loading
 - **Goal:** the config is loaded at start and on reload, as tmux does.
 - **Details:**
   - `-f <file>` is loaded at server start.
@@ -1023,6 +1023,13 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   unbind the old keys, then `source-file`), give the same `list-keys` and `show-options` as
   tmux.
 - **Depends on:** C3.10.
+- **Status:** done. `source-file` (`-F -n -q -t`, globs, nesting, `#{current_file}`) inserts
+  each file's commands after itself through the command queue; parse errors are printed after
+  them, and a config (or a sourced file) warns once for each command not implemented yet.
+  `testdata/diff/config.txt` loads i-mux's generated config, reloads it as i-mux's
+  `Client.Reload` does, and compares the options, hooks and every key table, then
+  `source-file`'s forms and errors, with tmux 3.8. The startup config's errors are kept for
+  the first client's view mode (C4.8); `source-file -` and `-v` are refused.
 
 ### [ ] C3.12 Pane lifecycle
 - **Goal:** dead and exited panes behave like tmux.

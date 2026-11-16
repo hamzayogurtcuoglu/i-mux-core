@@ -1,0 +1,32 @@
+# Config loading (C3.11): i-mux's generated config, then i-mux's reload (unbind the keys it
+# bound, then source-file), and source-file's nesting, relative paths, globs, -q, -n, -F,
+# current_file and errors.
+conf imux.conf
+file config/a.conf config/a.conf
+file config/b.conf config/b.conf
+file config/c.conf config/c.conf
+file config/bad.conf config/bad.conf
+file config/loop.conf config/loop.conf
+size 80x24
+run new-session -d -s c -n w 'exec cat'
+run show -g ; show -s ; show -gw
+run list-keys -T root ; list-keys -T prefix ; list-keys -T imux-resize
+run show -gqv @imux_keys
+# Reload as i-mux's Client.Reload does.
+run unbind-key -q -T root 'C-\' ; unbind-key -q -T root 'C-p' ; unbind-key -q -T prefix 'a' ; unbind-key -q -T prefix 'S' ; unbind-key -q -T imux-resize 'h' ; unbind-key -q -T imux-resize 'j' ; unbind-key -q -T imux-resize 'k' ; unbind-key -q -T imux-resize 'l' ; unbind-key -q -T imux-resize 'Left' ; unbind-key -q -T imux-resize 'Down' ; unbind-key -q -T imux-resize 'Up' ; unbind-key -q -T imux-resize 'Right' ; unbind-key -q -T imux-resize 'H' ; unbind-key -q -T imux-resize 'J' ; unbind-key -q -T imux-resize 'K' ; unbind-key -q -T imux-resize 'L' ; unbind-key -q -T imux-resize 'S-Left' ; unbind-key -q -T imux-resize 'S-Down' ; unbind-key -q -T imux-resize 'S-Up' ; unbind-key -q -T imux-resize 'S-Right' ; unbind-key -q -T imux-resize 'Escape' ; unbind-key -q -T imux-resize 'Enter' ; unbind-key -q -T imux-resize 'q' ; unbind-key -q -T prefix 'b' ; unbind-key -q -T prefix 'v' ; unbind-key -q -T prefix '-' ; unbind-key -q -T prefix 'r' ; unbind-key -q -T prefix '?' ; unbind-key -q -T prefix 'H' ; unbind-key -q -T prefix 'J' ; unbind-key -q -T prefix 'K' ; unbind-key -q -T prefix 'L' ; unbind-key -q -T prefix 'c' ; unbind-key -q -T prefix ',' ; unbind-key -q -T root 'MouseDown1Status' ; unbind-key -q -T root 'MouseUp1Status' ; unbind-key -q -T root 'MouseDown3Border' ; unbind-key -q -T root 'MouseDown1Pane' ; unbind-key -q -T root 'SecondClick1Pane' ; unbind-key -q -T root 'DoubleClick1Pane' ; unbind-key -q -T root 'TripleClick1Pane' ; unbind-key -q -T root 'C-v' ; unbind-key -q -T root 'M-v' ; source-file test.conf
+run list-keys
+run show -g ; show -s ; show -gw ; show-hooks -g
+# source-file.
+run source-file config/a.conf ; show -gv @run1 ; show -gv @run2 ; show -gv @cf ; show -gv @order
+run source-file config/bad.conf ; show -gqv @bad1
+run source-file config/bad.conf config/c.conf ; show -gv @order
+run source-file -n config/bad.conf
+run source-file -n config/c.conf ; show -gv @order
+run source-file nope.conf
+run source-file -q nope.conf ; set -g @afterq 1 ; show -gv @afterq
+run source-file nope.conf config/c.conf ; show -gv @order
+run set -g @order '' ; source-file 'config/[bc].conf' ; show -gv @order
+run set -g @dir config ; source-file -F '#{@dir}/c.conf' ; show -gv @order
+run source-file config/loop.conf
+run source-file
+run kill-server

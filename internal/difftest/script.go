@@ -13,6 +13,8 @@ import (
 //
 //	# a comment
 //	conf <file>                  the config file (-f), relative to the script; before any run
+//	file <name> <file>           copy a file (relative to the script) into the run's
+//	                             directory, the commands' working directory, as name
 //	size WxH                     the size of sessions made with new-session (default 80x24)
 //	normalize <regex> <repl>     rewrite later outputs (ids, pids, times, paths) on both engines
 //	skip-if-engine <name> <why>  skip the script when the engine under test is <name>
@@ -36,7 +38,7 @@ type Script struct {
 // Step is one line of a script.
 type Step struct {
 	Line int
-	Kind string   // "run", "conf", "size", "normalize", "skip-if-engine", "wait", "capture", "screen", "client", "resize"
+	Kind string   // "run", "conf", "file", "size", "normalize", "skip-if-engine", "wait", "capture", "screen", "client", "resize"
 	Args []string // the words after the kind
 	Text string   // the line as written, for messages
 }
@@ -82,6 +84,10 @@ func ParseScript(path string) (*Script, error) {
 			}
 			if ran {
 				return nil, bad("must come before the first run")
+			}
+		case "file":
+			if len(st.Args) != 2 {
+				return nil, bad("want a name and a file")
 			}
 		case "size":
 			if len(st.Args) != 1 || !reSize.MatchString(st.Args[0]) {

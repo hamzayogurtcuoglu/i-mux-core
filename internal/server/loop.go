@@ -62,6 +62,7 @@ type Server struct {
 	nameTimers map[*model.Window]bool // windows with an automatic-rename timer pending
 
 	pendingHooks []commands.Event // events whose hooks run once the current event is done
+	cfgCauses    []string         // the startup config's errors (tmux's cfg_causes)
 
 	started time.Time // when the server started (start_time)
 
