@@ -512,6 +512,23 @@ file without running it and prints each line's commands) by the files in `testda
 The user's `~/.imux/tmux.local.conf` is sourced last. With i-mux-core, a command it does not
 know prints one warning and the rest of the file still loads.
 
+Checked against tmux 3.8 in `testdata/diff/config.txt` (C3.11), with i-mux's generated config
+and its reload (`unbind-key -q` for each key it bound, then `source-file`): the options, hooks
+and every key table come out as tmux's. `source-file`:
+
+- a relative path is relative to the client's directory (not the sourcing file's), and is a
+  glob; `-F` expands it as a format; `-q` leaves out a path that matches nothing, else
+  `No such file or directory: <path>`; the other paths still load;
+- a file that does not parse runs none of its commands; its error (`<file>:<line>: …`) is
+  printed after the other files' commands run, on stdout, and the client exits 1;
+- an error while a sourced command runs is the message alone (the file and line are only for
+  a config loaded with no client, which collects them);
+- `#{current_file}` is the file; files nest up to 50 deep (`too many nested files`);
+- `-n` parses only.
+
+Without `-f`, i-mux-core loads no file, where tmux reads its default paths: i-mux always gives
+`-f`. The startup config's errors are kept for the view mode of the first client (C4.8).
+
 ## 11. Attach behaviour
 
 - `attach-session -t =name` from a terminal takes it over until detach.
