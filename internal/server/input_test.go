@@ -73,7 +73,7 @@ func newInputWorld(t *testing.T, mode string) *inputWorld {
 		t.Fatalf("new-session: %+v", res)
 	}
 	c.Close()
-	w.waitPane(mode + " READY")
+	w.waitPane(" READY")
 
 	var rec struct{ Caps []string }
 	b, err := os.ReadFile("../../testdata/term/xterm-256color.json")
@@ -212,4 +212,16 @@ func TestThemeReport(t *testing.T) {
 	if bg != vt.ColorJoinRGB(0x10, 0x10, 0x10) {
 		t.Errorf("the pane's client background %#x", bg)
 	}
+}
+
+// Keys typed in an attached client reach its active pane, encoded for the pane (TASKS.md
+// C2.11): C-Up read from the terminal goes as xterm's sequence, a Meta key with its escape.
+func TestTypedKeysReachPane(t *testing.T) {
+	w := newInputWorld(t, "keys")
+	w.typed("\x1b[1;5A")
+	w.waitPane("key: 1b5b313b3541")
+	w.typed("\x1bv")
+	w.waitPane("key: 1b76 M-v")
+	w.typed("\x7f")
+	w.waitPane("key: 7f BSpace")
 }

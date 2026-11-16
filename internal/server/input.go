@@ -13,8 +13,8 @@ import (
 // Input from attached clients (TASKS.md C2.10), as tmux's tty-keys.c and server-client.c deal
 // with it: the terminal's replies tell the server about the terminal (features, colours,
 // theme), focus reports and pastes go to the active pane, and theme reports fire the client
-// events. Other keys and mouse reports are parsed and left for key encoding (C2.11), bindings
-// (C3.8) and mouse handling (C5.1).
+// events. Other keys go to the active pane (C2.11) until key bindings exist (C3.8); mouse
+// reports are left for C5.1.
 
 // queryTimeout is how long the server waits for the replies to its queries (tmux's
 // TTY_QUERY_TIMEOUT).
@@ -179,7 +179,11 @@ func (s *Server) inputKey(c *attachedClient, ev *input.Event) {
 		s.paste(p, ev.Raw)
 		return
 	}
-	// Other keys and mouse reports come with tasks C2.11, C3.8 and C5.1.
+	// With no key bindings yet (task C3.8), a key goes to the pane (forward_key); mouse
+	// reports come with task C5.1.
+	if !key.IsMouse() {
+		s.PaneKey(p, key)
+	}
 }
 
 // assumePaste is server_client_is_assume_paste: keys typed faster than assume-paste-time on a

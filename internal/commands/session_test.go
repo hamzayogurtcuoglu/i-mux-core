@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 )
@@ -21,6 +23,8 @@ type fakeHost struct {
 	killed   bool
 	clients  []ClientInfo
 	detached []string
+	sent     []string // PaneKey: "%id key"
+	options  []string // SetServerOption: "name=choice"
 }
 
 func newFakeHost() *fakeHost { return &fakeHost{tree: model.NewTree()} }
@@ -38,8 +42,16 @@ func (h *fakeHost) Environ() []string {
 }
 func (h *fakeHost) Clients() []ClientInfo { return h.clients }
 func (h *fakeHost) Detach(name string)    { h.detached = append(h.detached, name) }
-func (h *fakeHost) SocketPath() string    { return "/tmp/s" }
-func (h *fakeHost) Pid() int              { return 42 }
+func (h *fakeHost) PaneKey(p *model.Pane, k keys.Key) bool {
+	h.sent = append(h.sent, fmt.Sprintf("%%%d %s", p.ID, k))
+	return k != keys.Parse("C-BSpace")
+}
+
+func (h *fakeHost) SetServerOption(name string, choice int) {
+	h.options = append(h.options, fmt.Sprintf("%s=%d", name, choice))
+}
+func (h *fakeHost) SocketPath() string { return "/tmp/s" }
+func (h *fakeHost) Pid() int           { return 42 }
 
 func run(h Host, words ...string) Result {
 	return Run(h, &Client{Cwd: testCwd}, [][]string{words})

@@ -3,7 +3,9 @@
 //
 //	frame   a full-screen frame on the alternate screen inside synchronized output (2026):
 //	        a box, RGB colours, wide characters, emoji and an OSC 8 link; q leaves
-//	keys    echo every input chunk on line 2 as hex and decoded; ^D leaves
+//	keys    echo every input chunk on line 2 as hex and decoded; ^D leaves. -init writes
+//	        modes first (Go-quoted, such as \x1b[?1h); -out appends each chunk's hex to a file,
+//	        created once the modes are written
 //	mouse   turn on SGR mouse reporting (1000, 1002, 1006) and echo events; ^D leaves
 //	paste   turn on bracketed paste (2004) and echo what is pasted; ^D leaves
 //	focus   turn on focus reports (1004) and theme reports (2031) and echo them; ^D leaves
@@ -22,6 +24,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -34,6 +37,8 @@ func main() {
 	title := flag.String("title", "faketui", "title: the title")
 	cwd := flag.String("cwd", "/tmp", "title: the working directory")
 	copyText := flag.String("copy", "copied by faketui", "title: the text to copy")
+	initModes := flag.String("init", "", "keys: modes to write first, Go-quoted")
+	outFile := flag.String("out", "", "keys: a file to append each input chunk's hex to")
 	flag.Parse()
 
 	switch *mode {
@@ -66,7 +71,14 @@ func main() {
 	case "frame":
 		frame()
 	case "keys":
-		echo("", "key", nil)
+		on, err := strconv.Unquote(`"` + *initModes + `"`)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "faketui: -init:", err)
+			restore()
+			os.Exit(2)
+		}
+		echoOut = *outFile
+		echo(on, "key", nil)
 	case "mouse":
 		echo("\x1b[?1000h\x1b[?1002h\x1b[?1006h", "mouse", decodeMouse)
 		os.Stdout.WriteString("\x1b[?1006l\x1b[?1002l\x1b[?1000l")
@@ -121,8 +133,32 @@ func frame() {
 }
 
 // echo turns on a mode, then writes each input chunk on line 2 until ^D.
+// echoOut is a file each input chunk's hex is appended to, if set.
+var echoOut string
+
 func echo(on, label string, decode func(string) string) {
 	os.Stdout.WriteString(on + "\x1b[H\x1b[2J" + label + " READY")
+	var out *os.File
+	if echoOut != "" {
+		// The terminal answers the cursor position only once it has read the modes: the file
+		// then says they are in effect.
+		os.Stdout.WriteString("\x1b[6n")
+		b := make([]byte, 1)
+		for {
+			if _, err := os.Stdin.Read(b); err != nil {
+				return
+			}
+			if b[0] == 'R' {
+				break
+			}
+		}
+		var err error
+		if out, err = os.OpenFile(echoOut, os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_APPEND, 0o600); err != nil {
+			fmt.Fprintln(os.Stderr, "faketui:", err)
+			return
+		}
+		defer out.Close()
+	}
 	pending := ""
 	for in := range readInput() {
 		if strings.Contains(in, "\x04") {
@@ -135,6 +171,9 @@ func echo(on, label string, decode func(string) string) {
 				continue
 			}
 			in, pending = pending, ""
+		}
+		if out != nil {
+			_, _ = out.WriteString(hex.EncodeToString([]byte(in)) + "\n")
 		}
 		d := decodeKeys(in)
 		if decode != nil {

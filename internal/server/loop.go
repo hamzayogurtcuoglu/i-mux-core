@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
@@ -52,6 +53,10 @@ type Server struct {
 	readers sync.WaitGroup
 	panes   map[*model.Pane]*paneState
 	exiting bool
+
+	// Server options set so far (the option table comes with task C3.4).
+	extendedKeys   vt.ExtendedKeysOption
+	extendedFormat keys.ExtendedFormat
 
 	clients  int               // connected clients (in the loop)
 	attached []*attachedClient // the attached ones, in the order they attached
@@ -99,6 +104,8 @@ func New(o Options) *Server {
 		panes:  map[*model.Pane]*paneState{},
 		held:   o.HoldForClient,
 		conns:  map[net.Conn]struct{}{},
+
+		extendedFormat: keys.FormatXterm,
 	}
 	s.tree.Resized = s.paneResized
 	return s
@@ -218,6 +225,11 @@ func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 	}
 	p.Proc = proc
 	p.Term = vt.NewTerminal(p.Sx, p.Sy, s.opts.HistoryLimit)
+	p.Term.ExtendedKeys = s.extendedKeys
+	if s.extendedKeys == vt.ExtendedKeysAlways {
+		// As tmux's screen_init: the screen starts in extended keys mode 1.
+		p.Term.Screen.Mode |= vt.ModeKeysExtended
+	}
 	st := &paneState{}
 	s.panes[p] = st
 	s.readers.Add(1)

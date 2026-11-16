@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 )
@@ -28,6 +29,11 @@ type Host interface {
 	// Clients lists the attached clients; Detach detaches one.
 	Clients() []ClientInfo
 	Detach(name string)
+	// PaneKey sends a key to a pane, encoded as the pane asked (TASKS.md C2.11); false when
+	// the key has no encoding there.
+	PaneKey(p *model.Pane, k keys.Key) bool
+	// SetServerOption sets a server option to the index of its choice.
+	SetServerOption(name string, choice int)
 }
 
 // ClientInfo is an attached client, as the commands see it.
@@ -71,6 +77,8 @@ var implemented = map[string]execFunc{
 	"start-server":   func(*Item) error { return nil },
 	"attach-session": attachSession,
 	"detach-client":  detachClient,
+	"send-keys":      sendKeys,
+	"set-option":     setOption,
 }
 
 // Result is what a command list gave: its output, its errors and whether it failed.

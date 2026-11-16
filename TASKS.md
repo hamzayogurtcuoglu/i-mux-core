@@ -713,7 +713,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   `TestThemeReport`). OSC 4 and OSC 52 replies are read and dropped until something asks for
   them; `focus-events`, `extended-keys` and `escape-time` are at tmux's defaults until C3.4.
 
-### [ ] C2.11 Keys into panes
+### [x] C2.11 Keys into panes
 - **Goal:** programs get keys encoded the way they asked for.
 - **Details:**
   - Encode a key for a pane from its modes: application cursor and keypad, extended keys (what
@@ -731,6 +731,15 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   matches its echo under tmux (difftest), in normal and application modes and with extended
   keys on and off.
 - **Depends on:** C2.10, C1.9.
+- **Status:** done. `keys.Encode` ports `input_key` (the standard form with tmux's Ctrl
+  remapping, the escape for Meta, application cursor and keypad, modes 1 and 2 in both
+  formats, bracketed paste, `backspace` at its default). `send-keys` sends key names, text,
+  `-l`, `-H` and `-N`, and a key with no encoding as its name's text, as tmux does;
+  `set-option` sets `extended-keys` and `extended-keys-format`; keys typed in an attached
+  client reach its active pane. `TestKeysIntoPanes` (difftest) sends 82 keys in 7 variants
+  (normal, application, extended keys off with mode 2 asked, on with modes 1 and 2, csi-u,
+  always) to the fake TUI on both engines, and every byte matches. `-M` comes with C5.3,
+  `-X` with C4.8, `-K`, `-R` and `-F` later.
 
 ### [ ] C2.12 Several clients, sizes, detach
 - **Goal:** more than one terminal on a session works like tmux.

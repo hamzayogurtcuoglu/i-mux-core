@@ -68,3 +68,7 @@ All notable changes to i-mux-core are listed here. The format follows
   sequences of the client's terminal with escape-time, mouse reports, bracketed paste and focus
   reports passed to the active pane, and the terminal's replies (features, colours, theme)
   used; theme reports fire the client events.
+- Keys into panes, encoded as tmux 3.8 encodes them for each pane's modes (application keys,
+  extended keys in both formats); `send-keys` with key names, text, `-l`, `-H` and `-N`;
+  `set-option` for `extended-keys` and `extended-keys-format`; keys typed in an attached client
+  reach its active pane.
