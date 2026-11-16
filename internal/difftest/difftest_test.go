@@ -4,11 +4,15 @@ package difftest
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -43,8 +47,34 @@ func coreEngine(t *testing.T) *Binary {
 	return b
 }
 
+// toolsOnce builds the scripts' programs once: the fake TUI, as faketui on the engines' PATH.
+var toolsOnce = sync.OnceValues(func() (string, error) {
+	dir, err := os.MkdirTemp("", "imux-dt-tools-")
+	if err != nil {
+		return "", err
+	}
+	name := "faketui"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	tui := filepath.Join(dir, name)
+	out, err := exec.Command("go", "build", "-o", tui, "../../testdata/faketui").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("faketui: %w: %s", err, out)
+	}
+	// A new program's first start can be slow (macOS checks it): start it once now, so that
+	// the scripts' screens do not depend on it.
+	_ = exec.Command(tui, "-mode", "exit").Run()
+	return dir, nil
+})
+
 func scripts(t *testing.T) []string {
 	t.Helper()
+	dir, err := toolsOnce()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ToolsDir = dir
 	paths, err := filepath.Glob("../../testdata/diff/*.txt")
 	if err != nil || len(paths) == 0 {
 		t.Fatalf("no scripts in testdata/diff: %v", err)

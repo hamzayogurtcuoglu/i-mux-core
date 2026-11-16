@@ -30,6 +30,8 @@ import (
 //	type NAME TEXT               type TEXT into that client's terminal; TEXT takes Go's
 //	                             escapes (\r, \x1b), so quote it with '…'
 //
+// The engines' PATH starts with a directory holding faketui, the fake TUI (testdata/faketui).
+//
 // Words are split as a POSIX shell does: '…' is literal, "…" takes \" \\ \$ and \` escapes, and
 // \ escapes one character outside quotes. A lone ; is a word, as on tmux's command line.
 type Script struct {

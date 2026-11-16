@@ -34,6 +34,10 @@ func (e *SkipError) Error() string { return "skipped: " + e.Reason }
 // WaitTimeout is how long a wait step polls before it gives up.
 var WaitTimeout = 10 * time.Second
 
+// ToolsDir, when set, goes first in the engines' PATH: the scripts' programs (faketui) are
+// there.
+var ToolsDir = ""
+
 // FixedEnv is the environment every engine runs in, besides HOME and TMUX_TMPDIR.
 var FixedEnv = []string{
 	"TERM=xterm-256color",
@@ -65,6 +69,13 @@ func NewEnv() (*Env, error) {
 		}
 	}
 	vars := append([]string{"HOME=" + home, "TMUX_TMPDIR=" + tmp}, FixedEnv...)
+	if ToolsDir != "" {
+		for i, kv := range vars {
+			if p, ok := strings.CutPrefix(kv, "PATH="); ok {
+				vars[i] = "PATH=" + ToolsDir + string(os.PathListSeparator) + p
+			}
+		}
+	}
 	return &Env{Dir: dir, Socket: filepath.Join(dir, "s"), Vars: vars}, nil
 }
 
