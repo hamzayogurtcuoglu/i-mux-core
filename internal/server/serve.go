@@ -129,6 +129,8 @@ func (s *Server) handle(c net.Conn) {
 		var err error
 		if att, err = s.attach(&hello, client.AttachTo, queue); err != nil {
 			res = commands.Result{Stderr: "open terminal failed: " + err.Error() + "\n", Failed: true}
+		} else if client.AttachedHook {
+			s.fireClient("client-attached", att)
 		}
 	}) {
 		return

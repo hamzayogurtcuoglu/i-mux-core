@@ -68,6 +68,9 @@ type Client struct {
 	// AttachTo is set by attach-session and new-session: the client attaches to it once its
 	// commands are done.
 	AttachTo *model.Session
+	// AttachedHook is set by attach-session: the client-attached hook fires once the client
+	// is attached (new-session's attach fires none, as in tmux).
+	AttachedHook bool
 	// Session is the session an attached client shows: such a client runs the commands of
 	// the key bindings it presses (tmux's cmdq_get_client for a binding).
 	Session *model.Session
@@ -82,6 +85,28 @@ type Item struct {
 	// Current is the command list's current target (tmux's cmdq state): what a command made
 	// is the default target of the commands after it.
 	Current *target.State
+	// Formats are added to every format the command expands: a hook's hook_* and hook
+	// (tmux's cmdq_add_formats).
+	Formats map[string]string
+	// Target is what the command found with its target flag (tmux's item->target), for its
+	// after- hook.
+	Target *target.State
+	// noHooks is CMDQ_STATE_NOHOOKS: the command runs for a hook and fires none itself.
+	noHooks bool
+	rs      *runState
+}
+
+// afterHook is cmdq_insert_hook for the commands that fire their after- hook themselves
+// (split-window, new-window, select-pane): with st, what they made or selected, as the
+// target. Its errors go with the command's.
+func (it *Item) afterHook(name string, st target.State) {
+	if it.noHooks || it.rs == nil {
+		return
+	}
+	ev := Event{Name: name, Target: st, Items: hookArguments(it.Cmd.Args)}
+	if res := it.rs.hooks(ev, it.rs.c); res.Failed {
+		it.rs.hookErrs.WriteString(res.Stderr)
+	}
 }
 
 // targetContext is what the item's targets are looked up in.
@@ -120,7 +145,12 @@ func (it *Item) find(t string, typ target.Type, flags int) (target.State, error)
 // findFlag looks up the target given with flag f, or the current one.
 func (it *Item) findFlag(f byte, typ target.Type, flags int) (target.State, error) {
 	t, _ := it.Cmd.Args.Get(f)
-	return it.find(t, typ, flags)
+	st, err := it.find(t, typ, flags)
+	if err == nil && it.Cmd.Spec.Target != nil && it.Cmd.Spec.Target.Flag == f {
+		found := st
+		it.Target = &found
+	}
+	return st, err
 }
 
 // setCurrent makes st the command list's current target.
@@ -137,42 +167,49 @@ type execFunc func(*Item) error
 
 // implemented are the commands the engine runs so far; the rest of tmux's table is known (for
 // lookup and argument errors) but not run yet. The command table grows in task C3.2.
-var implemented = map[string]execFunc{
-	"new-session":         newSession,
-	"has-session":         hasSession,
-	"kill-session":        killSession,
-	"kill-server":         killServer,
-	"start-server":        func(*Item) error { return nil },
-	"attach-session":      attachSession,
-	"detach-client":       detachClient,
-	"send-keys":           sendKeys,
-	"send-prefix":         sendPrefix,
-	"bind-key":            bindKey,
-	"unbind-key":          unbindKey,
-	"list-keys":           listKeys,
-	"set-option":          setOption,
-	"set-window-option":   setOption,
-	"show-options":        showOptions,
-	"show-window-options": showOptions,
-	"switch-client":       switchClient,
-	"new-window":          newWindow,
-	"split-window":        splitWindow,
-	"select-window":       selectWindow,
-	"select-pane":         selectPane,
-	"display-message":     displayMessage,
-	"list-sessions":       listSessions,
-	"list-windows":        listWindows,
-	"list-panes":          listPanes,
-	"list-clients":        listClients,
-	"rename-window":       renameWindow,
-	"kill-window":         killWindow,
-	"kill-pane":           killPane,
-	"swap-pane":           swapPane,
-	"respawn-pane":        respawnPane,
-	"resize-pane":         resizePane,
-	"resize-window":       resizeWindow,
-	"select-layout":       selectLayout,
-	"capture-pane":        capturePane,
+var implemented map[string]execFunc
+
+// The table is filled in init: its commands run command lists themselves (hooks).
+func init() {
+	implemented = map[string]execFunc{
+		"new-session":         newSession,
+		"has-session":         hasSession,
+		"kill-session":        killSession,
+		"kill-server":         killServer,
+		"start-server":        func(*Item) error { return nil },
+		"attach-session":      attachSession,
+		"detach-client":       detachClient,
+		"send-keys":           sendKeys,
+		"send-prefix":         sendPrefix,
+		"bind-key":            bindKey,
+		"unbind-key":          unbindKey,
+		"list-keys":           listKeys,
+		"set-option":          setOption,
+		"set-window-option":   setOption,
+		"show-options":        showOptions,
+		"show-window-options": showOptions,
+		"show-hooks":          showOptions,
+		"switch-client":       switchClient,
+		"new-window":          newWindow,
+		"split-window":        splitWindow,
+		"select-window":       selectWindow,
+		"select-pane":         selectPane,
+		"display-message":     displayMessage,
+		"list-sessions":       listSessions,
+		"list-windows":        listWindows,
+		"list-panes":          listPanes,
+		"list-clients":        listClients,
+		"rename-window":       renameWindow,
+		"kill-window":         killWindow,
+		"kill-pane":           killPane,
+		"swap-pane":           swapPane,
+		"respawn-pane":        respawnPane,
+		"resize-pane":         resizePane,
+		"resize-window":       resizeWindow,
+		"select-layout":       selectLayout,
+		"capture-pane":        capturePane,
+		"set-hook":            setHook,
+	}
 }
 
 // Result is what a command list gave: its output, its errors and whether it failed.
@@ -201,15 +238,37 @@ func runList(h Host, c *Client, list *List, out *strings.Builder) Result {
 
 // runListFrom is runList starting from st as the current target.
 func runListFrom(h Host, c *Client, list *List, out *strings.Builder, st *target.State) Result {
+	return (&runState{h: h, c: c, out: out, current: st}).run(list)
+}
+
+// runState is a command list's run (tmux's cmdq state): its client, output, current target,
+// the formats a hook adds, and whether it runs for a hook.
+type runState struct {
+	h       Host
+	c       *Client
+	out     *strings.Builder
+	current *target.State
+	formats map[string]string
+	noHooks bool
+	// hookErrs are the errors of the hooks a command fired itself.
+	hookErrs strings.Builder
+}
+
+func (rs *runState) run(list *List) Result {
 	var errs strings.Builder
 	failed := false
 	skip := -1
-	current := st
 	for _, cmd := range list.Commands {
 		if cmd.Group == skip {
 			continue
 		}
-		if err := runOne(h, c, cmd, out, current); err != nil {
+		it, err := rs.runOne(cmd)
+		if rs.hookErrs.Len() > 0 {
+			errs.WriteString(rs.hookErrs.String())
+			rs.hookErrs.Reset()
+			failed = true
+		}
+		if err != nil {
 			// A quiet error (unbind-key -q, a target not found quietly) stops the group
 			// with no message; only a message makes the client fail (tmux's cmdq_error
 			// sets its retval).
@@ -222,9 +281,18 @@ func runListFrom(h Host, c *Client, list *List, out *strings.Builder, st *target
 				failed = true
 			}
 			skip = cmd.Group
+			continue
+		}
+		// after-<command>: its hooks run now, before the next command, for the same client
+		// (cmdq_insert_hook inserts them after the item).
+		if !rs.noHooks && cmd.Spec.Flags&CmdAfterhook != 0 {
+			if res := rs.afterHook(it); res.Failed {
+				errs.WriteString(res.Stderr)
+				failed = true
+			}
 		}
 	}
-	return Result{Stdout: out.String(), Stderr: errs.String(), Failed: failed}
+	return Result{Stdout: rs.out.String(), Stderr: errs.String(), Failed: failed}
 }
 
 // RunList runs a command list for client c (an attached client, or nil), starting from st
@@ -235,12 +303,16 @@ func RunList(h Host, c *Client, list *List, st *target.State) Result {
 	return runListFrom(h, c, list, &out, st)
 }
 
-func runOne(h Host, c *Client, cmd *Command, out *strings.Builder, current *target.State) error {
+func (rs *runState) runOne(cmd *Command) (*Item, error) {
 	f := implemented[cmd.Spec.Name]
 	if f == nil {
-		return fmt.Errorf("%s: not implemented by imux-core yet", cmd.Spec.Name)
+		return nil, fmt.Errorf("%s: not implemented by imux-core yet", cmd.Spec.Name)
 	}
-	return f(&Item{Host: h, Client: c, Cmd: cmd, Out: out, Current: current})
+	it := &Item{
+		Host: rs.h, Client: rs.c, Cmd: cmd, Out: rs.out, Current: rs.current,
+		Formats: rs.formats, noHooks: rs.noHooks, rs: rs,
+	}
+	return it, f(it)
 }
 
 // RunConfig parses and runs a config file, as tmux's source-file does: a file that does not

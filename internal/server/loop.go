@@ -61,6 +61,9 @@ type Server struct {
 
 	nameTimers map[*model.Window]bool // windows with an automatic-rename timer pending
 
+	pendingHooks []commands.Event // events whose hooks run once the current event is done
+	inHooks      bool             // hooks are running: the events they fire are dropped
+
 	started time.Time // when the server started (start_time)
 
 	clients  int               // connected clients (in the loop)
@@ -115,6 +118,7 @@ func New(o Options) *Server {
 	}
 	s.started = o.Now()
 	s.tree.Resized = s.paneResized
+	s.tree.ActiveChanged = s.activeChanged
 	s.startOptions()
 	// tmux's default key bindings (task C3.8), before any config file changes them.
 	commands.LoadDefaultKeyBindings(s)
@@ -182,6 +186,7 @@ func (s *Server) Run() {
 		case f := <-s.events:
 			f()
 			if !s.exiting {
+				s.runHooks()
 				s.checkNames()
 			}
 			if s.exiting {
@@ -366,6 +371,11 @@ func (s *Server) paneExited(p *model.Pane, st *paneState, status pty.ExitStatus)
 	if s.tree.Pane(p.ID) == nil {
 		return
 	}
+	if remainOnExit(p) {
+		s.paneDied(p, status)
+		return
+	}
+	s.firePaneExit("pane-exited", p, status)
 	s.RemovePane(p)
 }
 

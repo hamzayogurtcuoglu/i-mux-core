@@ -229,18 +229,16 @@ func listKeys(it *Item) error {
 			cmd = bd.Cmds.PrintList(true, true)
 		}
 		ctx := it.formatContext(nil, nil, nil, nil)
-		ctx.Values = map[string]string{
-			"notes_only":       "0",
-			"key_has_repeat":   numBool(hasRepeat),
-			"key_string_width": strconv.Itoa(keyWidth),
-			"key_table_width":  strconv.Itoa(tableWidth),
-			"key_repeat":       numBool(bd.Repeat),
-			"key_note":         bd.Note,
-			"key_prefix":       prefix,
-			"key_table":        bd.Table,
-			"key_string":       keys.Name(bd.Key, false),
-			"key_command":      cmd,
-		}
+		ctx.Values["notes_only"] = "0"
+		ctx.Values["key_has_repeat"] = numBool(hasRepeat)
+		ctx.Values["key_string_width"] = strconv.Itoa(keyWidth)
+		ctx.Values["key_table_width"] = strconv.Itoa(tableWidth)
+		ctx.Values["key_repeat"] = numBool(bd.Repeat)
+		ctx.Values["key_note"] = bd.Note
+		ctx.Values["key_prefix"] = prefix
+		ctx.Values["key_table"] = bd.Table
+		ctx.Values["key_string"] = keys.Name(bd.Key, false)
+		ctx.Values["key_command"] = cmd
 		if line := ctx.Expand(listKeysTemplate); line != "" {
 			it.Print(line)
 		}

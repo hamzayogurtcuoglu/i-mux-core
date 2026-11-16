@@ -31,6 +31,10 @@ func (it *Item) formatContext(c *ClientInfo, s *model.Session, wl *model.Winlink
 			return "", false
 		},
 	}
+	ctx.Values = make(map[string]string, len(it.Formats))
+	for k, v := range it.Formats {
+		ctx.Values[k] = v
+	}
 	ctx.Defaults(c, s, wl, p)
 	return ctx
 }

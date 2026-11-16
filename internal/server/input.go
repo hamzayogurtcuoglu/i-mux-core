@@ -38,13 +38,6 @@ type inputState struct {
 	last     time.Time  // the input before the last (last_activity_time)
 }
 
-// fire is events_fire_client and events_fire_pane: the hooks set for name run (task C3.9).
-func (s *Server) fire(name, client string) {
-	if s.opts.Event != nil {
-		s.opts.Event(name, client)
-	}
-}
-
 // startInput sets up a client's input once its terminal has been sent the queries.
 func (s *Server) startInput(c *attachedClient, erase int) {
 	c.in = inputState{parser: input.New(c.tty.Term, erase), focused: true, fg: -1, bg: -1}
@@ -152,11 +145,11 @@ func (s *Server) inputKey(c *attachedClient, ev *input.Event) {
 	case keys.FocusOut:
 		c.in.focused = false
 		s.updateFocus(c.window())
-		s.fire("client-focus-out", c.name)
+		s.fireClient("client-focus-out", c)
 		return
 	case keys.FocusIn:
 		c.in.focused = true
-		s.fire("client-focus-in", c.name)
+		s.fireClient("client-focus-in", c)
 		s.updateFocus(c.window())
 		s.updateLatest(c)
 		return
@@ -267,7 +260,7 @@ func (s *Server) updateFocus(w *model.Window) {
 		if on {
 			_, _ = p.Proc.Write([]byte(seq))
 		}
-		s.fire(name, "")
+		s.firePane(name, p)
 	}
 }
 
@@ -276,9 +269,9 @@ func (s *Server) reportTheme(c *attachedClient, theme vt.Theme) {
 	old := c.in.theme
 	c.in.theme = theme
 	if theme == vt.ThemeLight {
-		s.fire("client-light-theme", c.name)
+		s.fireClient("client-light-theme", c)
 	} else {
-		s.fire("client-dark-theme", c.name)
+		s.fireClient("client-dark-theme", c)
 	}
 	if theme != old {
 		s.updateThemeColours(c)

@@ -83,6 +83,7 @@ func newWindow(it *Item) error {
 	if !a.Has('d') || s.Current == wl {
 		it.setCurrent(target.State{S: s, WL: wl, Idx: -1, W: w, P: p})
 	}
+	it.afterHook("after-new-window", target.State{S: s, WL: wl, Idx: wl.Index, W: w, P: w.Active})
 	return nil
 }
 
@@ -173,6 +174,7 @@ func splitWindow(it *Item) error {
 	if !a.Has('d') {
 		it.setCurrent(target.State{S: st.S, WL: st.WL, Idx: st.WL.Index, W: st.W, P: p})
 	}
+	it.afterHook("after-split-window", target.State{S: st.S, WL: st.WL, Idx: st.WL.Index, W: st.W, P: p})
 	return nil
 }
 
@@ -227,6 +229,12 @@ func selectWindow(it *Item) error {
 			it.setCurrent(sessionState(s))
 		}
 	}
+	// after-select-window, with the command list's current target.
+	cur := sessionState(s)
+	if it.Current != nil && it.Current.S != nil {
+		cur = *it.Current
+	}
+	it.afterHook("after-select-window", cur)
 	return nil
 }
 
@@ -274,7 +282,9 @@ func selectPane(it *Item) error {
 	}
 	if p != w.Active {
 		t.SetActivePane(w, p)
-		it.setCurrent(target.State{S: st.S, WL: st.WL, Idx: st.WL.Index, W: w, P: p})
+		cur := target.State{S: st.S, WL: st.WL, Idx: st.WL.Index, W: w, P: p}
+		it.setCurrent(cur)
+		it.afterHook("after-select-pane", cur)
 	}
 	return nil
 }

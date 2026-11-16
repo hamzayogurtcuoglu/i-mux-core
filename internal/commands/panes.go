@@ -119,7 +119,7 @@ func cmpInt(a, b int) int {
 // listLine prints one item of a list: its format tree with "line" added, through -f and the
 // template.
 func (it *Item) listLine(ctx *format.Context, line int, template string) {
-	ctx.Values = map[string]string{"line": strconv.Itoa(line)}
+	ctx.Values["line"] = strconv.Itoa(line)
 	if filter, ok := it.Cmd.Args.Get('f'); ok && !format.True(ctx.Expand(filter)) {
 		return
 	}

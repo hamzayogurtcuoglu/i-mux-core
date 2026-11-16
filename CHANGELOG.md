@@ -92,3 +92,6 @@ All notable changes to i-mux-core are listed here. The format follows
   `allow-set-title` and `allow-rename`.
 - Key bindings: tmux 3.8's key tables and default bindings, the prefix, `bind-key`,
   `unbind-key`, `list-keys`, `send-prefix` and `switch-client -T`.
+- Hooks: `set-hook` and `show-hooks`, the events i-mux hooks (after- hooks, focus, pane
+  changes, pane exit and death, attach, theme) with tmux's timing and `#{hook_*}` formats,
+  and `remain-on-exit`.

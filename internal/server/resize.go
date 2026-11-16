@@ -126,7 +126,7 @@ func (s *Server) updateLatest(c *attachedClient) {
 	if w.Options.GetNumber("window-size") == windowSizeLatest {
 		s.recalculateSize(w)
 	}
-	s.fire("client-active", c.name)
+	s.fireClient("client-active", c)
 }
 
 // lostClient is the part of server_client_lost that finds windows a new latest client: the

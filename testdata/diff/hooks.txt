@@ -1,0 +1,58 @@
+# Hooks (C3.9): each hook appends what it sees to @log, so the order of the hooks and the
+# values their formats expand to are compared with tmux's. run-shell comes with C3.10; the
+# hooks here log with set -gaF.
+size 80x24
+run new-session -d -s h -n w 'exec cat'
+run set -s focus-events on
+run set-hook -g after-split-window "set -gaF @log 'after-split-window:#{pane_id}:#{hook_flag_t}:#{hook_argument_0}:#{hook}|'"
+run set-hook -g after-kill-pane "set -gaF @log 'after-kill-pane:#{pane_id}:#{hook_arguments}|'"
+run set-hook -g after-new-window "set -gaF @log 'after-new-window:#{window_index}.#{pane_index}|'"
+run set-hook -g after-select-pane "set -gaF @log 'after-select-pane:#{pane_id}|'"
+run set-hook -g window-pane-changed "set -gaF @log 'window-pane-changed:#{pane_id}:#{hook_pane}:#{hook_new_pane}:#{hook_old_pane}:#{hook_window_name}|'"
+run set-hook -g pane-exited "set -gaF @log 'pane-exited:#{hook_pane}:#{hook_exit_status}:#{hook_exit_success}|'"
+run set-hook -g pane-died "set -gaF @log 'pane-died:#{pane_id}:#{pane_dead}:#{pane_dead_status}:#{hook_exit_status}|'"
+run set-hook -g pane-focus-in "set -gaF @log 'pane-focus-in:#{pane_id}:#{hook_pane}|'"
+run set-hook -g pane-focus-out "set -gaF @log 'pane-focus-out:#{hook_pane}|'"
+run set-hook -g client-attached "set -gaF @log 'client-attached:#{session_name}:#{hook_session_name}:#{pane_id}|'"
+run show-hooks -g
+run show-hooks -g after-split-window
+# Split, select and kill: the after- hooks run at once, window-pane-changed after the list.
+run split-window -t h 'exec cat' ; set -gaF @log 'list-end|'
+run show -gv @log ; set -g @log ''
+run split-window -d -h -t h:w.0 'exec cat' ; show -gv @log ; set -g @log ''
+run select-pane -t h:w.0 ; select-pane -t h:w.0
+run show -gv @log ; set -g @log ''
+run kill-pane -t h:w.1
+run show -gv @log ; set -g @log ''
+run new-window -t h -n x 'exec cat' ; select-window -t h:w
+run show -gv @log ; set -g @log ''
+# A hook's own commands fire no hooks.
+run set-hook -g after-select-window "select-pane -t h:w.0 ; set -gaF @log 'after-select-window:#{window_index}|'"
+run select-window -t h:x ; select-window -t h:w
+run show -gv @log ; set -g @log '' ; set-hook -gu after-select-window
+# An attached client: client-attached, and focus following the active pane.
+client c1 80x24
+wait '#{!=:#{@log},}' == 1
+run show -gv @log ; set -g @log ''
+run select-pane -t h:w.1
+wait '#{!=:#{@log},}' == 1
+run show -gv @log ; set -g @log ''
+# A pane's program ends: pane-exited, or with remain-on-exit pane-died, and the pane stays.
+run split-window -d -t h:x 'sleep 0.2; exit 3'
+wait '#{m:*pane-exited*,#{@log}}' == 1
+run show -gv @log ; set -g @log ''
+run set -g remain-on-exit on ; split-window -d -t h:x 'sleep 0.2; exit 4'
+wait '#{m:*pane-died*,#{@log}}' == 1
+run show -gv @log ; set -g @log ''
+run lsp -t h:x -F '#{pane_index} #{pane_dead} #{pane_dead_status}'
+run set -g remain-on-exit failed ; split-window -d -t h:x 'sleep 0.2; exit 0'
+wait '#{m:*pane-exited*,#{@log}}' == 1
+run show -gv @log ; set -g @log ''
+# set-hook -R runs a hook now; -u and arrays.
+run set-hook -R after-kill-pane ; show -gv @log ; set -g @log ''
+run set-hook -ga after-kill-pane "set -gaF @log 'second|'" ; show-hooks -g after-kill-pane
+run set-hook -gu after-kill-pane ; show-hooks -g after-kill-pane
+run set-hook -g nonsense 'x'
+run set-hook -g after-kill-pane 'nonsense-command'
+run set-hook
+run kill-server

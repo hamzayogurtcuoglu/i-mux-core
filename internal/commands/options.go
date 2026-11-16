@@ -137,7 +137,8 @@ func setOption(it *Item) error {
 		return err
 	}
 	args := a.Strings()
-	argument := args[0]
+	// The option's name is a format too.
+	argument := it.formatSingle(st, args[0])
 	name, key, hasKey, ambiguous := options.Match(argument)
 	if name == "" {
 		if a.Has('q') {
@@ -326,19 +327,17 @@ func showPrint(it *Item, st target.State, o *options.Option, key string, hasKey,
 		return "0"
 	}
 	ctx := it.formatContext(it.clientInfoOf(it.targetClient()), st.S, st.WL, st.P)
-	ctx.Values = map[string]string{
-		"option_name":          o.Name,
-		"option_value":         value,
-		"option_value_only":    bit(a.Has('v')),
-		"option_is_parent":     bit(parent),
-		"option_is_array":      bit(o.IsArray()),
-		"option_is_string":     bit(o.IsString()),
-		"option_is_hook":       bit(o.Entry != nil && o.Entry.Flags&options.IsHook != 0),
-		"option_is_user":       bit(o.Entry == nil),
-		"option_has_value":     bit(hasValue),
-		"option_array_key":     "",
-		"option_has_array_key": "0",
-	}
+	ctx.Values["option_name"] = o.Name
+	ctx.Values["option_value"] = value
+	ctx.Values["option_value_only"] = bit(a.Has('v'))
+	ctx.Values["option_is_parent"] = bit(parent)
+	ctx.Values["option_is_array"] = bit(o.IsArray())
+	ctx.Values["option_is_string"] = bit(o.IsString())
+	ctx.Values["option_is_hook"] = bit(o.Entry != nil && o.Entry.Flags&options.IsHook != 0)
+	ctx.Values["option_is_user"] = bit(o.Entry == nil)
+	ctx.Values["option_has_value"] = bit(hasValue)
+	ctx.Values["option_array_key"] = ""
+	ctx.Values["option_has_array_key"] = "0"
 	if hasKey {
 		ctx.Values["option_array_key"] = key
 		ctx.Values["option_has_array_key"] = "1"
@@ -351,7 +350,7 @@ func showPrint(it *Item, st target.State, o *options.Option, key string, hasKey,
 func showAll(it *Item, st target.State, scope int, oo *options.Options) {
 	a := it.Cmd.Args
 	for _, o := range oo.Sorted() {
-		if o.Entry == nil {
+		if o.Entry == nil && it.Cmd.Spec.Name != "show-hooks" {
 			showPrint(it, st, o, "", false, false)
 		}
 	}
@@ -360,7 +359,13 @@ func showAll(it *Item, st target.State, scope int, oo *options.Options) {
 		if e.Scope&scope == 0 {
 			continue
 		}
-		if !a.Has('H') && e.Flags&options.IsHook != 0 {
+		// show-hooks shows only hooks; the others show them only with -H.
+		isHook := e.Flags&options.IsHook != 0
+		if it.Cmd.Spec.Name == "show-hooks" {
+			if !isHook {
+				continue
+			}
+		} else if !a.Has('H') && isHook {
 			continue
 		}
 		o := oo.GetOnly(e.Name)

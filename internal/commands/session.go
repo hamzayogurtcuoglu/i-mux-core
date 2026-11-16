@@ -149,6 +149,7 @@ func newSession(it *Item) error {
 	if !a.Has('d') {
 		it.setCurrent(sessionState(s))
 	}
+	it.afterHook("after-new-session", sessionState(s))
 	return nil
 }
 
@@ -219,6 +220,7 @@ func attachSession(it *Item) error {
 		return it.Host.SwitchClient(it.Client.Name, s)
 	}
 	it.Client.AttachTo = s
+	it.Client.AttachedHook = true
 	return nil
 }
 

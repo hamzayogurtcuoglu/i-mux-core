@@ -961,7 +961,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   binding tests drive keys through an attached client, the `imux-resize` table included.
   Commands that bindings run but that come later (menus, copy mode, …) fail until then.
 
-### [ ] C3.9 Hooks
+### [x] C3.9 Hooks
 - **Goal:** i-mux's hooks fire at the same moments, with the same context.
 - **Details:**
   - `set-hook -g` (and `-u` if C0.3 finds it).
@@ -972,6 +972,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   identical logs (order and expanded values) for scripted events: split, kill, focus change,
   pane exit, pane death with `remain-on-exit`, attach, theme report.
 - **Depends on:** C3.8.
+- **Status:** done. `commands.RunHooks` and the after- hooks port `hooks.c` and
+  `cmdq_insert_hook`; the server queues events (client, pane, window-pane-changed through the
+  model's `ActiveChanged`, pane-exited and pane-died) and runs their hooks once the current
+  event is done, dropping those fired by hooks. `set-hook` (`-a -g -p -R -u -w`) and
+  `show-hooks` work; `remain-on-exit` keeps a dead pane. `testdata/diff/hooks.txt` logs every
+  hook of the contract (split, kill, select, new window, focus, attach, pane exit and death)
+  and compares the log with tmux 3.8; the theme hooks are checked by the server's input tests
+  (the harness's terminal reports no theme).
 
 ### [ ] C3.10 run-shell and if-shell
 - **Goal:** i-mux's bindings run its commands as they do under tmux.

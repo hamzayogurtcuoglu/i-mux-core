@@ -25,6 +25,9 @@ import (
 type Tree struct {
 	// Resized is called when a pane's size changes (its program and screen are resized).
 	Resized func(p *Pane)
+	// ActiveChanged is called when a window's active pane changes to p from old (which may
+	// be gone): tmux's window_set_active_pane and window_lost_pane fire their events there.
+	ActiveChanged func(w *Window, p, old *Pane)
 	// Options are the global options, the parents of every session's, window's and pane's.
 	Options *options.Globals
 	// Keys are the key tables (tmux's key_tables), loaded with tmux's defaults when the
@@ -84,6 +87,7 @@ type Window struct {
 	ManualSx, ManualSy int
 
 	link *Winlink // windows are in one session: link-window is a non-goal
+	tree *Tree
 }
 
 // Pane is a pane: its program and screen. Mu guards Term, which the pane's reader writes.
@@ -284,7 +288,7 @@ func (t *Tree) NewWindow(s *Session, idx, base, sx, sy int) (*Winlink, error) {
 	} else if s.links[idx] != nil {
 		return nil, fmt.Errorf("%w: %d", ErrIndexInUse, idx)
 	}
-	w := &Window{ID: t.nextWindow, Sx: sx, Sy: sy, Options: options.New(t.Options.Window)}
+	w := &Window{ID: t.nextWindow, Sx: sx, Sy: sy, Options: options.New(t.Options.Window), tree: t}
 	t.nextWindow++
 	wl := &Winlink{Index: idx, Window: w, Session: s}
 	w.link = wl
@@ -353,9 +357,13 @@ func (w *Window) SetActivePane(p *Pane) {
 		w.last = append([]*Pane{w.Active}, removePane(w.last, w.Active)...)
 	}
 	w.last = removePane(w.last, p)
+	old := w.Active
 	w.Active = p
 	p.ActivePoint = nextActivePoint.Add(1)
 	p.Changed = true
+	if w.tree != nil && w.tree.ActiveChanged != nil {
+		w.tree.ActiveChanged(w, p, old)
+	}
 }
 
 // LastPane returns the previously active pane, or nil.
@@ -471,6 +479,7 @@ func (t *Tree) RemovePane(p *Pane) (windowEmpty bool) {
 	}
 	w.last = removePane(w.last, p)
 	w.ZOrder = removePane(w.ZOrder, p)
+	active := w.Active
 	if w.Active == p {
 		// tmux makes the last pane active, else the one before, else the one after.
 		switch {
@@ -489,6 +498,9 @@ func (t *Tree) RemovePane(p *Pane) (windowEmpty bool) {
 		}
 	}
 	delete(t.panes, p.ID)
+	if w.Active != nil && w.Active != active && t.ActiveChanged != nil {
+		t.ActiveChanged(w, w.Active, p)
+	}
 	return len(w.Panes) == 0
 }
 
