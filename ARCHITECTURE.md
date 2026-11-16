@@ -184,8 +184,10 @@ A per-client ticker (at most every 16 ms, and right away after input) then:
    `server` (a popup's PTY and screen, its keys, its timer), which hands `render` what to draw
    (`render.Popup`, the message lines). The drawing goes where tmux's does: `render` draws a
    popup's box and screen (`popup.c`'s draw, `screen_write_box`), `status` draws messages over
-   the status line with `format_draw`, as `status_message_redraw` does. Menus and the command
-   prompt follow the same split.
+   the status line with `format_draw`, as `status_message_redraw` does. The command prompt
+   follows the same split. A menu is the window's, as in tmux 3.8 (`w->menu`): `server` keeps it
+   by window, every client showing the window draws it over the panes and borders, in window
+   coordinates, and the keys of a client showing that window go to it (after a popup's).
 2. **Diffs** it against the last frame sent, cell by cell.
 3. **Writes** the changes with the fewest escape sequences the terminal supports (`termout`).
 4. **Wraps** the update in synchronized output (DEC mode 2026) when the terminal supports it, and
