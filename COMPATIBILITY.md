@@ -363,6 +363,30 @@ window-active-style pane-colours`. They are set with `set -g` and unset with `se
 `set-hook -g`. Each runs in the context of its event, so the formats in the hook command
 (`#{pane_id}`, `#{pane_dead_status}`) expand to that pane.
 
+Checked against tmux 3.8 in `testdata/diff/hooks.txt` (C3.9):
+
+- **When.** An `after-` hook runs right after its command, before the next one, for the same
+  client (its output is the client's). Other events queue their hooks, which run once the
+  command list (or whatever fired them) is done, in the order the events fired. Commands a
+  hook runs fire no hooks of their own.
+- **Which `after-`.** Commands marked for it in tmux's table fire `after-<command>` with
+  their target; `split-window`, `new-window`, `new-session`, `select-pane` and
+  `select-window` fire theirs with what they made or selected (`select-pane` only when the
+  active pane changes).
+- **Context.** A hook's commands run with the event's target as the current target, and see
+  `#{hook}` and `#{hook_<item>}`: `hook_pane`, `hook_window` (and `hook_window_name`),
+  `hook_session`, `hook_client`, `hook_new_pane` and `hook_old_pane` (window-pane-changed),
+  `hook_exit_status` or `hook_exit_signal` and `hook_exit_success` (pane-exited, pane-died),
+  and for an `after-` hook `hook_arguments`, `hook_argument_N` and `hook_flag_X`.
+- **Order of a pane change.** With `focus-events` on: `pane-focus-out` of the old pane,
+  `pane-focus-in` of the new, then `window-pane-changed`.
+- **Pane exits.** `pane-exited` when the pane goes; with `remain-on-exit` (`on`, or `failed`
+  and a failure) the pane stays dead and `pane-died` fires instead. The line tmux writes at a
+  dead pane's bottom comes with C3.12.
+- `client-attached` fires for `attach-session`, not for a `new-session` that attaches.
+- `set-hook` is `set-option` for hooks (`-a` adds a command, `-u` removes them); `-R` runs a
+  hook now; `show-hooks` lists them.
+
 ## 7. Keys
 
 ### Tables
