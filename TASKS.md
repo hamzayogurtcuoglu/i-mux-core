@@ -819,6 +819,13 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - COMPATIBILITY.md §2: ids, `=name`, `name:index.pane`, `=` (the mouse), and the defaults
     with and without a current client.
   - Errors use tmux's text.
+  - The current target of a command run inside a pane is that pane's session and window, as
+    tmux finds it from the client's `TMUX_PANE`, which the client passes in `Hello`.
+  - A command list keeps its current target: a session, window or pane a command makes is the
+    default of the commands after it.
+  - To build the windows and panes the targets are tested on, `new-window`, `split-window`,
+    `select-window` and `select-pane` come now without `-P`/`-F` and the flags i-mux does not
+    use; C3.6 completes them.
 - **Acceptance:** difftest over every target form, including errors.
 - **Depends on:** C3.2.
 
