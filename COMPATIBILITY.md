@@ -130,6 +130,33 @@ command or flag is used.
 | `switch-client` | `-c -t -T` | `-T table` switches key table; `-t =` the clicked session; `-t =name` |
 | `unbind-key` | `-q -T` | |
 
+### Checked against tmux 3.8 (C3.6)
+
+`testdata/diff/lists.txt`, `windows.txt` and `panes.txt` run the session, window and pane
+commands with every flag above and their errors, and `TestLayoutScenarios` replays C2.5's
+layout scenarios through the commands. What they showed:
+
+- The lists keep tmux's orders: sessions by name, windows by index, panes in window order
+  (`-O` and `-r` sort as tmux's `sort.c`); `list-windows` and `list-panes` give `#{line}` the
+  number of lines, `list-sessions` and `list-clients` the line's own number.
+- `-c` is a format, relative to the client's directory; `-n` and `-s` are formats too, and a
+  name has its control characters encoded (`rename-window` included).
+- `new-window -a` and `-b` move the windows in the way up by one; `kill-window -a` renumbers
+  the session when `renumber-windows` is on.
+- `capture-pane -p` always ends with one newline; `-S` and `-E` are formats, and a bad number
+  is the screen's edge; `-a` with no alternate screen is an error unless `-q`.
+- `resize-pane -x` and `-y` take `N%` up to 1000%; `-L -R -U -D` take their count as their
+  value, the argument, or 1.
+- `respawn-pane` without `-k` refuses a live pane (`pane s:0.1 still active`), and keeps the
+  pane's command and directory unless given new ones.
+- A window takes `pane-border-status` from its first pane, and every window follows a change.
+
+Not yet: the command client's own variables in lists (`#{client_name}` of an unattached
+client is `client-PID` in tmux, which nothing compares); `switch-client -T` (key tables,
+C3.8); `capture-pane` without `-p` (paste buffers, C4.9); `select-layout`'s named layouts and
+`-E -n -o -p`; `resize-pane -M -T`; `resize-window -a -A`; `respawn-pane -E`;
+`new-window -E -k -S`. These are not in i-mux's contract and are refused.
+
 ### Layout strings
 
 tmux 3.8's `#{window_layout}` is JSON, version 2:
