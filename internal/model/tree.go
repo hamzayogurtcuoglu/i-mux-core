@@ -177,13 +177,30 @@ func (t *Tree) RenameSession(s *Session, name string) error {
 // BestSession returns the session tmux targets when nothing says which: the one with the
 // newest activity among those with a current window and active pane; on a tie, the first by
 // name.
-func (t *Tree) BestSession() *Session {
+func (t *Tree) BestSession() *Session { return t.BestSessionFor(false) }
+
+// BestSessionFor is cmd_find_best_session: with preferUnattached (attach-session and
+// switch-client), a session no client shows comes before one that is shown.
+func (t *Tree) BestSessionFor(preferUnattached bool) *Session {
 	var best *Session
 	for _, s := range t.Sessions() {
 		if s.Current == nil || s.Current.Window.Active == nil {
 			continue
 		}
-		if best == nil || s.Activity.After(best.Activity) {
+		if best == nil {
+			best = s
+			continue
+		}
+		if preferUnattached {
+			if best.Attached != 0 && s.Attached == 0 {
+				best = s
+				continue
+			}
+			if best.Attached == 0 && s.Attached != 0 {
+				continue
+			}
+		}
+		if s.Activity.After(best.Activity) {
 			best = s
 		}
 	}

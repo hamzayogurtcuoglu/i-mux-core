@@ -741,7 +741,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   always) to the fake TUI on both engines, and every byte matches. `-M` comes with C5.3,
   `-X` with C4.8, `-K`, `-R` and `-F` later.
 
-### [ ] C2.12 Several clients, sizes, detach
+### [x] C2.12 Several clients, sizes, detach
 - **Goal:** more than one terminal on a session works like tmux.
 - **Details:**
   - `window-size` with tmux's default (`latest`), and whatever C0.3 found i-mux relies on.
@@ -759,6 +759,12 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** difftest with two headless clients at different sizes matches tmux; detach
   and exit messages match.
 - **Depends on:** C2.9.
+- **Status:** done. Windows take their size from their clients as tmux's `resize.c` does
+  (`window-size latest` by default, `largest`, `smallest` and `manual`, less the status lines),
+  following the client that attached, resized or typed last; a new session made for a client
+  takes its size. `attach-session` and `switch-client` prefer a session no client shows, as
+  tmux does. `testdata/diff/clients.txt` attaches two clients of different sizes, switches,
+  resizes, detaches and kills a session, and every screen and message matches tmux 3.8.
 
 **Gate 2:**
 - Two headless clients attach, see shell panes and detach, and every frame matches tmux.

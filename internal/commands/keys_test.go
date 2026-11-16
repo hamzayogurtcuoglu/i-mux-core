@@ -3,6 +3,7 @@ package commands
 import (
 	"slices"
 	"testing"
+	"time"
 )
 
 // send-keys: targets, key names, text, -l, -H and -N; a key with no encoding in the pane goes
@@ -58,14 +59,55 @@ func TestSetOptionExtendedKeys(t *testing.T) {
 		{[]string{"-g", "extended-keys", "always"}, ""},
 		{[]string{"extended-keys-format", "csi-u"}, ""},
 		{[]string{"-s", "extended-keys", "maybe"}, "unknown value: maybe"},
-		{[]string{"-g", "status", "off"}, "set-option status: not implemented by imux-core yet"},
+		{[]string{"-g", "status", "off"}, ""},
+		{[]string{"-g", "window-size", "largest"}, ""},
+		{[]string{"-g", "mouse", "off"}, "set-option mouse: not implemented by imux-core yet"},
 	} {
 		r := run(h, append([]string{"set-option"}, tc.args...)...)
 		if (tc.err == "") == r.Failed || (tc.err != "" && r.Stderr != tc.err+"\n") {
 			t.Errorf("%q: %+v, want %q", tc.args, r, tc.err)
 		}
 	}
-	if want := []string{"extended-keys=1", "extended-keys=2", "extended-keys-format=0"}; !slices.Equal(h.options, want) {
+	if want := []string{"extended-keys=1", "extended-keys=2", "extended-keys-format=0", "status=0", "window-size=0"}; !slices.Equal(h.options, want) {
 		t.Errorf("options %q, want %q", h.options, want)
+	}
+}
+
+// switch-client moves the client given with -c, else the most recently active one; with no
+// client attached there is no current client.
+func TestSwitchClient(t *testing.T) {
+	h := newFakeHost()
+	for _, s := range []string{"a", "b"} {
+		if r := run(h, "new-session", "-d", "-s", s, "cat"); r.Failed {
+			t.Fatalf("new-session: %+v", r)
+		}
+	}
+	if r := run(h, "switch-client", "-t", "a"); !r.Failed || r.Stderr != "no current client\n" {
+		t.Errorf("no client: %+v", r)
+	}
+	a := h.tree.SessionByName("a")
+	h.clients = []ClientInfo{
+		{Name: "/dev/pts/1", Session: a, Activity: time.Unix(1, 0)},
+		{Name: "/dev/pts/2", Session: a, Activity: time.Unix(2, 0)},
+	}
+	for _, args := range [][]string{{"-t", "b"}, {"-c", "/dev/pts/1", "-t", "=b"}, {"-c", "pts/1", "-t", "a"}} {
+		if r := run(h, append([]string{"switch-client"}, args...)...); r.Failed {
+			t.Errorf("%q: %+v", args, r)
+		}
+	}
+	if want := []string{"/dev/pts/2 b", "/dev/pts/1 b", "/dev/pts/1 a"}; !slices.Equal(h.switched, want) {
+		t.Errorf("switched %q, want %q", h.switched, want)
+	}
+	for _, tc := range []struct {
+		args []string
+		err  string
+	}{
+		{[]string{"-c", "/dev/pts/9", "-t", "a"}, "can't find client: /dev/pts/9"},
+		{[]string{"-t", "nope"}, "can't find session: nope"},
+		{[]string{"-n"}, "switch-client -n: not implemented by imux-core yet"},
+	} {
+		if r := run(h, append([]string{"switch-client"}, tc.args...)...); !r.Failed || r.Stderr != tc.err+"\n" {
+			t.Errorf("%q: %+v, want %q", tc.args, r, tc.err)
+		}
 	}
 }

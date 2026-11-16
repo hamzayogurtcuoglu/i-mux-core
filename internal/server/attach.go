@@ -77,6 +77,13 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	}
 	s.startInput(c, erase)
 	s.send(c)
+	// server_client_set_session: the client is its window's latest, sizes follow, and the
+	// session was active now (which the best session is chosen by).
+	if w := c.window(); w != nil {
+		s.latest[w] = c
+	}
+	sess.Activity = s.opts.Now()
+	s.recalculateSizes()
 	s.drawClient(c)
 	return c, nil
 }
@@ -120,6 +127,7 @@ func (s *Server) removeAttached(c *attachedClient) {
 	}
 	s.updateFocus(c.window())
 	s.updatePaneColours()
+	s.lostClient(c)
 }
 
 // sessionGone ends the clients of a session that has gone (tmux's "[exited]").
@@ -159,6 +167,8 @@ func (s *Server) serveAttached(conn net.Conn, r *ipc.Reader, c *attachedClient) 
 				s.post(func() {
 					if !c.gone {
 						c.tty.Sx, c.tty.Sy = size.Cols, size.Rows
+						s.updateLatest(c)
+						s.recalculateSizes()
 						s.invalidate(c)
 					}
 				})

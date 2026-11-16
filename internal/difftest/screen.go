@@ -25,6 +25,21 @@ type Screener interface {
 	Screen(ctx context.Context, env *Env, cols, rows int) Result
 }
 
+// Attacher is an engine whose clients can stay attached across steps (TASKS.md C2.12).
+type Attacher interface {
+	// Attach attaches a client of cols×rows, called name in the script.
+	Attach(ctx context.Context, env *Env, name string, cols, rows int) (Client, error)
+}
+
+// Client is an attached client the harness drives.
+type Client interface {
+	// Screen returns the Dump of its terminal once it has settled.
+	Screen(ctx context.Context) Result
+	// Resize resizes its terminal, as a terminal emulator does: its screen first, then the PTY.
+	Resize(cols, rows int) error
+	Close()
+}
+
 // ClientTerminfo is the terminfo directory attached clients read (TERMINFO), so that tmux and
 // i-mux-core see the same terminal everywhere; "" leaves the system's.
 var ClientTerminfo = ""
@@ -32,9 +47,19 @@ var ClientTerminfo = ""
 // SettleTime is how long a client must write nothing before its screen is taken.
 var SettleTime = 100 * time.Millisecond
 
-// Screen implements Screener: the program attaches in a PTY, and is killed once its screen is
-// taken.
-func (b *Binary) Screen(ctx context.Context, env *Env, cols, rows int) Result {
+// headless is a client in a PTY whose output is fed to an emulator.
+type headless struct {
+	p     pty.Proc
+	mu    sync.Mutex
+	out   []byte
+	last  time.Time
+	ended bool
+	term  *vt.Terminal
+	fed   int
+}
+
+// Attach implements Attacher: the program runs attach-session in a PTY the harness owns.
+func (b *Binary) Attach(_ context.Context, env *Env, _ string, cols, rows int) (Client, error) {
 	argv := []string{filepath.Base(b.Path), "-S", env.Socket}
 	if env.Config != "" {
 		argv = append(argv, "-f", env.Config)
@@ -46,62 +71,106 @@ func (b *Binary) Screen(ctx context.Context, env *Env, cols, rows int) Result {
 	}
 	p, err := pty.New().Start(pty.Spec{Path: b.Path, Argv: argv, Env: vars, Dir: env.Dir, Cols: cols, Rows: rows})
 	if err != nil {
-		return Result{Code: -1, Stderr: "difftest: attach: " + err.Error()}
+		return nil, err
 	}
-	defer func() {
-		_ = p.Kill()
-		_, _ = p.Wait()
-		_ = p.Close()
-	}()
-	var (
-		mu    sync.Mutex
-		out   []byte
-		last  time.Time
-		ended bool
-	)
+	h := &headless{p: p, term: vt.NewTerminal(cols, rows, 0)}
 	go func() {
 		buf := make([]byte, 32<<10)
 		for {
 			n, err := p.Read(buf)
-			mu.Lock()
+			h.mu.Lock()
 			if n > 0 {
-				out = append(out, buf[:n]...)
-				last = time.Now()
+				h.out = append(h.out, buf[:n]...)
+				h.last = time.Now()
 			}
 			if err != nil {
-				ended = true
+				h.ended = true
 			}
-			mu.Unlock()
+			h.mu.Unlock()
 			if err != nil {
 				return
 			}
 		}
 	}()
-	term := vt.NewTerminal(cols, rows, 0)
-	fed := 0
-	deadline := time.Now().Add(WaitTimeout)
+	return h, nil
+}
+
+// feed gives the emulator what the client wrote since.
+func (h *headless) feed() {
+	_, _ = h.term.Write(h.out[h.fed:])
+	h.fed = len(h.out)
+}
+
+// Screen implements Client: once nothing has been written for SettleTime, counted from the
+// step's start too so that a change still on its way is waited for, and no synchronized
+// update is pending.
+func (h *headless) Screen(ctx context.Context) Result {
+	start := time.Now()
+	deadline := start.Add(WaitTimeout)
 	for {
-		mu.Lock()
-		_, _ = term.Write(out[fed:])
-		fed = len(out)
-		quiet := fed > 0 && time.Since(last) >= SettleTime
-		done := ended
-		mu.Unlock()
-		// Settled: nothing written for a while, and no synchronized update pending.
-		if (quiet || done) && term.Screen.Mode&vt.ModeSync == 0 {
-			return Result{Stdout: renderfixture.Dump(term)}
+		h.mu.Lock()
+		h.feed()
+		since := h.last
+		if since.Before(start) {
+			since = start
+		}
+		quiet := h.fed > 0 && time.Since(since) >= SettleTime
+		done := h.ended && time.Since(start) >= SettleTime
+		h.mu.Unlock()
+		if (quiet || done) && h.term.Screen.Mode&vt.ModeSync == 0 {
+			return Result{Stdout: renderfixture.Dump(h.term)}
 		}
 		if time.Now().After(deadline) || ctx.Err() != nil {
-			return Result{Stdout: renderfixture.Dump(term), Stderr: "difftest: the client did not settle"}
+			return Result{Stdout: renderfixture.Dump(h.term), Stderr: "difftest: the client did not settle"}
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+// Resize implements Client.
+func (h *headless) Resize(cols, rows int) error {
+	h.mu.Lock()
+	h.feed()
+	h.term.Resize(cols, rows)
+	h.mu.Unlock()
+	return h.p.Resize(cols, rows)
+}
+
+// Close implements Client: the client is killed.
+func (h *headless) Close() {
+	_ = h.p.Kill()
+	_, _ = h.p.Wait()
+	_ = h.p.Close()
+}
+
+// Screen implements Screener: a client attaches, and is killed once its screen is taken.
+func (b *Binary) Screen(ctx context.Context, env *Env, cols, rows int) Result {
+	c, err := b.Attach(ctx, env, "", cols, rows)
+	if err != nil {
+		return Result{Code: -1, Stderr: "difftest: attach: " + err.Error()}
+	}
+	defer c.Close()
+	return c.Screen(ctx)
 }
 
 // Screen implements Screener for a stub: it answers the step's words, "screen" and "WxH".
 func (f *Func) Screen(_ context.Context, _ *Env, cols, rows int) Result {
 	return f.Fn(screenArgs(cols, rows))
 }
+
+// Attach implements Attacher for a stub: its clients answer "screen NAME".
+func (f *Func) Attach(_ context.Context, _ *Env, name string, _, _ int) (Client, error) {
+	return &funcClient{f: f, name: name}, nil
+}
+
+type funcClient struct {
+	f    *Func
+	name string
+}
+
+func (c *funcClient) Screen(context.Context) Result { return c.f.Fn([]string{"screen", c.name}) }
+func (c *funcClient) Resize(int, int) error         { return nil }
+func (c *funcClient) Close()                        {}
 
 func screenArgs(cols, rows int) []string {
 	return []string{"screen", strconv.Itoa(cols) + "x" + strconv.Itoa(rows)}

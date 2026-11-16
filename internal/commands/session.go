@@ -21,8 +21,14 @@ import (
 // the best session; "$id"; "=name" exactly; else a name exactly, then a unique prefix of one,
 // then a unique fnmatch pattern. A window or pane part after ':' is ignored.
 func findSession(t *model.Tree, target string, given bool) (*model.Session, error) {
+	return findSessionFor(t, target, given, false)
+}
+
+// findSessionFor is findSession, with no target preferring a session no client shows
+// (tmux's CMD_FIND_PREFER_UNATTACHED, for attach-session and switch-client).
+func findSessionFor(t *model.Tree, target string, given, preferUnattached bool) (*model.Session, error) {
 	if !given {
-		if s := t.BestSession(); s != nil {
+		if s := t.BestSessionFor(preferUnattached); s != nil {
 			return s, nil
 		}
 		return nil, errors.New("no current target")
@@ -127,6 +133,14 @@ func newSession(it *Item) error {
 	if err != nil {
 		return err
 	}
+	// A session made for a client to attach takes the client's size, less a status line.
+	if attach && it.Client.Cols > 0 && it.Client.Rows > 0 {
+		sx, sy = it.Client.Cols, it.Client.Rows
+		if sy > 0 && it.Host.StatusLines() != 0 {
+			sy--
+		}
+		sx, sy = max(sx, 1), max(sy, 1)
+	}
 	cwd, ok := a.Get('c')
 	if !ok {
 		cwd = it.clientCwd()
@@ -190,7 +204,8 @@ func attachSession(it *Item) error {
 	if it.Client.Env["TMUX"] != "" && it.Client.TTY {
 		return errors.New("sessions should be nested with care, unset $TMUX to force")
 	}
-	s, err := targetSession(it)
+	target, given := a.Get('t')
+	s, err := findSessionFor(t, target, given, true)
 	if err != nil {
 		return err
 	}
@@ -220,7 +235,7 @@ func detachClient(it *Item) error {
 	// The target client is found first, as tmux does for commands with CMD_CLIENT_TFLAG;
 	// -s's session may be missing (CMD_FIND_CANFAIL).
 	clients := it.Host.Clients()
-	target, err := findClient(clients, a)
+	target, err := findClient(clients, a, 't')
 	if err != nil {
 		return err
 	}
@@ -254,8 +269,8 @@ func mustGet(a *Args, f byte) string {
 }
 
 // findClient resolves -t as a client: its name, or without -t the most recently active one.
-func findClient(clients []ClientInfo, a *Args) (ClientInfo, error) {
-	name, given := a.Get('t')
+func findClient(clients []ClientInfo, a *Args, flag byte) (ClientInfo, error) {
+	name, given := a.Get(flag)
 	if !given {
 		var best ClientInfo
 		for _, c := range clients {

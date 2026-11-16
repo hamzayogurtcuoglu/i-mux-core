@@ -1,0 +1,29 @@
+# Several clients (C2.12): a window takes the size of the client that used it last, and the
+# other client shows the part of it that fits, or the window and what is outside it;
+# switch-client moves a client; detach and the end of a session give tmux's messages.
+conf screen.conf
+size 40x10
+run new-session -d -s a 'printf "pane a\n"; exec cat'
+run new-session -d -s b 'printf "pane b\n"; exec cat'
+# attach-session prefers a session no client shows: one gets b (the most recent), two gets a.
+client one 40x10
+client two 60x14
+screen one
+screen two
+# Without -c, switch-client moves the most recently active client: two, to b, whose window
+# takes two's size as its latest client.
+run switch-client -t b
+screen one
+screen two
+# A resize makes one the latest again.
+resize one 30x8
+screen one
+screen two
+# Without -t, detach-client detaches the most recently active client: two.
+run detach-client
+screen two
+screen one
+# The end of a session ends its clients.
+run kill-session -t b
+screen one
+run has-session -t a

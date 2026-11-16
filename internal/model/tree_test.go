@@ -257,3 +257,20 @@ func TestZOrder(t *testing.T) {
 		t.Errorf("after a pane went: z order %v", ids())
 	}
 }
+
+// The best session is the most recently active; attach-session and switch-client prefer one no
+// client shows (cmd_find_best_session).
+func TestBestSessionFor(t *testing.T) {
+	tr := NewTree()
+	a := mustSession(t, tr, "a", t0)
+	mustWindow(t, tr, a, 0)
+	b := mustSession(t, tr, "b", t0.Add(time.Second))
+	mustWindow(t, tr, b, 0)
+	if tr.BestSession() != b || tr.BestSessionFor(true) != b {
+		t.Fatal("the most recent session")
+	}
+	b.Attached = 1
+	if tr.BestSession() != b || tr.BestSessionFor(true) != a {
+		t.Errorf("an attached session: best %s, preferring unattached %s", tr.BestSession().Name, tr.BestSessionFor(true).Name)
+	}
+}

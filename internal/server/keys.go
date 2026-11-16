@@ -29,7 +29,8 @@ func (s *Server) PaneKey(p *model.Pane, k keys.Key) bool {
 }
 
 // SetServerOption implements commands.Host for the options it knows: extended-keys (which a
-// pane's request for extended keys is checked against) and extended-keys-format.
+// pane's request for extended keys is checked against), extended-keys-format, and status and
+// window-size, which windows' sizes follow.
 func (s *Server) SetServerOption(name string, choice int) {
 	switch name {
 	case "extended-keys":
@@ -43,5 +44,17 @@ func (s *Server) SetServerOption(name string, choice int) {
 		}
 	case "extended-keys-format":
 		s.extendedFormat = keys.ExtendedFormat(choice)
+	case "status":
+		s.statusLines = choice
+		s.recalculateSizes()
+		for _, c := range s.attached {
+			s.invalidate(c)
+		}
+	case "window-size":
+		s.windowSize = choice
+		s.recalculateSizes()
 	}
 }
+
+// StatusLines implements commands.Host.
+func (s *Server) StatusLines() int { return s.statusLines }

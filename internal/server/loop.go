@@ -57,6 +57,10 @@ type Server struct {
 	// Server options set so far (the option table comes with task C3.4).
 	extendedKeys   vt.ExtendedKeysOption
 	extendedFormat keys.ExtendedFormat
+	statusLines    int // the status option: 0 off, 1 on, 2 to 5 lines
+	windowSize     int // window-size
+
+	latest map[*model.Window]*attachedClient // the client that used each window last
 
 	clients  int               // connected clients (in the loop)
 	attached []*attachedClient // the attached ones, in the order they attached
@@ -106,6 +110,9 @@ func New(o Options) *Server {
 		conns:  map[net.Conn]struct{}{},
 
 		extendedFormat: keys.FormatXterm,
+		statusLines:    1,
+		windowSize:     windowSizeLatest,
+		latest:         map[*model.Window]*attachedClient{},
 	}
 	s.tree.Resized = s.paneResized
 	return s

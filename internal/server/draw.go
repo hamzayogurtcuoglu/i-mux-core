@@ -36,7 +36,8 @@ func (s *Server) view(c *attachedClient) *render.View {
 	if wl := c.session.Current; wl != nil {
 		v.Window = wl.Window
 	}
-	// The status line is reserved and drawn with task C4.2; until then panes take its line.
+	// The status lines are left out of the window; what they show comes with task C4.2.
+	v.StatusLines = s.statusLineSize(c)
 	return v
 }
 

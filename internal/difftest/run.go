@@ -106,6 +106,12 @@ func Execute(ctx context.Context, script *Script, eng Engine) (*Transcript, erro
 		return r
 	}
 	width, height := 80, 24
+	clients := map[string]Client{}
+	defer func() {
+		for _, c := range clients {
+			c.Close()
+		}
+	}()
 	for _, st := range script.Steps {
 		switch st.Kind {
 		case "conf":
@@ -131,7 +137,28 @@ func Execute(ctx context.Context, script *Script, eng Engine) (*Transcript, erro
 		case "capture":
 			args := []string{"capture-pane", "-p", "-e", "-t", st.Args[0]}
 			tr.Entries = append(tr.Entries, Entry{Step: st, Args: args, Result: normalize(eng.Run(ctx, env, args))})
+		case "client":
+			at, ok := eng.(Attacher)
+			if !ok {
+				return nil, fmt.Errorf("%s:%d: engine %s cannot attach a client", script.Path, st.Line, eng.Name())
+			}
+			cols, rows := parseSize(st.Args[1])
+			c, err := at.Attach(ctx, env, st.Args[0], cols, rows)
+			if err != nil {
+				return nil, fmt.Errorf("%s:%d: %w", script.Path, st.Line, err)
+			}
+			clients[st.Args[0]] = c
+		case "resize":
+			cols, rows := parseSize(st.Args[1])
+			if err := clients[st.Args[0]].Resize(cols, rows); err != nil {
+				return nil, fmt.Errorf("%s:%d: %w", script.Path, st.Line, err)
+			}
 		case "screen":
+			if c, ok := clients[st.Args[0]]; ok {
+				r := normalize(c.Screen(ctx))
+				tr.Entries = append(tr.Entries, Entry{Step: st, Args: []string{"screen", st.Args[0]}, Result: r})
+				break
+			}
 			cols, rows := parseSize(st.Args[0])
 			sc, ok := eng.(Screener)
 			if !ok {

@@ -110,7 +110,10 @@ func (s *Server) handle(c net.Conn) {
 	}
 	_ = c.SetReadDeadline(time.Time{})
 
-	client := &commands.Client{Cwd: hello.Cwd, Env: hello.Env, TTY: hello.StdinTTY, Name: hello.TTYName}
+	client := &commands.Client{
+		Cwd: hello.Cwd, Env: hello.Env, TTY: hello.StdinTTY, Name: hello.TTYName,
+		Cols: hello.Size.Cols, Rows: hello.Size.Rows,
+	}
 	var res commands.Result
 	var att *attachedClient
 	queue := ipc.NewQueue(0, 0)

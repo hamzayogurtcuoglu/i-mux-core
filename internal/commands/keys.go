@@ -131,6 +131,8 @@ func textKeys(s string) []keys.Key {
 var serverOptions = map[string][]string{
 	"extended-keys":        {"off", "on", "always"},
 	"extended-keys-format": {"csi-u", "xterm"},
+	"status":               {"off", "on", "2", "3", "4", "5"},
+	"window-size":          {"largest", "smallest", "manual", "latest"},
 }
 
 // setOption is set-option for the server options in serverOptions.
@@ -156,4 +158,27 @@ func setOption(it *Item) error {
 		}
 	}
 	return fmt.Errorf("unknown value: %s", args[1])
+}
+
+// switchClient is switch-client -t: the client (-c, else the most recently active) shows the
+// session. A window or pane in the target comes with task C3.3.
+func switchClient(it *Item) error {
+	a := it.Cmd.Args
+	for _, f := range []byte("EFlnOprTZ") {
+		if a.Has(f) {
+			return fmt.Errorf("switch-client -%c: not implemented by imux-core yet", f)
+		}
+	}
+	c, err := findClient(it.Host.Clients(), a, 'c')
+	if err != nil {
+		return err
+	}
+	target, given := a.Get('t')
+	// A session target prefers a session no client shows, as in tmux.
+	session := !strings.ContainsAny(target, ":.%") && target != "="
+	s, err := findSessionFor(it.Host.Tree(), target, given, session)
+	if err != nil {
+		return err
+	}
+	return it.Host.SwitchClient(c.Name, s)
 }

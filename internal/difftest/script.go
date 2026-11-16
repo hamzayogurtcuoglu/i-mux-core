@@ -22,6 +22,9 @@ import (
 //	capture <pane>               compare capture-pane -p -e of a pane
 //	screen WxH                   attach a client of WxH in a PTY and compare what its terminal
 //	                             shows once it has settled (screen.go)
+//	client NAME WxH              attach a client of WxH that stays attached
+//	resize NAME WxH              resize that client's terminal
+//	screen NAME                  compare what that client's terminal shows
 //
 // Words are split as a POSIX shell does: '…' is literal, "…" takes \" \\ \$ and \` escapes, and
 // \ escapes one character outside quotes. A lone ; is a word, as on tmux's command line.
@@ -33,7 +36,7 @@ type Script struct {
 // Step is one line of a script.
 type Step struct {
 	Line int
-	Kind string   // "run", "conf", "size", "normalize", "skip-if-engine", "wait", "capture", "screen"
+	Kind string   // "run", "conf", "size", "normalize", "skip-if-engine", "wait", "capture", "screen", "client", "resize"
 	Args []string // the words after the kind
 	Text string   // the line as written, for messages
 }
@@ -52,6 +55,7 @@ func ParseScript(path string) (*Script, error) {
 	sc.Buffer(make([]byte, 64<<10), 1<<20)
 	n := 0
 	ran := false
+	clients := map[string]bool{}
 	for sc.Scan() {
 		n++
 		line := strings.TrimSpace(sc.Text())
@@ -79,9 +83,25 @@ func ParseScript(path string) (*Script, error) {
 			if ran {
 				return nil, bad("must come before the first run")
 			}
-		case "size", "screen":
+		case "size":
 			if len(st.Args) != 1 || !reSize.MatchString(st.Args[0]) {
 				return nil, bad("want WxH")
+			}
+		case "screen":
+			if len(st.Args) != 1 {
+				return nil, bad("want WxH or a client")
+			}
+			if !reSize.MatchString(st.Args[0]) && !clients[st.Args[0]] {
+				return nil, bad("no client %s", st.Args[0])
+			}
+		case "client", "resize":
+			if len(st.Args) != 2 || !reSize.MatchString(st.Args[1]) {
+				return nil, bad("want a name and WxH")
+			}
+			if st.Kind == "client" {
+				clients[st.Args[0]] = true
+			} else if !clients[st.Args[0]] {
+				return nil, bad("no client %s", st.Args[0])
 			}
 		case "normalize":
 			if len(st.Args) != 2 {

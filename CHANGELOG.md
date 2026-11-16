@@ -72,3 +72,6 @@ All notable changes to i-mux-core are listed here. The format follows
   extended keys in both formats); `send-keys` with key names, text, `-l`, `-H` and `-N`;
   `set-option` for `extended-keys` and `extended-keys-format`; keys typed in an attached client
   reach its active pane.
+- Several clients: windows sized by `window-size` (tmux's `latest` by default) less the status
+  lines, `switch-client -t`, sessions for attaching preferring unattached ones as tmux does, and
+  difftest clients that stay attached (`client`, `resize`, `screen NAME`).

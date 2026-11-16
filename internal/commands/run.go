@@ -34,6 +34,10 @@ type Host interface {
 	PaneKey(p *model.Pane, k keys.Key) bool
 	// SetServerOption sets a server option to the index of its choice.
 	SetServerOption(name string, choice int)
+	// StatusLines is the status option: how many lines the status takes.
+	StatusLines() int
+	// SwitchClient makes an attached client show another session.
+	SwitchClient(name string, s *model.Session) error
 }
 
 // ClientInfo is an attached client, as the commands see it.
@@ -49,6 +53,8 @@ type Client struct {
 	Env  map[string]string
 	TTY  bool   // its stdin is a terminal
 	Name string // its terminal's path (#{client_name})
+	// Cols and Rows are its terminal's size, when it has one.
+	Cols, Rows int
 	// AttachTo is set by attach-session and new-session: the client attaches to it once its
 	// commands are done.
 	AttachTo *model.Session
@@ -79,6 +85,7 @@ var implemented = map[string]execFunc{
 	"detach-client":  detachClient,
 	"send-keys":      sendKeys,
 	"set-option":     setOption,
+	"switch-client":  switchClient,
 }
 
 // Result is what a command list gave: its output, its errors and whether it failed.

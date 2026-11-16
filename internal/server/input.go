@@ -157,8 +157,13 @@ func (s *Server) inputKey(c *attachedClient, ev *input.Event) {
 		c.in.focused = true
 		s.fire("client-focus-in", c.name)
 		s.updateFocus(c.window())
+		s.updateLatest(c)
 		return
 	}
+	// A key makes the client its window's latest and its session active
+	// (server_client_key_callback).
+	c.session.Activity = c.activity
+	s.updateLatest(c)
 	w := c.window()
 	if w == nil {
 		return

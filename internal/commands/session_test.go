@@ -25,6 +25,7 @@ type fakeHost struct {
 	detached []string
 	sent     []string // PaneKey: "%id key"
 	options  []string // SetServerOption: "name=choice"
+	switched []string // SwitchClient: "client session"
 }
 
 func newFakeHost() *fakeHost { return &fakeHost{tree: model.NewTree()} }
@@ -45,6 +46,12 @@ func (h *fakeHost) Detach(name string)    { h.detached = append(h.detached, name
 func (h *fakeHost) PaneKey(p *model.Pane, k keys.Key) bool {
 	h.sent = append(h.sent, fmt.Sprintf("%%%d %s", p.ID, k))
 	return k != keys.Parse("C-BSpace")
+}
+
+func (h *fakeHost) StatusLines() int { return 1 }
+func (h *fakeHost) SwitchClient(name string, s *model.Session) error {
+	h.switched = append(h.switched, name+" "+s.Name)
+	return nil
 }
 
 func (h *fakeHost) SetServerOption(name string, choice int) {
