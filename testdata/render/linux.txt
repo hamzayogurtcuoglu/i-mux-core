@@ -1,0 +1,5 @@
+# Two panes on the Linux console.
+term linux
+size 40x10
+pane colours.in
+split -h right.in

@@ -15,6 +15,12 @@
 
 package vt
 
+import (
+	"strconv"
+	"strings"
+	"sync/atomic"
+)
+
 // The hyperlink table, ported from tmux 3.8's hyperlinks.c. tmux limits hyperlinks across the
 // whole server; here the limit is per screen.
 
@@ -32,8 +38,13 @@ type hyperlinkKey struct {
 type hyperlinkEntry struct {
 	inner      uint32
 	internalID string
+	externalID string
 	uri        string
 }
+
+// nextExternalID numbers hyperlinks across the whole process, as tmux numbers them across its
+// server: the id a client terminal is sent is "tmux" and the number in hexadecimal.
+var nextExternalID atomic.Int64
 
 // Hyperlinks stores a screen's OSC 8 hyperlinks, mapping per-cell integer link
 // IDs to (URI, id) pairs with FIFO eviction at MaxHyperlinks.
@@ -78,6 +89,7 @@ func (hl *Hyperlinks) Put(uriIn, internalIDIn string) uint32 {
 	hlu := &hyperlinkEntry{
 		inner:      hl.nextInner,
 		internalID: internalID,
+		externalID: "tmux" + strings.ToUpper(strconv.FormatInt(nextExternalID.Add(1), 16)),
 		uri:        uri,
 	}
 	hl.nextInner++
@@ -108,4 +120,17 @@ func (hl *Hyperlinks) Get(inner uint32) (uri, internalID string, ok bool) {
 		return "", "", false
 	}
 	return hlu.uri, hlu.internalID, true
+}
+
+// External looks up a cell link ID and returns its escaped URI and the id a client terminal is
+// sent for it (tmux's external id: unique across the server, given to every link, named or not).
+func (hl *Hyperlinks) External(inner uint32) (uri, externalID string, ok bool) {
+	if hl == nil || inner == 0 {
+		return "", "", false
+	}
+	hlu, ok := hl.byInner[inner]
+	if !ok {
+		return "", "", false
+	}
+	return hlu.uri, hlu.externalID, true
 }

@@ -44,6 +44,11 @@ type TTY struct {
 	cstyle                         vt.CursorStyle
 	ccolour                        vt.Color // the cursor colour sent, or -1
 	haveDA, haveDA2, haveXDA, sync bool
+
+	cell     vt.Cell // the attributes the terminal has (tmux's tty->cell)
+	lastCell vt.Cell // the last cell Attributes was given, after fitting (tty->last_cell)
+	syncing  bool    // inside SyncStart and SyncEnd
+	links    LinkLookup
 }
 
 // unknown stands for tmux's UINT_MAX: a position or region the terminal has not been told.
@@ -54,6 +59,7 @@ func NewTTY(term *Term, sx, sy int) *TTY {
 	return &TTY{
 		Term: term, Sx: sx, Sy: sy, ClearOnAttach: true, ccolour: -1,
 		cx: unknown, cy: unknown, rupper: unknown, rlower: unknown, rleft: unknown, rright: unknown,
+		cell: vt.DefaultCell, lastCell: vt.DefaultCell,
 	}
 }
 
@@ -213,6 +219,7 @@ func (t *TTY) Stop(rows int) {
 // Invalidate forgets what the terminal shows and resets it to a known state (tmux's
 // tty_invalidate).
 func (t *TTY) Invalidate() {
+	t.cell, t.lastCell = vt.DefaultCell, vt.DefaultCell
 	t.cx, t.cy = unknown, unknown
 	t.rupper, t.rleft, t.rlower, t.rright = unknown, unknown, unknown, unknown
 	if !t.started {

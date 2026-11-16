@@ -60,6 +60,10 @@ type Window struct {
 	Panes  []*Pane
 	Active *Pane
 	last   []*Pane
+	// ZOrder is the panes in tmux's z_index order: tiled panes are added at the end and keep
+	// their place, swap-pane exchanges two places. Drawing goes from the end to the start, so
+	// a border between panes belongs to the one nearest the start.
+	ZOrder []*Pane
 
 	Layout *layout.Layout // made with the first pane
 
@@ -260,6 +264,7 @@ func (t *Tree) NewPane(w *Window, at *Pane, before bool, sx, sy int) *Pane {
 	w.Panes = append(w.Panes, nil)
 	copy(w.Panes[i+1:], w.Panes[i:])
 	w.Panes[i] = p
+	w.ZOrder = append(w.ZOrder, p)
 	if w.Active == nil {
 		w.Active = p
 	}
@@ -356,6 +361,7 @@ func (t *Tree) RemovePane(p *Pane) (windowEmpty bool) {
 		w.Panes = append(w.Panes[:i], w.Panes[i+1:]...)
 	}
 	w.last = removePane(w.last, p)
+	w.ZOrder = removePane(w.ZOrder, p)
 	if w.Active == p {
 		// tmux makes the last pane active, else the one before, else the one after.
 		switch {

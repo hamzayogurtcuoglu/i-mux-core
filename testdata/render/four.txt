@@ -1,0 +1,8 @@
+# Four panes in a grid, the first active: borders cross.
+term tmux-256color
+size 61x17
+pane fill.in
+split -h -l 30 left.in
+split -t %0 -l 8 right.in
+split -t %1 -l 8 top.in
+select %0

@@ -244,7 +244,11 @@ func (s *Server) read(p *model.Pane, st *paneState) {
 			if !st.pending.Swap(true) {
 				s.post(func() {
 					st.pending.Store(false)
-					if s.opts.PaneChanged != nil && s.panes[p] == st {
+					if s.panes[p] != st {
+						return
+					}
+					s.paneChanged(p)
+					if s.opts.PaneChanged != nil {
 						s.opts.PaneChanged(p)
 					}
 				})
@@ -300,6 +304,7 @@ func (s *Server) RemovePane(p *model.Pane) {
 			s.sessionGone(sess)
 		}
 	}
+	s.redrawAll()
 	s.checkExit()
 }
 

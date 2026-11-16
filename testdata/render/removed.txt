@@ -1,0 +1,5 @@
+# A terminal without AX (sgr0 resets colours), smcup or the 256 colours (88 instead).
+term removed
+size 50x12
+pane colours.in
+split -h right.in

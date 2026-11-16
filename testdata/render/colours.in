@@ -1,0 +1,10 @@
+plain text
+[1;31mbold red[0m [32mgreen[0m [44;33myellow on blue[0m
+[4munder[0m [7mreverse[0m [3mitalic[0m [9mstrike[0m
+[38;5;208m256 orange[0m [48;5;22m256 bg[0m [38;5;250mgrey[0m
+[38;2;10;200;30mrgb green[0m [48;2;200;20;20mrgb red bg[0m
+[91mbright red[0m [1;34mbold blue[0m [2mdim[0m
+wide: 日本語 end
+[43m  [0m	|tab
+[42m[Kfilled line[0m
+]8;;https://example.com/x\link]8;;\ after

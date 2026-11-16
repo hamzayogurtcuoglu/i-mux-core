@@ -1,0 +1,7 @@
+# Three panes: a split, then the right pane split again; borders meet in a tee.
+term xterm-256color
+size 60x16
+pane left.in
+split -h right.in
+split -t %1 top.in
+select %2

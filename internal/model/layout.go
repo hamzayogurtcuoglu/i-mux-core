@@ -73,6 +73,7 @@ func (t *Tree) SplitPane(target *Pane, o SplitOptions) (*Pane, error) {
 	w.Panes = append(w.Panes, nil)
 	copy(w.Panes[i+1:], w.Panes[i:])
 	w.Panes[i] = p
+	w.ZOrder = append(w.ZOrder, p)
 	t.panes[p.ID] = p
 	if g, ok := w.Layout.PaneGeometry(id); ok {
 		p.Xoff, p.Yoff, p.Sx, p.Sy = g.Xoff, g.Yoff, g.Sx, g.Sy
@@ -202,6 +203,11 @@ func (t *Tree) SwapPanes(src, dst *Pane, detached bool) {
 	// The panes' places in their windows' lists.
 	si, di := sw.PaneIndex(src), dw.PaneIndex(dst)
 	sw.Panes[si], dw.Panes[di] = dst, src
+	// And in their windows' z orders (tmux's TAILQ_REPLACE and insert in cmd-swap-pane.c).
+	zs, zd := zIndex(sw, src), zIndex(dw, dst)
+	if zs >= 0 && zd >= 0 {
+		sw.ZOrder[zs], dw.ZOrder[zd] = dst, src
+	}
 	src.Window, dst.Window = dw, sw
 	// Their cells.
 	if sw == dw {
@@ -293,3 +299,13 @@ func (w *Window) LayoutString(visible, v1 bool, base int) string {
 
 // Zoomed reports whether a pane of the window is zoomed.
 func (w *Window) Zoomed() bool { return w.Layout != nil && w.Layout.Zoomed() >= 0 }
+
+// zIndex is p's place in w's z order, or -1.
+func zIndex(w *Window, p *Pane) int {
+	for i, q := range w.ZOrder {
+		if q == p {
+			return i
+		}
+	}
+	return -1
+}

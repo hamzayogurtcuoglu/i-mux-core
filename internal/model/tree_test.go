@@ -211,3 +211,49 @@ func TestBestSession(t *testing.T) {
 	}
 	_ = empty
 }
+
+// The z order (tmux's z_index): panes are added at its end whatever their place in the window,
+// swap-pane exchanges two places, and a pane that goes leaves it.
+func TestZOrder(t *testing.T) {
+	tr := NewTree()
+	s := mustSession(t, tr, "a", t0)
+	w := mustWindow(t, tr, s, 0).Window
+	p0 := w.Panes[0]
+	p1, err := tr.SplitPane(p0, SplitOptions{Horizontal: true, Size: -1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p2, err := tr.SplitPane(p0, SplitOptions{Before: true, Size: -1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := func() []int {
+		var out []int
+		for _, p := range w.ZOrder {
+			out = append(out, p.ID)
+		}
+		return out
+	}
+	eq := func(a []int, b ...int) bool {
+		if len(a) != len(b) {
+			return false
+		}
+		for i := range a {
+			if a[i] != b[i] {
+				return false
+			}
+		}
+		return true
+	}
+	if w.Panes[0] != p2 || !eq(ids(), 0, 1, 2) {
+		t.Fatalf("after splits: panes %v, z order %v", w.Panes, ids())
+	}
+	tr.SwapPanes(p0, p2, true)
+	if !eq(ids(), 2, 1, 0) {
+		t.Errorf("after swap-pane: z order %v", ids())
+	}
+	tr.RemovePane(p1)
+	if !eq(ids(), 2, 0) {
+		t.Errorf("after a pane went: z order %v", ids())
+	}
+}

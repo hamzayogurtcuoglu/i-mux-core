@@ -1,0 +1,6 @@
+# Two panes side by side, the right one active: the border's top half is the left pane's.
+term xterm-256color
+size 40x10
+pane left.in
+split -h right.in
+select %1

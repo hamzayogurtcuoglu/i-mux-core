@@ -1,0 +1,7 @@
+# A window larger than the client: the part around the active pane's cursor is shown.
+term xterm-256color
+size 30x8
+window 50x20
+pane cursor.in
+split -h right.in
+select %0

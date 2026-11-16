@@ -17,9 +17,10 @@ import (
 )
 
 // An attach and detach cycle in a PTY (TASKS.md C2.7): the client's terminal gets tmux's
-// start sequence and queries, then tmux's stop sequence and the detach message, exactly as
-// tmux 3.8 sent them for the same terminal (testdata/term/xterm-256color.json, recorded by
-// cmd/termfixture); every mode and the termios settings are back as they were.
+// start sequence and queries, then the first frame (C2.8), then tmux's stop sequence and the
+// detach message, the sequences exactly as tmux 3.8 sent them for the same terminal
+// (testdata/term/xterm-256color.json, recorded by cmd/termfixture); every mode and the termios
+// settings are back as they were.
 
 type output struct {
 	mu sync.Mutex
@@ -75,18 +76,28 @@ func TestAttachDetach(t *testing.T) {
 			}
 		}
 	}()
-	w.eventually("the start sequence", func() bool { return strings.HasSuffix(out.String(), "\033]11;?\033\\") })
-	if got := out.String(); got != rec.Enter {
+	// The first frame ends by showing the cursor again.
+	w.eventually("the first frame", func() bool {
+		o := out.String()
+		return len(o) > len(rec.Enter) && strings.Contains(o[len(rec.Enter):], "\033[?25h")
+	})
+	if got := out.String(); !strings.HasPrefix(got, rec.Enter) {
 		t.Fatalf("attach:\ntmux:      %q\nimux-core: %q", rec.Enter, got)
 	}
+	frame := strings.TrimPrefix(out.String(), rec.Enter)
 	w.must("detach-client")
 	w.eventually("the detach message", func() bool { return strings.Contains(out.String(), "]\r\n") })
 	if st, err := p.Wait(); err != nil || st.Code != 0 {
 		t.Errorf("client exit %+v %v", st, err)
 	}
-	want := rec.Enter + rec.Leave + "[detached (from session a)]\r\n"
-	if got := out.String(); got != want {
-		t.Errorf("attach and detach:\nwant:      %q\nimux-core: %q", want, got)
+	if want, got := rec.Leave+"[detached (from session a)]\r\n", out.String(); !strings.HasSuffix(got, want) {
+		t.Errorf("detach:\nwant:      %q\nimux-core: %q", want, got)
+	}
+	// The frame shows the pane, empty, with the cursor at its start.
+	screen := vt.NewTerminal(80, 24, 0)
+	_, _ = screen.Write([]byte(rec.Enter + frame))
+	if got := strings.TrimRight(screen.Screen.Capture(vt.CaptureOptions{}), "\n"); got != "" || screen.Screen.Cx != 0 || screen.Screen.Cy != 0 {
+		t.Errorf("first frame: cursor %d,%d, screen %q", screen.Screen.Cx, screen.Screen.Cy, got)
 	}
 
 	// Every mode the client set is back: fed to an emulator, the output leaves its modes
@@ -145,7 +156,7 @@ func TestAttachEnds(t *testing.T) {
 				}
 			}
 		}()
-		w.eventually("the start sequence", func() bool { return strings.HasSuffix(out.String(), "\033]11;?\033\\") })
+		w.eventually("the start sequence", func() bool { return strings.Contains(out.String(), "\033]11;?\033\\") })
 		w.must(tc.kill...)
 		w.eventually(tc.msg, func() bool { return strings.HasSuffix(out.String(), tc.msg) })
 		if !strings.Contains(out.String(), "\033[?1049l\033[23;0;0t\033[?2031l"+tc.msg) {

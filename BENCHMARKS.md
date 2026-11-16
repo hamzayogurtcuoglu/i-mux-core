@@ -45,6 +45,16 @@ history of 80-column lines, a third of them coloured.
 
 The target is at most 2× tmux's.
 
+## Renderer (C2.8)
+
+`go test -run '^$' -bench . -benchmem ./internal/render/`, on Linux (WSL2, Intel i7-13800H),
+Go 1.27, on 2026-11-16: an 80×24 client with two panes side by side.
+
+| | Time | Written | Allocated |
+| --- | --- | --- | --- |
+| One changed cell (`BenchmarkOneChangedCell`) | 60 µs a frame | 19 bytes a frame | 650 B |
+| A whole frame of a busy screen (`BenchmarkWholeFrame`) | 261 µs | | 99 KB |
+
 ## Fuzzing
 
 `make fuzz` runs every fuzz target briefly; the nightly workflow (`.github/workflows/nightly.yml`)

@@ -1,0 +1,6 @@
+# A zoomed pane fills the window, with no borders.
+term xterm-256color
+size 40x10
+pane left.in
+split -h right.in
+zoom

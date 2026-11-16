@@ -57,3 +57,8 @@ All notable changes to i-mux-core are listed here. The format follows
 - Terminal modes (`DECSET`/`DECRST` for cursor, mouse, bracketed paste, focus, synchronized output,
   theme updates, and alternate screen 47/1047/1049), `DECRQM` replies, and alternate-screen switching
   in `internal/vt`.
+- The renderer: an attached client is drawn as tmux 3.8 draws it (panes, borders and their
+  colours, the window's fill, cursor and mouse modes), with only what changed written, inside
+  synchronized output when the terminal has it; a pane in a synchronized update keeps its last
+  frame. `make render-fixtures` records what tmux draws for `testdata/render`, and the tests
+  compare.

@@ -603,7 +603,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   `[server exited]`). Drawing comes with C2.8, keys with C2.10, extended keys with C2.11, sizes
   with C2.12.
 
-### [ ] C2.8 Renderer
+### [x] C2.8 Renderer
 - **Goal:** each client sees its session drawn correctly, with minimal output.
 - **Details:**
   - Compose the frame: panes at their offsets, borders, the status line area (filled in C4.2),
@@ -637,6 +637,18 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - The render cases match tmux's client screens, for a few layouts and terminals.
   - A benchmark shows that one changed cell produces a small, bounded write.
 - **Depends on:** C2.5, C2.7.
+- **Status:** done. `internal/render` composes and diffs a client's frames, and `termout` writes
+  runs of cells as tmux's `tty_draw_line` does; attached clients are drawn at most every 16 ms
+  and whole after a resize. The 15 render cases (one to four panes, zoom, a window smaller and
+  one larger than the client, a full-screen program, links; on xterm-256color, with RGB, xterm
+  with 8 colours, vt100, linux, tmux-256color, an 88-colour terminal without `AX`, and one with
+  `hyperlinks`) match tmux's client screens, drawn whole and frame by frame. One changed cell
+  writes about 19 bytes (`BenchmarkOneChangedCell`). A pane holding a synchronized update is
+  held from when the renderer first sees it, where tmux starts its timer at the program's
+  request. Later tasks draw the rest: the status line (C4.2, its line is not reserved until
+  then), `pane-border-status` lines (C4.4), overlays (C4.6–C4.10), frames right after input
+  (C2.10), and the theme colours a terminal reports (C2.10). Not drawn yet: scrollbars, the
+  marked pane, border arrows, and the bidi isolates tmux writes for terminals with `Bidi`.
 
 ### [ ] C2.9 Headless client in the differential harness
 - **Goal:** compare what users actually see, not only command output.

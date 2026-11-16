@@ -1,0 +1,4 @@
+# One pane: text, colours, attributes, a wide character, a tab, a link, on xterm-256color.
+term xterm-256color
+size 50x12
+pane colours.in

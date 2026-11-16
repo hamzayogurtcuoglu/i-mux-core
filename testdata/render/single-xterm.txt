@@ -1,0 +1,4 @@
+# One pane on an 8-colour terminal: 256 and RGB colours become the nearest of 16.
+term xterm
+size 50x12
+pane colours.in

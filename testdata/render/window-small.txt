@@ -1,0 +1,6 @@
+# A window smaller than the client: the rest is outside the window.
+term xterm-256color
+size 40x12
+window 30x8
+pane left.in
+split -h right.in

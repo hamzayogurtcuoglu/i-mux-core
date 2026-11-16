@@ -1,0 +1,6 @@
+# Two panes stacked, the bottom one active (its cursor hidden).
+term xterm-256color
+size 40x10
+pane top.in
+split bottom.in
+select %1

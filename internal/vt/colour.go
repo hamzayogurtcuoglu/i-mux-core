@@ -47,6 +47,66 @@ func ColorForceRGB(c Color) Color {
 	return -1
 }
 
+func colorDistSq(r1, g1, b1, r2, g2, b2 int) int {
+	return (r1-r2)*(r1-r2) + (g1-g2)*(g1-g2) + (b1-b2)*(b1-b2)
+}
+
+func colorTo6Cube(v int) int {
+	switch {
+	case v < 48:
+		return 0
+	case v < 114:
+		return 1
+	}
+	return (v - 35) / 40
+}
+
+// ColorFindRGB maps an RGB triplet to the nearest colour of xterm's 256 (tmux's
+// colour_find_rgb): the nearest in the 6×6×6 cube or of the 24 greys.
+func ColorFindRGB(r, g, b uint8) Color {
+	q2c := [6]int{0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff}
+	ri, gi, bi := int(r), int(g), int(b)
+	qr, qg, qb := colorTo6Cube(ri), colorTo6Cube(gi), colorTo6Cube(bi)
+	cr, cg, cb := q2c[qr], q2c[qg], q2c[qb]
+	if cr == ri && cg == gi && cb == bi {
+		return Color(16+36*qr+6*qg+qb) | ColorFlag256
+	}
+	greyAvg := (ri + gi + bi) / 3
+	greyIdx := 23
+	if greyAvg <= 238 {
+		greyIdx = (greyAvg - 3) / 10
+	}
+	grey := 8 + 10*greyIdx
+	idx := 16 + 36*qr + 6*qg + qb
+	if colorDistSq(grey, grey, grey, ri, gi, bi) < colorDistSq(cr, cg, cb, ri, gi, bi) {
+		idx = 232 + greyIdx
+	}
+	return Color(idx) | ColorFlag256
+}
+
+// Color256To16 maps a 256-colour index to one of the 16 (tmux's colour_256to16): 0 to 7, or
+// 8 to 15 for the bright ones.
+func Color256To16(c Color) Color { return Color(color256To16Table[c&0xff]) }
+
+var color256To16Table = [256]uint8{
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+	0, 4, 4, 4, 12, 12, 2, 6, 4, 4, 12, 12, 2, 2, 6, 4,
+	12, 12, 2, 2, 2, 6, 12, 12, 10, 10, 10, 10, 14, 12, 10, 10,
+	10, 10, 10, 14, 1, 5, 4, 4, 12, 12, 3, 8, 4, 4, 12, 12,
+	2, 2, 6, 4, 12, 12, 2, 2, 2, 6, 12, 12, 10, 10, 10, 10,
+	14, 12, 10, 10, 10, 10, 10, 14, 1, 1, 5, 4, 12, 12, 1, 1,
+	5, 4, 12, 12, 3, 3, 8, 4, 12, 12, 2, 2, 2, 6, 12, 12,
+	10, 10, 10, 10, 14, 12, 10, 10, 10, 10, 10, 14, 1, 1, 1, 5,
+	12, 12, 1, 1, 1, 5, 12, 12, 1, 1, 1, 5, 12, 12, 3, 3,
+	3, 7, 12, 12, 10, 10, 10, 10, 14, 12, 10, 10, 10, 10, 10, 14,
+	9, 9, 9, 9, 13, 12, 9, 9, 9, 9, 13, 12, 9, 9, 9, 9,
+	13, 12, 9, 9, 9, 9, 13, 12, 11, 11, 11, 11, 7, 12, 10, 10,
+	10, 10, 10, 14, 9, 9, 9, 9, 9, 13, 9, 9, 9, 9, 9, 13,
+	9, 9, 9, 9, 9, 13, 9, 9, 9, 9, 9, 13, 9, 9, 9, 9,
+	9, 13, 11, 11, 11, 11, 11, 15, 0, 0, 0, 0, 0, 0, 8, 8,
+	8, 8, 8, 8, 7, 7, 7, 7, 7, 7, 15, 15, 15, 15, 15, 15,
+}
+
 // Color256ToRGB converts a 256-colour index to its xterm RGB value (tmux's colour_256toRGB).
 func Color256ToRGB(c Color) Color {
 	return color256Table[c&0xff] | ColorFlagRGB

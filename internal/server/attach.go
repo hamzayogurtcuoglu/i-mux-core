@@ -8,6 +8,7 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/commands"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/render"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/termout"
 )
 
@@ -23,6 +24,7 @@ type attachedClient struct {
 	queue    *ipc.Queue
 	activity time.Time
 	gone     bool // detached or exited: nothing more is sent
+	draw     drawState
 }
 
 // Clients implements commands.Host.
@@ -52,6 +54,7 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 		termName = "unknown"
 	}
 	c := &attachedClient{name: hello.TTYName, session: sess, queue: queue, activity: s.opts.Now()}
+	c.draw.r = render.New()
 	o := termout.DefaultOptions
 	o.ColorTerm = hello.Env["COLORTERM"]
 	term, err := termout.NewTerm(termName, hello.Terminfo, &c.features, o)
@@ -68,6 +71,7 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	c.tty.Start()
 	c.tty.SendRequests()
 	s.send(c)
+	s.drawClient(c)
 	return c, nil
 }
 
@@ -141,6 +145,7 @@ func (s *Server) serveAttached(conn net.Conn, r *ipc.Reader, c *attachedClient) 
 				s.post(func() {
 					if !c.gone {
 						c.tty.Sx, c.tty.Sy = size.Cols, size.Rows
+						s.invalidate(c)
 					}
 				})
 			}

@@ -1,0 +1,4 @@
+# One pane on a terminal with RGB colours.
+term xterm-256color-truecolor
+size 50x12
+pane colours.in

@@ -12,3 +12,4 @@ wezterm|wezterm
 linux|linux
 vt100|vt100
 removed|xterm-256color||xterm*:clipboard@:title@ *:sync|xterm*:AX@:smcup@:kmous=\E[M:colors=88
+hyperlinks|xterm-256color||*:hyperlinks

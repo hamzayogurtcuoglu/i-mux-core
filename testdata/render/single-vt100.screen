@@ -1,0 +1,24 @@
+size 50x12
+cursor 10,9
+cursor_flag 1
+cursor_shape 0
+cursor_blinking 0
+cursor_colour -0x1
+alternate_on 0
+mouse_standard_flag 0
+mouse_button_flag 0
+mouse_all_flag 0
+mouse_sgr_flag 0
+--- screen
+plain text
+{attr=0x1}bold{} {attr=0x1}red{} green {attr=0x10}yellow on blue
+{attr=0x4}under{} {attr=0x10}reverse{} {attr=0x10}italic{} strike
+256 orange {attr=0x10}256 bg{} grey
+rgb green {attr=0x10}rgb red bg
+{attr=0x1}bright{} {attr=0x1}red{} {attr=0x1}bold{} {attr=0x1}blue{} dim
+wide: 日本語 end
+{attr=0x10}  {}      |tab
+{attr=0x10}filled line                                       
+link after
+
+

@@ -10,7 +10,7 @@ PKGS      ?= ./...
 
 export CGO_ENABLED = 0
 
-.PHONY: all build test lint fmt tmux difftest vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check term-fixtures term-fixtures-check contract contract-record fuzz bench ci clean
+.PHONY: all build test lint fmt tmux difftest vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check term-fixtures term-fixtures-check render-fixtures render-fixtures-check contract contract-record fuzz bench ci clean
 
 all: lint test build
 
@@ -40,7 +40,7 @@ TMUX_PINNED ?= $(CURDIR)/.cache/tmux/3.8/bin/tmux
 tmux: ## Build the pinned tmux 3.8 into .cache/tmux
 	./scripts/build-tmux.sh
 
-difftest: build vt-fixtures-check layout-fixtures-check parse-fixtures-check term-fixtures-check ## Differential tests against the pinned tmux
+difftest: build vt-fixtures-check layout-fixtures-check parse-fixtures-check term-fixtures-check render-fixtures-check ## Differential tests against the pinned tmux
 	IMUX_CORE_BIN=$(CURDIR)/bin/$(BINARY) IMUX_DIFFTEST_TMUX=$(TMUX_PINNED) \
 		$(GO) test -count=1 -tags difftest ./internal/difftest/...
 
@@ -98,6 +98,20 @@ term-fixtures-check: ## Check that the pinned tmux still gives testdata/term/*.j
 		echo "term-fixtures-check: the pinned tmux is not built"; exit 1; \
 	else \
 		echo "term-fixtures-check: the pinned tmux is not built (make tmux): fixtures NOT checked"; \
+	fi
+
+# What a client terminal shows on the pinned tmux (cmd/renderfixture).
+render-fixtures: ## Regenerate testdata/render/*.screen from the pinned tmux
+	$(GO) build -o bin/renderfixture ./cmd/renderfixture
+	./bin/renderfixture -tmux $(TMUX_PINNED)
+
+render-fixtures-check: ## Check that the pinned tmux still draws testdata/render/*.screen
+	@if [ -x "$(TMUX_PINNED)" ]; then \
+		$(GO) build -o bin/renderfixture ./cmd/renderfixture && ./bin/renderfixture -check -tmux $(TMUX_PINNED); \
+	elif [ "$$IMUX_DIFFTEST_REQUIRE" = 1 ]; then \
+		echo "render-fixtures-check: the pinned tmux is not built"; exit 1; \
+	else \
+		echo "render-fixtures-check: the pinned tmux is not built (make tmux): fixtures NOT checked"; \
 	fi
 
 # The contract (TASKS.md C0.3): contract-record runs i-mux's e2e suite with a

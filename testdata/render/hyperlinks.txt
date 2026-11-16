@@ -1,0 +1,4 @@
+# Links on a terminal with the hyperlinks feature: tmux passes them on as OSC 8.
+term hyperlinks
+size 40x6
+pane links.in

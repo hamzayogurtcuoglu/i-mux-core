@@ -1,0 +1,6 @@
+# A full-screen program on the alternate screen, with a cursor colour, beside another pane.
+term xterm-256color
+size 40x10
+pane left.in
+split -h tui.in
+select %1
