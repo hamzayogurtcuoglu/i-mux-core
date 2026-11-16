@@ -88,11 +88,19 @@ func validState(t *model.Tree, st *target.State) bool {
 // hook runs, one after another, with the event's target as the current target, no client,
 // and #{hook_*} set. Its commands fire no hooks of their own (CMDQ_STATE_NOHOOKS).
 func RunHooks(h Host, ev Event) {
-	(&runState{h: h, out: &strings.Builder{}}).hooks(ev, nil)
+	newRun(h, nil, &target.State{Idx: -1}).runHooks(ev, func(Result) {})
 }
 
-// hooks runs the hooks for ev, for client c (an after- hook's command client, or nil).
-func (rs *runState) hooks(ev Event, c *Client) Result {
+// hookDepth counts the hook commands running now: an event fired while one runs has no
+// hooks (hooks_event_cb checks the running item's CMDQ_STATE_NOHOOKS).
+var hookDepth int
+
+// InHook reports whether a hook's command is running now.
+func InHook() bool { return hookDepth > 0 }
+
+// runHooks runs the hooks for ev, for rs's client (an after- hook's command client, or nil),
+// then done.
+func (rs *runState) runHooks(ev Event, done func(Result)) {
 	t := rs.h.Tree()
 	st := ev.Target
 	if !validState(t, &st) {
@@ -115,36 +123,42 @@ func (rs *runState) hooks(ev Event, c *Client) Result {
 	if o == nil && st.WL != nil {
 		o = st.WL.Window.Options.Get(ev.Name)
 	}
-	if o == nil {
-		return Result{}
-	}
-	var values []string
-	if strings.HasPrefix(ev.Name, "@") {
-		values = []string{o.String("", false, false)}
-	} else {
-		for _, k := range o.ArrayKeys() {
-			v, _ := o.ArrayGet(k)
-			values = append(values, v.Str)
+	var lists []*List
+	if o != nil {
+		var values []string
+		if strings.HasPrefix(ev.Name, "@") {
+			values = []string{o.String("", false, false)}
+		} else {
+			for _, k := range o.ArrayKeys() {
+				v, _ := o.ArrayGet(k)
+				values = append(values, v.Str)
+			}
+		}
+		for _, v := range values {
+			if list, err := parseHook(v); err == nil && list != nil {
+				lists = append(lists, list)
+			}
 		}
 	}
 	formats := ev.formats()
 	var all Result
-	var errs strings.Builder
-	for _, v := range values {
-		list, err := parseHook(v)
-		if err != nil || list == nil {
-			continue
+	var run func(i int)
+	run = func(i int) {
+		if i == len(lists) {
+			done(all)
+			return
 		}
 		cur := st
-		hs := &runState{h: rs.h, c: c, out: rs.out, current: &cur, formats: formats, noHooks: true}
-		res := hs.run(list)
-		if res.Failed {
-			errs.WriteString(res.Stderr)
-			all.Failed = true
-		}
+		hs := &runState{h: rs.h, c: rs.c, out: rs.out, current: &cur, formats: formats, noHooks: true}
+		hs.start(lists[i], func(res Result) {
+			if res.Failed {
+				all.Stderr += res.Stderr
+				all.Failed = true
+			}
+			run(i + 1)
+		})
 	}
-	all.Stderr = errs.String()
-	return all
+	run(0)
 }
 
 // parseHook parses a hook's command list as it was stored.
@@ -156,10 +170,10 @@ func parseHook(s string) (*List, error) {
 	return (&Builder{Aliases: DefaultAliases}).Build(cmds)
 }
 
-// afterHook is cmdq_insert_hook for after-<command>: its target is the command's target if
-// still there, else the list's current target, else the client's; its items are the
-// command's arguments and flags.
-func (rs *runState) afterHook(it *Item) Result {
+// afterEvent is cmdq_insert_hook's event for after-<command>: its target is the command's
+// target if still there, else the list's current target, else the client's; its items are
+// the command's arguments and flags.
+func (rs *runState) afterEvent(it *Item) (Event, bool) {
 	t := rs.h.Tree()
 	var st *target.State
 	switch {
@@ -168,16 +182,14 @@ func (rs *runState) afterHook(it *Item) Result {
 	case validState(t, rs.current):
 		st = rs.current
 	default:
-		ctx := it.targetContext()
-		if cs, err := target.Find(ctx, "", target.Pane, target.Quiet); err == nil {
+		if cs, err := target.Find(it.targetContext(), "", target.Pane, target.Quiet); err == nil {
 			st = &cs
 		}
 	}
 	if st == nil {
-		return Result{}
+		return Event{}, false
 	}
-	ev := Event{Name: "after-" + it.Cmd.Spec.Name, Target: *st, Items: hookArguments(it.Cmd.Args)}
-	return rs.hooks(ev, rs.c)
+	return Event{Name: "after-" + it.Cmd.Spec.Name, Target: *st, Items: hookArguments(it.Cmd.Args)}, true
 }
 
 // hookArguments is the payload cmdq_insert_hook gives an after- hook: arguments,
@@ -221,12 +233,9 @@ func setHook(it *Item) error {
 		if err != nil {
 			return err
 		}
+		// hooks_run: the hook's commands run after set-hook, with its target.
 		name := it.formatSingle(st, args[0])
-		rs := &runState{h: it.Host, c: it.Client, out: it.Out, current: it.Current}
-		ev := Event{Name: name, Target: st}
-		if res := rs.hooks(ev, it.Client); res.Failed {
-			return errors.New(strings.TrimSuffix(res.Stderr, "\n"))
-		}
+		it.after = append(it.after, afterItem{hook: &Event{Name: name, Target: st}})
 		return nil
 	}
 	if len(a.Strings()) == 0 {

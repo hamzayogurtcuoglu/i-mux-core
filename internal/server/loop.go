@@ -62,7 +62,6 @@ type Server struct {
 	nameTimers map[*model.Window]bool // windows with an automatic-rename timer pending
 
 	pendingHooks []commands.Event // events whose hooks run once the current event is done
-	inHooks      bool             // hooks are running: the events they fire are dropped
 
 	started time.Time // when the server started (start_time)
 

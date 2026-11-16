@@ -50,8 +50,23 @@ type Host interface {
 	Respawn(p *model.Pane, spec pty.Spec) error
 	// ServerInfo is what the server's format variables give (pid, start_time, …).
 	ServerInfo() *format.Server
+	// RunJob runs a job (run-shell, if-shell): done is called in the loop with its output
+	// and how it ended, or with err when it could not start.
+	RunJob(spec JobSpec, done func(out []byte, status pty.ExitStatus, err error))
+	// After calls f in the loop after d (run-shell -d).
+	After(d time.Duration, f func())
 	// ShowMessage shows a message on a client's status line (display-message without -p).
 	ShowMessage(client, msg string, delay int)
+}
+
+// JobSpec is a job to run: a shell command (Shell -c Command) or an argv, in Dir, with Env.
+type JobSpec struct {
+	Shell      string
+	Command    string
+	Argv       []string
+	Dir        string
+	Env        []string
+	ShowStderr bool // stderr goes with stdout (run-shell -E), else nowhere
 }
 
 // ClientInfo is an attached client, as the commands and formats see it.
@@ -94,19 +109,14 @@ type Item struct {
 	// noHooks is CMDQ_STATE_NOHOOKS: the command runs for a hook and fires none itself.
 	noHooks bool
 	rs      *runState
-}
-
-// afterHook is cmdq_insert_hook for the commands that fire their after- hook themselves
-// (split-window, new-window, select-pane): with st, what they made or selected, as the
-// target. Its errors go with the command's.
-func (it *Item) afterHook(name string, st target.State) {
-	if it.noHooks || it.rs == nil {
-		return
-	}
-	ev := Event{Name: name, Target: st, Items: hookArguments(it.Cmd.Args)}
-	if res := it.rs.hooks(ev, it.rs.c); res.Failed {
-		it.rs.hookErrs.WriteString(res.Stderr)
-	}
+	// after are what runs right after the command (hooks, commands it inserts), in the
+	// order they were added; the last added runs first, as tmux's cmdq_insert_after does.
+	after []afterItem
+	// cont continues the queue once a waiting command (it.wait) is done; early and
+	// earlyErr keep a resume that came before the command returned.
+	cont     func(error)
+	early    bool
+	earlyErr error
 }
 
 // targetContext is what the item's targets are looked up in.
@@ -209,6 +219,8 @@ func init() {
 		"select-layout":       selectLayout,
 		"capture-pane":        capturePane,
 		"set-hook":            setHook,
+		"run-shell":           runShell,
+		"if-shell":            ifShell,
 	}
 }
 
@@ -217,108 +229,53 @@ type Result struct {
 	Stdout string
 	Stderr string
 	Failed bool
+	// Code is the exit status run-shell gives a command-line client (its job's), when not
+	// zero; otherwise a failure is 1.
+	Code int
 }
 
 // Run builds and runs a client's command line in order. A command line that does not build
 // runs nothing; a failing command stops the rest of its group, which for a command line is
 // all of it, as in tmux.
 func Run(h Host, c *Client, cmds [][]string) Result {
-	var out strings.Builder
+	var res Result
+	finished := false
+	RunAsync(h, c, cmds, func(r Result) { res, finished = r, true })
+	if !finished {
+		// Only a test host without jobs runs synchronously; a waiting command needs the
+		// server's loop (RunAsync).
+		return Result{Stderr: "the command list is waiting\n", Failed: true}
+	}
+	return res
+}
+
+// RunAsync is Run for the server: done is called (in the loop) once the list has run, which
+// may be after commands such as run-shell have waited for their jobs.
+func RunAsync(h Host, c *Client, cmds [][]string, done func(Result)) {
 	list, err := BuildArgv(cmds, DefaultAliases)
 	if err != nil {
-		return Result{Stderr: err.Error() + "\n", Failed: true}
+		done(Result{Stderr: err.Error() + "\n", Failed: true})
+		return
 	}
-	return runList(h, c, list, &out)
-}
-
-// runList runs a list; a failing command skips the rest of its group.
-func runList(h Host, c *Client, list *List, out *strings.Builder) Result {
-	return runListFrom(h, c, list, out, &target.State{Idx: -1})
-}
-
-// runListFrom is runList starting from st as the current target.
-func runListFrom(h Host, c *Client, list *List, out *strings.Builder, st *target.State) Result {
-	return (&runState{h: h, c: c, out: out, current: st}).run(list)
-}
-
-// runState is a command list's run (tmux's cmdq state): its client, output, current target,
-// the formats a hook adds, and whether it runs for a hook.
-type runState struct {
-	h       Host
-	c       *Client
-	out     *strings.Builder
-	current *target.State
-	formats map[string]string
-	noHooks bool
-	// hookErrs are the errors of the hooks a command fired itself.
-	hookErrs strings.Builder
-}
-
-func (rs *runState) run(list *List) Result {
-	var errs strings.Builder
-	failed := false
-	skip := -1
-	for _, cmd := range list.Commands {
-		if cmd.Group == skip {
-			continue
-		}
-		it, err := rs.runOne(cmd)
-		if rs.hookErrs.Len() > 0 {
-			errs.WriteString(rs.hookErrs.String())
-			rs.hookErrs.Reset()
-			failed = true
-		}
-		if err != nil {
-			// A quiet error (unbind-key -q, a target not found quietly) stops the group
-			// with no message; only a message makes the client fail (tmux's cmdq_error
-			// sets its retval).
-			if err.Error() != "" {
-				// A config file's errors say where they come from (tmux's cfg_add_cause).
-				if cmd.File != "" {
-					fmt.Fprintf(&errs, "%s:%d: ", cmd.File, cmd.Line)
-				}
-				errs.WriteString(err.Error() + "\n")
-				failed = true
-			}
-			skip = cmd.Group
-			continue
-		}
-		// after-<command>: its hooks run now, before the next command, for the same client
-		// (cmdq_insert_hook inserts them after the item).
-		if !rs.noHooks && cmd.Spec.Flags&CmdAfterhook != 0 {
-			if res := rs.afterHook(it); res.Failed {
-				errs.WriteString(res.Stderr)
-				failed = true
-			}
-		}
-	}
-	return Result{Stdout: rs.out.String(), Stderr: errs.String(), Failed: failed}
-}
-
-// RunList runs a command list for client c (an attached client, or nil), starting from st
-// as the current target: what a key binding runs. Its output and errors are the caller's to
-// show; tmux puts them on the client's message line.
-func RunList(h Host, c *Client, list *List, st *target.State) Result {
-	var out strings.Builder
-	return runListFrom(h, c, list, &out, st)
-}
-
-func (rs *runState) runOne(cmd *Command) (*Item, error) {
-	f := implemented[cmd.Spec.Name]
-	if f == nil {
-		return nil, fmt.Errorf("%s: not implemented by imux-core yet", cmd.Spec.Name)
-	}
-	it := &Item{
-		Host: rs.h, Client: rs.c, Cmd: cmd, Out: rs.out, Current: rs.current,
-		Formats: rs.formats, noHooks: rs.noHooks, rs: rs,
-	}
-	return it, f(it)
+	newRun(h, c, &target.State{Idx: -1}).start(list, done)
 }
 
 // RunConfig parses and runs a config file, as tmux's source-file does: a file that does not
 // parse or build runs nothing; a failing command skips the rest of its line, and the next lines
 // still run. It returns the errors, with their file and line.
 func RunConfig(h Host, file, src string, opts cmdlang.Options) []string {
+	var causes []string
+	finished := false
+	RunConfigAsync(h, file, src, opts, func(c []string) { causes, finished = c, true })
+	if !finished {
+		return []string{file + ": the config is waiting"}
+	}
+	return causes
+}
+
+// RunConfigAsync is RunConfig for the server: done gets the errors once the file's commands
+// have run, which may be after run-shell or if-shell waited for their jobs.
+func RunConfigAsync(h Host, file, src string, opts cmdlang.Options, done func([]string)) {
 	if opts.Cond == nil {
 		opts.Cond = func(f string) bool { return format.True(ParseFormat(h, nil, f)) }
 	}
@@ -326,19 +283,25 @@ func RunConfig(h Host, file, src string, opts cmdlang.Options) []string {
 	if err != nil {
 		var pe *cmdlang.Error
 		if errors.As(err, &pe) {
-			return []string{fmt.Sprintf("%s:%d: %s", file, pe.Line, pe.Msg)}
+			done([]string{fmt.Sprintf("%s:%d: %s", file, pe.Line, pe.Msg)})
+			return
 		}
-		return []string{file + ": " + err.Error()}
+		done([]string{file + ": " + err.Error()})
+		return
 	}
 	b := &Builder{File: file, Aliases: DefaultAliases, Parse: opts}
 	list, err := b.Build(cmds)
 	if err != nil {
-		return []string{err.Error()}
+		done([]string{err.Error()})
+		return
 	}
-	var out strings.Builder
-	res := runList(h, nil, list, &out)
-	if res.Stderr == "" {
-		return nil
-	}
-	return strings.Split(strings.TrimSuffix(res.Stderr, "\n"), "\n")
+	rs := newRun(h, nil, &target.State{Idx: -1})
+	rs.config = true
+	rs.start(list, func(res Result) {
+		if res.Stderr == "" {
+			done(nil)
+			return
+		}
+		done(strings.Split(strings.TrimSuffix(res.Stderr, "\n"), "\n"))
+	})
 }

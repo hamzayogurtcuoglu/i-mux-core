@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
@@ -278,10 +277,11 @@ func LoadDefaultKeyBindings(h Host) {
 		if err != nil {
 			panic("default key binding: " + s + ": " + err.Error())
 		}
-		var out strings.Builder
-		if res := runList(h, nil, list, &out); res.Failed {
-			panic("default key binding: " + s + ": " + res.Stderr)
-		}
+		newRun(h, nil, &target.State{Idx: -1}).start(list, func(res Result) {
+			if res.Failed {
+				panic("default key binding: " + s + ": " + res.Stderr)
+			}
+		})
 	}
 	h.Tree().Keys.MarkDefaults()
 }

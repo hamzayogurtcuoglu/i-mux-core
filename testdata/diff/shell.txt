@@ -1,0 +1,43 @@
+# run-shell and if-shell (C3.10): output, exit statuses, formats, -b, -C, -d (with the order
+# of delayed commands), -c, -E, -t, the jobs' environment, and if-shell's branches.
+size 80x24
+run new-session -d -s sh -n w -c / 'exec cat'
+run run-shell 'echo hello; echo there'
+run run-shell 'printf partial'
+run run-shell 'exit 3'
+run run-shell 'echo out; echo err >&2'
+run run-shell -E 'echo out; echo err >&2'
+run run-shell 'kill -9 $$'
+run run-shell 'echo #{session_name} #{pane_id} #{window_name}'
+run run-shell -t sh:w.0 'echo to the pane'
+run run-shell 'echo #{1}-#{2}-#{3}' first second
+run run-shell -c /tmp 'pwd' ; run-shell 'pwd'
+run run-shell 'echo $TERM_PROGRAM $COLORTERM $(echo $TMUX | cut -d, -f3) $TMUX_PANE'
+run run-shell 'nonexistent-command-xyz'
+run run-shell
+run run-shell -d x 'true'
+run run-shell -C 'set -g @c 1' ; show -gv @c
+run run-shell -C 'set -g @c "#{session_name}"' ; show -gv @c
+run run-shell -C 'set -g @c "unclosed'
+# -d waits before the command; without -b the list waits too.
+run set -g @o '' ; run-shell -d 0.2 -C 'set -ga @o A' ; set -ga @o B ; show -gv @o
+run set -g @o '' ; run-shell -b -d 0.2 -C 'set -ga @o A' ; set -ga @o B
+wait '#{@o}' == BA
+run set -g @o '' ; run-shell -d 0.1 ; set -ga @o C ; show -gv @o
+run run-shell -b 'echo not shown; exit 5' ; set -g @after 1 ; show -gv @after
+# if-shell: the shell command's status, -F, missing branches, -b.
+run if-shell 'true' 'set -g @i yes' 'set -g @i no' ; show -gv @i
+run if-shell 'false' 'set -g @i yes' 'set -g @i no' ; show -gv @i
+run if-shell 'exit 7' 'set -g @i yes' ; show -gv @i
+run if-shell -F '#{==:#{session_name},sh}' 'set -g @f yes' 'set -g @f no' ; show -gv @f
+run if-shell -F '0abc' 'set -g @f yes' 'set -g @f no' ; show -gv @f
+run if-shell -F '' 'set -g @f yes' ; show -gv @f
+run if-shell -F 'x' 'set -g @f "#{session_name}"' ; show -gv @f
+run if-shell -F 1 'set -g @f "unclosed'
+run if-shell -F 1 'nonsense-cmd'
+run if-shell 'test -d /tmp' 'set -g @d dir' 'set -g @d none' ; if-shell '[ "#{session_name}" = sh ]' 'set -ga @d +name' ; show -gv @d
+run set -g @ib '' ; if-shell -b 'true' 'set -g @ib yes' ; show -gv @ib
+wait '#{@ib}' == yes
+run if-shell 'true' 'set -g @x 1 ; set -g @y 2' ; show -gv @x ; show -gv @y
+run if-shell
+run kill-server

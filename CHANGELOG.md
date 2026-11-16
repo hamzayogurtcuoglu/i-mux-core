@@ -95,3 +95,5 @@ All notable changes to i-mux-core are listed here. The format follows
 - Hooks: `set-hook` and `show-hooks`, the events i-mux hooks (after- hooks, focus, pane
   changes, pane exit and death, attach, theme) with tmux's timing and `#{hook_*}` formats,
   and `remain-on-exit`.
+- `run-shell` and `if-shell`, with jobs, delays and the argv form; command lists wait for
+  their jobs as tmux's queue does.

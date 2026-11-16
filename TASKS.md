@@ -981,7 +981,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   and compares the log with tmux 3.8; the theme hooks are checked by the server's input tests
   (the harness's terminal reports no theme).
 
-### [ ] C3.10 run-shell and if-shell
+### [x] C3.10 run-shell and if-shell
 - **Goal:** i-mux's bindings run its commands as they do under tmux.
 - **Details:**
   - `run-shell`:
@@ -1001,6 +1001,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** difftest of each form, including timing order with `-d`, and the view-mode
   output of a failing foreground job.
 - **Depends on:** C3.9.
+- **Status:** done. The command queue (`commands/queue.go`) now waits: a command returns
+  CMD_RETURN_WAIT's equivalent and the list goes on when its job is done, and what a command
+  inserts after itself (hooks, `if-shell`'s branch, `run-shell -C`) runs before the next
+  command, as `cmdq_insert_after` does; the server's client, config and binding runs use it.
+  `run-shell` (`-b -c -C -d -E -t`, `#{1}`…) and `if-shell` (`-b -F -t`) run jobs through
+  `Host.RunJob` with tmux's environment; the argv form (X1) is tested in `internal/server`.
+  `testdata/diff/shell.txt` matches tmux 3.8 for every form and the `-d` order. Output that
+  tmux shows in a pane's view mode is dropped until copy mode (C4.8).
 
 ### [ ] C3.11 Config loading
 - **Goal:** the config is loaded at start and on reload, as tmux does.

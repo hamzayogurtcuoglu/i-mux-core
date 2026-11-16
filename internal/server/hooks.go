@@ -12,14 +12,15 @@ import (
 
 // Events and their hooks (TASKS.md C3.9), as tmux 3.8's events.c fires them: an event's
 // hooks are queued (tmux appends them to the global command queue) and run once the event
-// that fired them is done; events fired while hooks run are dropped (CMDQ_STATE_NOHOOKS).
+// that fired them is done; events fired while a hook's command runs are dropped
+// (CMDQ_STATE_NOHOOKS).
 
 // fireEvent queues an event's hooks.
 func (s *Server) fireEvent(ev commands.Event) {
 	if s.opts.Event != nil {
 		s.opts.Event(ev.Name, ev.Client)
 	}
-	if s.inHooks {
+	if commands.InHook() {
 		return
 	}
 	s.pendingHooks = append(s.pendingHooks, ev)
@@ -30,9 +31,7 @@ func (s *Server) runHooks() {
 	for len(s.pendingHooks) > 0 && !s.exiting {
 		ev := s.pendingHooks[0]
 		s.pendingHooks = s.pendingHooks[1:]
-		s.inHooks = true
 		commands.RunHooks(s, ev)
-		s.inHooks = false
 		s.redrawAll()
 	}
 }

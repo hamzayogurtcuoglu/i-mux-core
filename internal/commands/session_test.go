@@ -266,3 +266,8 @@ func TestQuietErrorStopsGroup(t *testing.T) {
 		t.Errorf("%+v", r)
 	}
 }
+
+func (h *fakeHost) RunJob(spec JobSpec, done func(out []byte, status pty.ExitStatus, err error)) {
+	done(nil, pty.ExitStatus{}, errors.New("no jobs in the fake host"))
+}
+func (h *fakeHost) After(time.Duration, func()) {}

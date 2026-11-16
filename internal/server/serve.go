@@ -119,19 +119,23 @@ func (s *Server) handle(c net.Conn) {
 	queue := ipc.NewQueue(0, 0)
 	ran := make(chan struct{})
 	if !s.post(func() {
-		defer close(ran)
-		res = commands.Run(s, client, cmd.Commands)
-		s.recalculateSizes()
-		s.redrawAll()
-		if client.AttachTo == nil || res.Failed || s.tree.Session(client.AttachTo.ID) != client.AttachTo {
-			return
-		}
-		var err error
-		if att, err = s.attach(&hello, client.AttachTo, queue); err != nil {
-			res = commands.Result{Stderr: "open terminal failed: " + err.Error() + "\n", Failed: true}
-		} else if client.AttachedHook {
-			s.fireClient("client-attached", att)
-		}
+		// The list may wait for jobs (run-shell, if-shell): it goes on in later events,
+		// and the client gets its result once it is done.
+		commands.RunAsync(s, client, cmd.Commands, func(r commands.Result) {
+			defer close(ran)
+			res = r
+			s.recalculateSizes()
+			s.redrawAll()
+			if client.AttachTo == nil || res.Failed || s.tree.Session(client.AttachTo.ID) != client.AttachTo {
+				return
+			}
+			var err error
+			if att, err = s.attach(&hello, client.AttachTo, queue); err != nil {
+				res = commands.Result{Stderr: "open terminal failed: " + err.Error() + "\n", Failed: true}
+			} else if client.AttachedHook {
+				s.fireClient("client-attached", att)
+			}
+		})
 	}) {
 		return
 	}
@@ -149,7 +153,7 @@ func (s *Server) handle(c net.Conn) {
 		s.serveAttached(c, r, att)
 		return
 	}
-	out := ipc.Result{Stdout: res.Stdout, Stderr: res.Stderr}
+	out := ipc.Result{Stdout: res.Stdout, Stderr: res.Stderr, Code: res.Code}
 	if res.Failed {
 		out.Code = 1
 	}
@@ -185,10 +189,19 @@ func (s *Server) LoadConfig(path string) []string {
 		return env("HOME")
 	}
 	var causes []string
+	finished := make(chan struct{})
 	if err := s.Do(func(_ *model.Tree) {
-		causes = commands.RunConfig(s, path, string(b), cmdlang.Options{Env: env, Home: home})
+		commands.RunConfigAsync(s, path, string(b), cmdlang.Options{Env: env, Home: home}, func(c []string) {
+			causes = c
+			close(finished)
+		})
 	}); err != nil {
 		return []string{err.Error()}
+	}
+	// The file's commands may wait for jobs; the config is loaded once they are done.
+	select {
+	case <-finished:
+	case <-s.done:
 	}
 	return causes
 }
