@@ -219,6 +219,28 @@ Checked against tmux 3.8 in `testdata/diff/keys.txt`:
 - **A binding's commands** run for the client that pressed the key: its formats
   (`#{client_name}`) and `switch-client` without `-c` are that client's.
 
+### run-shell and if-shell (C3.10)
+
+Checked against tmux 3.8 in `testdata/diff/shell.txt`:
+
+- A command waits for its job (the rest of the list, and the client, wait) unless `-b`.
+  `-d` waits that many seconds (fractions too) before running; with no command it only
+  waits. What `run-shell -C` and `if-shell` pick runs right after them, before the next
+  command, with the same current target.
+- Output: each line of the job's stdout (and stderr with `-E`; else stderr is dropped), then
+  `'<cmd>' returned N` or `'<cmd>' terminated by signal N`. A command-line client gets them
+  on its stdout and exits with the job's status (128 + N for a signal). With `-b`, `-t`, or a
+  client that is attached (a key binding), they go to a pane's view mode in tmux, which comes
+  with copy mode (C4.8); until then they are dropped.
+- The command is a format first; `run-shell`'s further arguments are `#{1}`, `#{2}`, …;
+  `-c` is a format. Jobs run in `/bin/sh -c` with the server's environment, `TERM` (the
+  `default-terminal`), `TERM_PROGRAM`, `TERM_PROGRAM_VERSION`, `COLORTERM` (none of these
+  four while the config loads), `TMUX` (with the target's session) and `PWD`; no
+  `TMUX_PANE`.
+- `if-shell -F` is true unless the expanded format is empty or starts with `0`; a branch
+  missing is nothing to run; a branch that does not parse is the command's error.
+- The argv form (X1) is the engine's and is checked by `internal/server`'s tests.
+
 ### Layout strings
 
 tmux 3.8's `#{window_layout}` is JSON, version 2:
