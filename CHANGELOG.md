@@ -75,3 +75,7 @@ All notable changes to i-mux-core are listed here. The format follows
 - Several clients: windows sized by `window-size` (tmux's `latest` by default) less the status
   lines, `switch-client -t`, sessions for attaching preferring unattached ones as tmux does, and
   difftest clients that stay attached (`client`, `resize`, `screen NAME`).
+- Target resolution (`internal/target`), ported from tmux 3.8's `cmd-find.c` and `window.c`:
+  ids, exact (`=`), prefix and glob names, window and pane tokens, positions and directions,
+  `TMUX_PANE` for commands run inside a pane, a command list's current target, and basic
+  `new-window`, `split-window`, `select-window` and `select-pane`.

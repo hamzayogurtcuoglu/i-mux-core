@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,54 +8,11 @@ import (
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 )
 
-// send-keys and the extended-keys options (TASKS.md C2.11). Pane targets here cover %N and
-// session[:window][.pane] by index; the full rules come with task C3.3. set-option knows only
-// the server options keys need; the option table comes with task C3.4.
-
-// findPane resolves a pane target (-t): none is the best session's active pane.
-func findPane(t *model.Tree, target string, given bool) (*model.Pane, error) {
-	if given && strings.HasPrefix(target, "%") {
-		if id, err := strconv.Atoi(target[1:]); err == nil {
-			if p := t.Pane(id); p != nil {
-				return p, nil
-			}
-		}
-		return nil, fmt.Errorf("can't find pane: %s", target)
-	}
-	sessPart, rest, _ := strings.Cut(target, ":")
-	s, err := findSession(t, sessPart, given)
-	if err != nil {
-		return nil, err
-	}
-	wl := s.Current
-	winPart, panePart, hasPane := strings.Cut(rest, ".")
-	if winPart != "" {
-		idx, err := strconv.Atoi(winPart)
-		if err != nil {
-			return nil, fmt.Errorf("%s: not implemented by imux-core yet", target)
-		}
-		if wl = s.Link(idx); wl == nil {
-			return nil, fmt.Errorf("can't find window: %s", winPart)
-		}
-	}
-	if wl == nil {
-		return nil, errors.New("no current target")
-	}
-	w := wl.Window
-	if !hasPane || panePart == "" {
-		return w.Active, nil
-	}
-	idx, err := strconv.Atoi(panePart)
-	if err != nil {
-		return nil, fmt.Errorf("%s: not implemented by imux-core yet", target)
-	}
-	if idx < 0 || idx >= len(w.Panes) {
-		return nil, fmt.Errorf("can't find pane: %s", panePart)
-	}
-	return w.Panes[idx], nil
-}
+// send-keys and the server options set so far (TASKS.md C2.11, C2.12); set-option knows only
+// those, the option table comes with task C3.4.
 
 // sendKeys is send-keys: each argument is a key name, else literal text; -l makes them all
 // literal text, -H hexadecimal bytes, -N repeats.
@@ -67,11 +23,11 @@ func sendKeys(it *Item) error {
 			return fmt.Errorf("send-keys -%c: not implemented by imux-core yet", f)
 		}
 	}
-	target, given := a.Get('t')
-	p, err := findPane(it.Host.Tree(), target, given)
+	st, err := it.findFlag('t', target.Pane, 0)
 	if err != nil {
 		return err
 	}
+	p := st.P
 	n := 1
 	if s, ok := a.Get('N'); ok {
 		v, err := strconv.Atoi(s)
@@ -160,8 +116,8 @@ func setOption(it *Item) error {
 	return fmt.Errorf("unknown value: %s", args[1])
 }
 
-// switchClient is switch-client -t: the client (-c, else the most recently active) shows the
-// session. A window or pane in the target comes with task C3.3.
+// switchClient is switch-client -t: the client (-c, else the current client) shows the target
+// session, selecting a target window and pane when given.
 func switchClient(it *Item) error {
 	a := it.Cmd.Args
 	for _, f := range []byte("EFlnOprTZ") {
@@ -169,16 +125,26 @@ func switchClient(it *Item) error {
 			return fmt.Errorf("switch-client -%c: not implemented by imux-core yet", f)
 		}
 	}
-	c, err := findClient(it.Host.Clients(), a, 'c')
+	c, err := it.findClient('c')
 	if err != nil {
 		return err
 	}
-	target, given := a.Get('t')
+	tflag, _ := a.Get('t')
 	// A session target prefers a session no client shows, as in tmux.
-	session := !strings.ContainsAny(target, ":.%") && target != "="
-	s, err := findSessionFor(it.Host.Tree(), target, given, session)
+	typ, flags := target.Session, target.PreferUnattached
+	if strings.ContainsAny(tflag, ":.%") || tflag == "=" {
+		typ, flags = target.Pane, 0
+	}
+	st, err := it.find(tflag, typ, flags)
 	if err != nil {
 		return err
 	}
-	return it.Host.SwitchClient(c.Name, s)
+	if st.WL != nil {
+		if st.P != nil && st.P != st.W.Active {
+			it.Host.Tree().SetActivePane(st.W, st.P)
+		}
+		st.S.SelectWindow(st.WL)
+		it.setCurrent(sessionState(st.S))
+	}
+	return it.Host.SwitchClient(c.Name, st.S)
 }

@@ -813,7 +813,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   lines and config files build through one builder (aliases, groups, errors with file and line);
   the handlers are in `implemented` and grow with C3.6. `testdata/diff/errors.txt`.
 
-### [ ] C3.3 Targets
+### [x] C3.3 Targets
 - **Goal:** `-t` and `-s` find what tmux finds.
 - **Details:**
   - COMPATIBILITY.md §2: ids, `=name`, `name:index.pane`, `=` (the mouse), and the defaults
@@ -828,6 +828,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     use; C3.6 completes them.
 - **Acceptance:** difftest over every target form, including errors.
 - **Depends on:** C3.2.
+- **Status:** done. `internal/target` ports `cmd-find.c` and the position and direction
+  lookups of `window.c`: `$id`, `@id`, `%id`, exact (`=`), prefix and glob names, client
+  terminals as sessions, window and pane tokens (`^`, `$`, `!`, `+`, `-`, `{start}`,
+  `{end}`, `{last}`, `{next}`, `{previous}`), pane positions (`{top-left}`, …) and directions
+  (`{up-of}`, …), `WindowIndex` for `new-window -t`, the current target from the command list,
+  an attached client, `TMUX_PANE` or the best session, and tmux's errors. `new-window`,
+  `split-window`, `select-window` and `select-pane` are implemented in their basic form.
+  `testdata/diff/targets.txt` and `TestInsidePaneTarget`.
 
 ### [ ] C3.4 Options
 - **Goal:** `set-option` and `show-options` behave like tmux for every option i-mux uses.

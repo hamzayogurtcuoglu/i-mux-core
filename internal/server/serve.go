@@ -121,6 +121,7 @@ func (s *Server) handle(c net.Conn) {
 	if !s.post(func() {
 		defer close(ran)
 		res = commands.Run(s, client, cmd.Commands)
+		s.recalculateSizes()
 		s.redrawAll()
 		if client.AttachTo == nil || res.Failed || s.tree.Session(client.AttachTo.ID) != client.AttachTo {
 			return

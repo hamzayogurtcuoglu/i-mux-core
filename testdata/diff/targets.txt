@@ -1,0 +1,102 @@
+# Targets (C3.3): session, window and pane forms, geometry and direction targets, a command
+# list's current target, and target errors.
+conf screen.conf
+size 60x14
+
+run new-session -d -s alpha -n ed 'exec cat'
+run new-session -d -s beta -n work 'exec cat'
+run new-session -d -s bezel -n build 'exec cat'
+
+client c 60x14
+screen c
+run switch-client -t =alpha
+screen c
+
+# Session targets and errors.
+run has-session -t alpha
+run has-session -t =alpha
+run has-session -t al
+run has-session -t 'bez*'
+run has-session -t $0
+run has-session -t $1
+run has-session -t $2
+run has-session -t =al
+run has-session -t be
+run has-session -t 'be*'
+run has-session -t $99
+run has-session -t nope
+run has-session -t $
+
+# Single-window and single-pane errors.
+run select-window -t alpha -n
+run select-window -t alpha -p
+run select-window -t alpha -l
+run select-pane -t alpha -l
+
+# Window index targets for new-window.
+run new-window -t alpha:2 -n logs 'exec cat'
+run new-window -t =alpha:+2 -n docs 'exec cat'
+run new-window -t alpha:-1 -n mid 'exec cat'
+run new-window -t alpha:2 'exec cat'
+run new-window -t alpha:0.0 'exec cat'
+
+# Build a 2x2 grid in alpha:logs via a command list's current target.
+run select-window -t alpha:logs ; split-window -h -l 50% 'exec cat' ; split-window -t .0 -l 5 'exec cat' ; split-window -t .2 -p 50 'exec cat'
+run split-window -t alpha:logs -l 0 'exec cat'
+run split-window -t alpha:logs -l abc 'exec cat'
+run split-window -t alpha:logs -p 101 'exec cat'
+run split-window -t alpha:logs -l 999 'exec cat'
+
+# Pane targets: %id, session:window.pane, @window.pane, session:.pane, geometry, directions,
+# offsets and last.
+run send-keys -t %3 P3 Enter
+run send-keys -t =alpha:=logs.1 P5 Enter
+run send-keys -t @3.2 P6 Enter
+run send-keys -t alpha:.3 P8 Enter
+run send-keys -t '{top-left}' TL Enter
+run send-keys -t '{top-right}' TR Enter
+run send-keys -t '{bottom-left}' BL Enter
+run send-keys -t '{bottom-right}' BR Enter
+run select-pane -t alpha:logs.0
+run send-keys -t '{right-of}' RO Enter
+run send-keys -t '{down-of}' DO Enter
+run send-keys -t '{left-of}' LO Enter
+run send-keys -t '{up-of}' UO Enter
+run select-pane -t '{bottom-right}'
+run send-keys -t '!' LASTP Enter
+run select-pane -l
+run send-keys -t '+' NEXTP Enter
+run send-keys -t '-' PREVP Enter
+screen c
+
+# Window targets: ^, :$, {start}, {end}, !, {last}, +, -, glob, @id, and command-list current.
+run select-window -t alpha:^ ; send-keys W0 Enter
+screen c
+run select-window -t alpha:{end} ; send-keys W4 Enter
+screen c
+run select-window -t 'alpha:!' ; send-keys W0B Enter
+run select-window -t alpha:+2 ; send-keys W3 Enter
+run select-window -t alpha:-1 ; send-keys W2 Enter
+run select-window -t 'alpha:do*' ; send-keys W4B Enter
+run select-window -t @5 ; send-keys W3B Enter
+screen c
+
+# switch-client with window and pane targets.
+run switch-client -t beta:work.0 ; send-keys BETA Enter
+screen c
+run switch-client -t %3
+screen c
+
+# Target errors.
+run send-keys -t %99 x
+run send-keys -t @99 x
+run send-keys -t $99 x
+run send-keys -t alpha:99 x
+run send-keys -t alpha:logs.99 x
+run send-keys -t alpha:=lo x
+run send-keys -t @ x
+run send-keys -t '{current}' x
+run send-keys -t = x
+run send-keys -t '{mouse}' x
+run send-keys -t '~' x
+run send-keys -t '{marked}' x

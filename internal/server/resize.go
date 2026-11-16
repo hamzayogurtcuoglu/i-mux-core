@@ -178,3 +178,27 @@ func (s *Server) SwitchClient(name string, sess *model.Session) error {
 	}
 	return errors.New("can't find client: " + name)
 }
+
+// DefaultSize implements commands.Host: a new window of s takes the size the clients showing s
+// give (the smallest, less their status lines), else 80x24 (tmux's default_window_size with
+// no target client and default-size at its default).
+func (s *Server) DefaultSize(sess *model.Session) (sx, sy int) {
+	found := false
+	for _, c := range s.attached {
+		if c.gone || c.session != sess {
+			continue
+		}
+		cx, cy := c.tty.Sx, c.tty.Sy-s.statusLineSize(c)
+		if !found || cx < sx {
+			sx = cx
+		}
+		if !found || cy < sy {
+			sy = cy
+		}
+		found = true
+	}
+	if !found {
+		return 80, 24
+	}
+	return min(max(sx, windowMinimum), windowMaximum), min(max(sy, windowMinimum), windowMaximum)
+}

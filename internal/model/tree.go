@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
@@ -87,7 +88,14 @@ type Pane struct {
 
 	Dead   bool
 	Status pty.ExitStatus
+
+	// ActivePoint orders when panes were last made active (tmux's active_point): the pane in
+	// a direction is the most recently active of those there.
+	ActivePoint uint64
 }
+
+// nextActivePoint is tmux's next_active_point, across the server.
+var nextActivePoint atomic.Uint64
 
 // Errors from tree operations, with tmux's messages.
 var (
@@ -313,6 +321,7 @@ func (w *Window) SetActivePane(p *Pane) {
 	}
 	w.last = removePane(w.last, p)
 	w.Active = p
+	p.ActivePoint = nextActivePoint.Add(1)
 }
 
 // LastPane returns the previously active pane, or nil.

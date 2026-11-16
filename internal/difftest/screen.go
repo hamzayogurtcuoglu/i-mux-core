@@ -59,7 +59,7 @@ type headless struct {
 }
 
 // Attach implements Attacher: the program runs attach-session in a PTY the harness owns.
-func (b *Binary) Attach(_ context.Context, env *Env, _ string, cols, rows int) (Client, error) {
+func (b *Binary) Attach(ctx context.Context, env *Env, _ string, cols, rows int) (Client, error) {
 	argv := []string{filepath.Base(b.Path), "-S", env.Socket}
 	if env.Config != "" {
 		argv = append(argv, "-f", env.Config)
@@ -92,6 +92,16 @@ func (b *Binary) Attach(_ context.Context, env *Env, _ string, cols, rows int) (
 			}
 		}
 	}()
+	deadline := time.Now().Add(WaitTimeout)
+	for {
+		h.mu.Lock()
+		ready := len(h.out) > 0 || h.ended
+		h.mu.Unlock()
+		if ready || time.Now().After(deadline) || ctx.Err() != nil {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 	return h, nil
 }
 

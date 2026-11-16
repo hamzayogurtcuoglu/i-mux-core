@@ -13,6 +13,7 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
+	tgt "github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 )
 
 // fakeHost runs the commands on a tree without programs.
@@ -48,7 +49,18 @@ func (h *fakeHost) PaneKey(p *model.Pane, k keys.Key) bool {
 	return k != keys.Parse("C-BSpace")
 }
 
-func (h *fakeHost) StatusLines() int { return 1 }
+func (h *fakeHost) StatusLines() int                      { return 1 }
+func (h *fakeHost) DefaultSize(*model.Session) (int, int) { return 80, 24 }
+func (h *fakeHost) RemovePane(p *model.Pane) {
+	w := p.Window
+	if h.tree.RemovePane(p) {
+		s := w.Session()
+		if h.tree.RemoveWindow(w) {
+			h.tree.RemoveSession(s)
+		}
+	}
+}
+
 func (h *fakeHost) SwitchClient(name string, s *model.Session) error {
 	h.switched = append(h.switched, name+" "+s.Name)
 	return nil
@@ -151,12 +163,12 @@ func TestSessionTargets(t *testing.T) {
 		"alpha": "alpha", "=alpha": "alpha", "al": "alpha", "$1": "beta", "beta:0": "beta",
 		"bez*": "bezel", "be": "", "=al": "", "$9": "", "nope": "",
 	} {
-		s, err := findSession(h.tree, target, true)
+		st, err := tgt.Find(&tgt.Context{Tree: h.tree}, target, tgt.Session, 0)
 		switch {
 		case want == "" && err == nil:
-			t.Errorf("%q found %s", target, s.Name)
-		case want != "" && (err != nil || s.Name != want):
-			t.Errorf("%q: %v %v, want %s", target, s, err, want)
+			t.Errorf("%q found %s", target, st.S.Name)
+		case want != "" && (err != nil || st.S.Name != want):
+			t.Errorf("%q: %v %v, want %s", target, st.S, err, want)
 		}
 	}
 	if r := run(h, "has", "-t", "=al"); r.Stderr != "can't find session: al\n" {
@@ -180,13 +192,47 @@ func TestSessionTargets(t *testing.T) {
 
 func TestRunConfig(t *testing.T) {
 	h := newFakeHost()
-	causes := RunConfig(h, "/c.conf", "new -s one\nhas -t zz ; new -s skipped\n\nsplitp\nnew -s two\n", cmdlang.Options{})
+	causes := RunConfig(h, "/c.conf", "new -s one\nhas -t zz ; new -s skipped\n\nls\nnew -s two\n", cmdlang.Options{})
 	if len(causes) != 2 || causes[0] != "/c.conf:2: can't find session: zz" ||
-		causes[1] != "/c.conf:4: split-window: not implemented by imux-core yet" {
+		causes[1] != "/c.conf:4: list-sessions: not implemented by imux-core yet" {
 		t.Errorf("causes %q", causes)
 	}
 	// A config file has no client: new-session is detached even without -d.
 	if h.tree.SessionByName("one") == nil || h.tree.SessionByName("two") == nil || h.tree.SessionByName("skipped") != nil {
 		t.Errorf("sessions %v", h.tree.Sessions())
+	}
+}
+
+func TestWindowsAndPanesAndCurrentTarget(t *testing.T) {
+	h := newFakeHost()
+	// A command list carries its current target from new-session to new-window, split-window,
+	// select-pane, select-window and send-keys.
+	r := Run(h, &Client{Cwd: testCwd}, [][]string{
+		{"new-session", "-d", "-s", "alpha", "cat"},
+		{"new-session", "-s", "beta", "-d", "cat"},
+		// Because both had -d, current is not set yet; new-window targets the best session
+		// (alpha, first by name on a tie) and sets current to the new window (@2, %2).
+		{"new-window", "-n", "logs", "cat"},
+		{"split-window", "-h", "cat"},
+		{"send-keys", "hi"},
+		{"select-pane", "-l"},
+		{"send-keys", "lo"},
+		{"select-window", "-l"},
+		{"send-keys", "w0"},
+	})
+	if r.Failed {
+		t.Fatalf("command list failed: %+v", r)
+	}
+	if want := []string{"%3 h", "%3 i", "%2 l", "%2 o", "%0 w", "%0 0"}; !slices.Equal(h.sent, want) {
+		t.Errorf("sent %q, want %q", h.sent, want)
+	}
+
+	// Inside a pane (TMUX_PANE=%1 in beta), the default target is beta's current window.
+	h.sent = nil
+	r = Run(h, &Client{Cwd: testCwd, Env: map[string]string{"TMUX_PANE": "%1"}}, [][]string{
+		{"send-keys", "in"},
+	})
+	if r.Failed || !slices.Equal(h.sent, []string{"%1 i", "%1 n"}) {
+		t.Errorf("inside pane: sent %q (%+v)", h.sent, r)
 	}
 }

@@ -293,3 +293,49 @@ func TestHarnessScreen(t *testing.T) {
 		t.Fatalf("message:\n%s", msg)
 	}
 }
+
+// TestInsidePaneTarget checks that a command run with TMUX_PANE in its environment defaults to
+// that pane's session (and its current window) rather than the most recently active session.
+func TestInsidePaneTarget(t *testing.T) {
+	ref, core := tmuxEngine(t), coreEngine(t)
+	run := func(eng *Binary) Result {
+		env, err := NewEnv()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(env.Dir)
+		defer eng.Stop(env)
+		ctx := context.Background()
+		for _, args := range [][]string{
+			{"new-session", "-d", "-s", "alpha", "-x", "40", "-y", "10", "exec cat"},
+			{"set-option", "-g", "status", "off"},
+			{"new-window", "-t", "alpha", "exec cat"},
+			{"new-session", "-d", "-s", "beta", "-x", "40", "-y", "10", "exec cat"},
+		} {
+			if r := eng.Run(ctx, env, args); r.Code != 0 {
+				t.Fatalf("%s %v: %+v", eng.Name(), args, r)
+			}
+		}
+		// Without TMUX_PANE, the default target is beta (created after alpha); with TMUX_PANE=%0
+		// (a pane in alpha), the default target is alpha's current window (%1).
+		inside := *env
+		inside.Vars = append(append([]string(nil), env.Vars...), "TMUX_PANE=%0")
+		if r := eng.Run(ctx, &inside, []string{"send-keys", "from-inside", "Enter"}); r.Code != 0 {
+			t.Fatalf("%s send-keys: %+v", eng.Name(), r)
+		}
+		c, err := eng.Attach(ctx, env, "c", 40, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer c.Close()
+		_ = c.Screen(ctx)
+		if r := eng.Run(ctx, env, []string{"switch-client", "-t", "alpha"}); r.Code != 0 {
+			t.Fatalf("%s switch-client: %+v", eng.Name(), r)
+		}
+		return c.Screen(ctx)
+	}
+	a, b := run(ref), run(core)
+	if a != b || !strings.Contains(a.Stdout, "from-inside") {
+		t.Errorf("tmux:\n%s\nimux-core:\n%s", a.Stdout, b.Stdout)
+	}
+}

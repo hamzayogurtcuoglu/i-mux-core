@@ -96,7 +96,7 @@ func lostServer(error) error { return fmt.Errorf("server exited unexpectedly") }
 // helloEnv says which variables a client passes to the server (ARCHITECTURE.md §5).
 func helloEnv(name string) bool {
 	switch name {
-	case "TERM", "COLORTERM", "LANG", "TERM_PROGRAM", "PATH", "HOME", "TMUX":
+	case "TERM", "COLORTERM", "LANG", "TERM_PROGRAM", "PATH", "HOME", "TMUX", "TMUX_PANE":
 		return true
 	}
 	return strings.HasPrefix(name, "LC_") || strings.HasPrefix(name, "IMUX_")

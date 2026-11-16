@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 )
 
 // Host is what the commands need of the server. Its methods run in the server loop.
@@ -38,6 +40,10 @@ type Host interface {
 	StatusLines() int
 	// SwitchClient makes an attached client show another session.
 	SwitchClient(name string, s *model.Session) error
+	// DefaultSize is the size of a new window of s (tmux's default_window_size).
+	DefaultSize(s *model.Session) (sx, sy int)
+	// RemovePane takes a pane out, killing its program, and its window and session if empty.
+	RemovePane(p *model.Pane)
 }
 
 // ClientInfo is an attached client, as the commands see it.
@@ -66,6 +72,48 @@ type Item struct {
 	Client *Client
 	Cmd    *Command
 	Out    *strings.Builder
+	// Current is the command list's current target (tmux's cmdq state): what a command made
+	// is the default target of the commands after it.
+	Current *target.State
+}
+
+// targetContext is what the item's targets are looked up in.
+func (it *Item) targetContext() *target.Context {
+	ctx := &target.Context{Tree: it.Host.Tree(), Current: it.Current}
+	for _, c := range it.Host.Clients() {
+		ctx.Clients = append(ctx.Clients, target.Client{Name: c.Name, Session: c.Session, Activity: c.Activity})
+	}
+	if it.Client != nil {
+		if it.Client.AttachTo != nil {
+			tc := target.Client{Name: it.Client.Name, Session: it.Client.AttachTo, Activity: it.Host.Now()}
+			ctx.Clients = append(ctx.Clients, tc)
+			ctx.Client = &ctx.Clients[len(ctx.Clients)-1]
+		}
+		if p, ok := strings.CutPrefix(it.Client.Env["TMUX_PANE"], "%"); ok {
+			if id, err := strconv.Atoi(p); err == nil {
+				ctx.Inside = it.Host.Tree().Pane(id)
+			}
+		}
+	}
+	return ctx
+}
+
+// find looks up a target (tmux's cmd_find_target).
+func (it *Item) find(t string, typ target.Type, flags int) (target.State, error) {
+	return target.Find(it.targetContext(), t, typ, flags)
+}
+
+// findFlag looks up the target given with flag f, or the current one.
+func (it *Item) findFlag(f byte, typ target.Type, flags int) (target.State, error) {
+	t, _ := it.Cmd.Args.Get(f)
+	return it.find(t, typ, flags)
+}
+
+// setCurrent makes st the command list's current target.
+func (it *Item) setCurrent(st target.State) {
+	if it.Current != nil {
+		*it.Current = st
+	}
 }
 
 // Print writes a line of the command's output.
@@ -86,6 +134,10 @@ var implemented = map[string]execFunc{
 	"send-keys":      sendKeys,
 	"set-option":     setOption,
 	"switch-client":  switchClient,
+	"new-window":     newWindow,
+	"split-window":   splitWindow,
+	"select-window":  selectWindow,
+	"select-pane":    selectPane,
 }
 
 // Result is what a command list gave: its output, its errors and whether it failed.
@@ -112,16 +164,20 @@ func runList(h Host, c *Client, list *List, out *strings.Builder) Result {
 	var errs strings.Builder
 	failed := false
 	skip := -1
+	current := &target.State{Idx: -1}
 	for _, cmd := range list.Commands {
 		if cmd.Group == skip {
 			continue
 		}
-		if err := runOne(h, c, cmd, out); err != nil {
-			// A config file's errors say where they come from (tmux's cfg_add_cause).
-			if cmd.File != "" {
-				fmt.Fprintf(&errs, "%s:%d: ", cmd.File, cmd.Line)
+		if err := runOne(h, c, cmd, out, current); err != nil {
+			// A quiet error (a target not found quietly) fails with no message.
+			if err.Error() != "" {
+				// A config file's errors say where they come from (tmux's cfg_add_cause).
+				if cmd.File != "" {
+					fmt.Fprintf(&errs, "%s:%d: ", cmd.File, cmd.Line)
+				}
+				errs.WriteString(err.Error() + "\n")
 			}
-			errs.WriteString(err.Error() + "\n")
 			failed = true
 			skip = cmd.Group
 		}
@@ -129,12 +185,12 @@ func runList(h Host, c *Client, list *List, out *strings.Builder) Result {
 	return Result{Stdout: out.String(), Stderr: errs.String(), Failed: failed}
 }
 
-func runOne(h Host, c *Client, cmd *Command, out *strings.Builder) error {
+func runOne(h Host, c *Client, cmd *Command, out *strings.Builder, current *target.State) error {
 	f := implemented[cmd.Spec.Name]
 	if f == nil {
 		return fmt.Errorf("%s: not implemented by imux-core yet", cmd.Spec.Name)
 	}
-	return f(&Item{Host: h, Client: c, Cmd: cmd, Out: out})
+	return f(&Item{Host: h, Client: c, Cmd: cmd, Out: out, Current: current})
 }
 
 // RunConfig parses and runs a config file, as tmux's source-file does: a file that does not

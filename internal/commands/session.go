@@ -4,83 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 )
 
-// The session commands of task C2.3: new-session (detached), has-session, kill-session,
-// kill-server and start-server. Target resolution here covers sessions only; the full rules
-// come with task C3.3.
+// The session commands of task C2.3: new-session, has-session, kill-session, kill-server and
+// start-server; their targets are looked up as tmux does (internal/target).
 
-// findSession resolves a session target (-t) as tmux's cmd_find does for sessions: none is
-// the best session; "$id"; "=name" exactly; else a name exactly, then a unique prefix of one,
-// then a unique fnmatch pattern. A window or pane part after ':' is ignored.
-func findSession(t *model.Tree, target string, given bool) (*model.Session, error) {
-	return findSessionFor(t, target, given, false)
-}
-
-// findSessionFor is findSession, with no target preferring a session no client shows
-// (tmux's CMD_FIND_PREFER_UNATTACHED, for attach-session and switch-client).
-func findSessionFor(t *model.Tree, target string, given, preferUnattached bool) (*model.Session, error) {
-	if !given {
-		if s := t.BestSessionFor(preferUnattached); s != nil {
-			return s, nil
-		}
-		return nil, errors.New("no current target")
-	}
-	name := target
-	if i := strings.IndexByte(name, ':'); i >= 0 {
-		name = name[:i]
-	}
-	fail := func(n string) error { return fmt.Errorf("can't find session: %s", n) }
-	if strings.HasPrefix(name, "$") {
-		if id, err := strconv.Atoi(name[1:]); err == nil {
-			if s := t.Session(id); s != nil {
-				return s, nil
-			}
-		}
-		return nil, fail(name)
-	}
-	if exact, ok := strings.CutPrefix(name, "="); ok {
-		if s := t.SessionByName(exact); s != nil {
-			return s, nil
-		}
-		return nil, fail(exact)
-	}
-	if s := t.SessionByName(name); s != nil {
-		return s, nil
-	}
-	var found *model.Session
-	n := 0
-	for _, s := range t.Sessions() {
-		if strings.HasPrefix(s.Name, name) {
-			found, n = s, n+1
-		}
-	}
-	if n == 1 {
-		return found, nil
-	}
-	if n == 0 {
-		for _, s := range t.Sessions() {
-			if ok, _ := path.Match(name, s.Name); ok {
-				found, n = s, n+1
-			}
-		}
-		if n == 1 {
-			return found, nil
-		}
-	}
-	return nil, fail(name)
-}
-
+// targetSession is the session -t finds.
 func targetSession(it *Item) (*model.Session, error) {
-	t, given := it.Cmd.Args.Get('t')
-	return findSession(it.Host.Tree(), t, given)
+	st, err := it.findFlag('t', target.Session, 0)
+	return st.S, err
 }
 
 func hasSession(it *Item) error {
@@ -171,7 +110,15 @@ func newSession(it *Item) error {
 	if attach {
 		it.Client.AttachTo = s
 	}
+	if !a.Has('d') {
+		it.setCurrent(sessionState(s))
+	}
 	return nil
+}
+
+// sessionState is cmd_find_from_session.
+func sessionState(s *model.Session) target.State {
+	return target.State{S: s, WL: s.Current, Idx: -1, W: s.Current.Window, P: s.Current.Window.Active}
 }
 
 // checkAttach is what stops a client attaching: no terminal, or already inside a session.
@@ -204,10 +151,22 @@ func attachSession(it *Item) error {
 	if it.Client.Env["TMUX"] != "" && it.Client.TTY {
 		return errors.New("sessions should be nested with care, unset $TMUX to force")
 	}
-	target, given := a.Get('t')
-	s, err := findSessionFor(t, target, given, true)
+	tflag, _ := a.Get('t')
+	typ, flags := target.Session, target.PreferUnattached
+	if strings.ContainsAny(tflag, ":.") {
+		typ, flags = target.Pane, 0
+	}
+	st, err := it.find(tflag, typ, flags)
 	if err != nil {
 		return err
+	}
+	s := st.S
+	if st.WL != nil {
+		if st.P != nil {
+			t.SetActivePane(st.W, st.P)
+		}
+		s.SelectWindow(st.WL)
+		it.setCurrent(target.State{S: s, WL: st.WL, Idx: st.WL.Index, W: st.WL.Window, P: st.WL.Window.Active})
 	}
 	if !it.Client.TTY {
 		return errors.New("open terminal failed: not a terminal")
@@ -234,14 +193,15 @@ func detachClient(it *Item) error {
 	}
 	// The target client is found first, as tmux does for commands with CMD_CLIENT_TFLAG;
 	// -s's session may be missing (CMD_FIND_CANFAIL).
-	clients := it.Host.Clients()
-	target, err := findClient(clients, a, 't')
+	tc, err := it.findClient('t')
 	if err != nil {
 		return err
 	}
+	clients := it.Host.Clients()
 	if a.Has('s') {
-		s, err := findSession(it.Host.Tree(), mustGet(a, 's'), true)
-		if err != nil {
+		st, _ := it.find(mustGet(a, 's'), target.Session, target.CanFail)
+		s := st.S
+		if s == nil {
 			return nil
 		}
 		for _, c := range clients {
@@ -253,13 +213,13 @@ func detachClient(it *Item) error {
 	}
 	if a.Has('a') {
 		for _, c := range clients {
-			if c.Name != target.Name {
+			if c.Name != tc.Name {
 				it.Host.Detach(c.Name)
 			}
 		}
 		return nil
 	}
-	it.Host.Detach(target.Name)
+	it.Host.Detach(tc.Name)
 	return nil
 }
 
@@ -268,27 +228,22 @@ func mustGet(a *Args, f byte) string {
 	return v
 }
 
-// findClient resolves -t as a client: its name, or without -t the most recently active one.
-func findClient(clients []ClientInfo, a *Args, flag byte) (ClientInfo, error) {
-	name, given := a.Get(flag)
+// findClient resolves flag ('t' or 'c') as a client: its name, or when not given the current
+// client (tmux's cmd_find_client).
+func (it *Item) findClient(flag byte) (*target.Client, error) {
+	ctx := it.targetContext()
+	name, given := it.Cmd.Args.Get(flag)
 	if !given {
-		var best ClientInfo
-		for _, c := range clients {
-			if best.Name == "" || c.Activity.After(best.Activity) {
-				best = c
-			}
+		c := target.CurrentClient(ctx)
+		if c == nil {
+			return nil, errors.New("no current client")
 		}
-		if best.Name == "" {
-			return best, errors.New("no current client")
-		}
-		return best, nil
+		return c, nil
 	}
-	for _, c := range clients {
-		if c.Name == name || strings.TrimPrefix(c.Name, "/dev/") == name {
-			return c, nil
-		}
+	if c := target.FindClient(ctx, name); c != nil {
+		return c, nil
 	}
-	return ClientInfo{}, fmt.Errorf("can't find client: %s", name)
+	return nil, fmt.Errorf("can't find client: %s", strings.TrimSuffix(name, ":"))
 }
 
 // size reads -x or -y: 1 to 65535, or "-" for the default (there is no client size here).
