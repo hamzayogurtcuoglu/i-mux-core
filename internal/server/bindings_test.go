@@ -208,6 +208,18 @@ func TestBindingClient(t *testing.T) {
 	w := newKeyWorld(t)
 	w.run(t, "bind", "-n", "z", "set -gF @who '#{client_name}:#{client_key_table}'")
 	w.typed("z")
-	name := strings.TrimSpace(w.ask(t, "display-message", "-p", "#{client_name}"))
+	// Under -race the key event may take a moment to be processed; poll for the client name.
+	deadline := time.Now().Add(10 * time.Second)
+	name := ""
+	for {
+		name = strings.TrimSpace(w.ask(t, "display-message", "-p", "#{client_name}"))
+		if name != "" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("client_name stayed empty")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 	w.waitOption(t, "@who", name+":root")
 }
