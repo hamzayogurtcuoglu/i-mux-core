@@ -1,0 +1,53 @@
+# Messages (C4.5): display-message on the status line, at the moment it shows and after it
+# goes. The pane runs `exec cat`, never an interactive shell.
+conf messages.conf
+size 60x10
+run new-session -d -s a -n w 'exec cat'
+client c 60x10
+# Until a key: the message replaces the status line and the cursor is hidden.
+run display-message -d 0 hello
+screen c
+# A key clears it, and goes on to the pane.
+type c x
+screen c
+# Styles in the message, and a format.
+run display-message -d 0 '#[fg=red]styled #{session_name} ##'
+screen c
+# message-style with a width and an alignment.
+run set -g message-style 'bg=blue,fg=white,width=20,align=centre' ; display-message -d 0 centred
+screen c
+run set -gu message-style ; display-message -d 3000 timed
+screen c
+# -d 1 is gone at once.
+run display-message -d 1 gone
+screen c
+# -N: keys do not clear it, and are dropped.
+run display-message -N -d 5000 sticky
+type c y
+screen c
+run display-message -d 1 clear
+screen c
+# The panes are frozen while a message shows, unless -C.
+run display-message -d 0 frozen ; send-keys -t %0 abc
+screen c
+type c z
+screen c
+run display-message -C -d 0 unfrozen ; send-keys -t %0 def
+screen c
+type c w
+screen c
+# A key binding's error, its first letter capitalised.
+run bind -n F2 select-pane -t nope
+type c '\x1bOQ'
+screen c
+type c v
+# Without a status line the message takes the last line; with two, message-line chooses.
+run set -g status off ; display-message -d 0 'no status'
+screen c
+type c u
+run set -g status 2 ; set -g message-line 1 ; display-message -d 0 'line one'
+screen c
+type c t
+run set -g status-position top ; display-message -d 0 'at the top'
+screen c
+run kill-server

@@ -39,6 +39,10 @@ type attachedClient struct {
 	statusAt    time.Time
 	statusTimer *time.Timer
 
+	// The message on the status line (task C4.5), and the timer that clears it.
+	message      *message
+	messageTimer *time.Timer
+
 	// The key table the client is in (tmux's keytable), when it was set (its
 	// activity_time), and the repeat state (CLIENT_REPEAT, last_key, repeat_timer).
 	keyTable    string
@@ -131,6 +135,10 @@ func (s *Server) endClient(c *attachedClient, t ipc.Type, reason string, code in
 	if c.statusTimer != nil {
 		c.statusTimer.Stop()
 		c.statusTimer = nil
+	}
+	if c.messageTimer != nil {
+		c.messageTimer.Stop()
+		c.messageTimer = nil
 	}
 	c.tty.Stop(c.tty.Sy)
 	s.send(c)

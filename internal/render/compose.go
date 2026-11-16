@@ -111,6 +111,13 @@ type View struct {
 	// Status holds the status lines' cells, StatusLines lines of Sx cells; nil leaves them
 	// blank (the status line itself comes with TASKS.md C4.2).
 	Status [][]vt.Cell
+	// Message, when not nil, is what the status lines show while a message is shown (tmux's
+	// status_message_redraw): at least one line, over the window's last (or first) line when
+	// the status is off.
+	Message [][]vt.Cell
+	// Freeze keeps the panes as the last frame showed them (TTY_FREEZE: a message is shown);
+	// NoCursor hides the cursor (TTY_NOCURSOR).
+	Freeze, NoCursor bool
 
 	Styles Styles
 	Mouse  bool // the session's mouse option (on by default in tmux 3.8)

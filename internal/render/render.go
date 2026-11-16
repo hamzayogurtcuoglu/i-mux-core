@@ -115,6 +115,11 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 		}
 		g := rect{p.Xoff - sc.ox, p.Yoff - sc.oy + areaY, p.Sx, p.Sy}
 		geom[p] = g
+		// A frozen client (a message is shown) keeps what it showed of the panes until a
+		// whole redraw, as tmux leaves its terminal alone while TTY_FREEZE is set.
+		if v.Freeze && r.last != nil && r.last.Sx == f.Sx && r.last.Sy == f.Sy && r.geom[p] == g {
+			hold[p] = true
+		}
 		p.Mu.Lock()
 		syncing := p.Term.Screen.Mode&vt.ModeSync != 0
 		p.Mu.Unlock()
@@ -185,8 +190,13 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 	return f
 }
 
-// status fills the status lines.
+// status fills the status lines, or the message lines over them.
 func (r *Renderer) status(f *Frame, v *View, lines int) {
+	src := v.Status
+	if v.Message != nil {
+		src = v.Message
+		lines = min(len(v.Message), v.Sy)
+	}
 	y0 := f.Sy - lines
 	if v.StatusTop {
 		y0 = 0
@@ -196,8 +206,8 @@ func (r *Renderer) status(f *Frame, v *View, lines int) {
 		for x := range line {
 			line[x] = vt.DefaultCell
 		}
-		if i < len(v.Status) {
-			copy(line, v.Status[i])
+		if i < len(src) {
+			copy(line, src[i])
 		}
 		// Theme colours become the client's colours, as tmux's tty does for every cell.
 		for x := range line {
@@ -222,7 +232,7 @@ func (r *Renderer) cursor(f *Frame, v *View, sc *scene, areaY int) {
 	p.Mu.Unlock()
 	visible := cx >= sc.ox && cx <= sc.ox+sc.sx && cy >= sc.oy && cy <= sc.oy+sc.sy
 	f.Cx, f.Cy = cx-sc.ox, cy-sc.oy+areaY
-	if !visible || !paneVisible(p) {
+	if !visible || !paneVisible(p) || v.NoCursor {
 		mode &^= vt.ModeCursor
 	}
 	if mode&vt.ModeSync != 0 {

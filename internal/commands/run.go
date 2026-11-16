@@ -55,8 +55,17 @@ type Host interface {
 	RunJob(spec JobSpec, done func(out []byte, status pty.ExitStatus, err error))
 	// After calls f in the loop after d (run-shell -d).
 	After(d time.Duration, f func())
-	// ShowMessage shows a message on a client's status line (display-message without -p).
-	ShowMessage(client, msg string, delay int)
+	// ShowMessage shows a message on a client's status line (tmux's status_message_set).
+	ShowMessage(client, msg string, o MessageOptions)
+}
+
+// MessageOptions are how a message is shown (status_message_set's arguments).
+type MessageOptions struct {
+	// Delay is how long it shows, in milliseconds: -1 for display-time, 0 until a key.
+	Delay int
+	// IgnoreStyles shows its # as text; IgnoreKeys (display-message -N) keeps it up through
+	// keys; NoFreeze (display-message -C) lets the panes update under it.
+	IgnoreStyles, IgnoreKeys, NoFreeze bool
 }
 
 // JobSpec is a job to run: a shell command (Shell -c Command) or an argv, in Dir, with Env.

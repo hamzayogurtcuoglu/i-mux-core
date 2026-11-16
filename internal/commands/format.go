@@ -156,7 +156,7 @@ func displayMessage(it *Item) error {
 	case a.Has('p'):
 		it.Print(msg)
 	case tc != nil:
-		it.Host.ShowMessage(tc.Name, msg, delay)
+		it.Host.ShowMessage(tc.Name, msg, MessageOptions{Delay: delay, IgnoreKeys: a.Has('N'), NoFreeze: a.Has('C')})
 	}
 	return nil
 }

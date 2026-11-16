@@ -45,6 +45,12 @@ func (s *Server) view(c *attachedClient) *render.View {
 	v.StatusLines = s.statusLineSize(c)
 	v.StatusTop = c.session.Options.GetNumber("status-position") == 0
 	v.Status = s.statusCells(c)
+	if c.message != nil {
+		// status_message_set: the message line, the panes frozen unless -C, no cursor.
+		v.Message = s.messageLines(c)
+		v.Freeze = !c.message.noFreeze
+		v.NoCursor = true
+	}
 	return v
 }
 

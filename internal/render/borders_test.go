@@ -103,3 +103,38 @@ func TestBorderArrows(t *testing.T) {
 		t.Errorf("arrow towards the right pane: %q", gc.Data)
 	}
 }
+
+// A message over a window with no status line takes its last line; the cursor is hidden, and
+// a frozen client keeps the panes as they were.
+func TestMessage(t *testing.T) {
+	tw := newTestWindow(t, 10, 3)
+	p := tw.firstPane([]byte("ab"))
+	v := &View{Window: tw.w, Sx: 10, Sy: 3, Styles: DefaultStyles()}
+	r := New()
+	cl := newTestClient(t, "xterm-256color", 10, 3)
+	r.Draw(cl.tty, r.Compose(v, time.Time{}))
+
+	msg := make([]vt.Cell, 10)
+	for i := range msg {
+		msg[i] = vt.DefaultCell
+		msg[i].Data = "m"
+	}
+	v.Message, v.Freeze, v.NoCursor = [][]vt.Cell{msg}, true, true
+	_, _ = p.Term.Write([]byte("cd"))
+	f := r.Compose(v, time.Time{})
+	r.Draw(cl.tty, f)
+	if got := row(f, 2); got != "mmmmmmmmmm" {
+		t.Errorf("message line %q", got)
+	}
+	if got := row(f, 0); got != "ab        " {
+		t.Errorf("frozen pane %q", got)
+	}
+	if f.Mode&vt.ModeCursor != 0 {
+		t.Errorf("cursor shown")
+	}
+
+	v.Message, v.Freeze, v.NoCursor = nil, false, false
+	if got := row(r.Compose(v, time.Time{}), 0); got != "abcd      " {
+		t.Errorf("after the message %q", got)
+	}
+}

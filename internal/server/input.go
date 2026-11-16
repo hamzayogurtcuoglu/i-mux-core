@@ -146,12 +146,19 @@ func (s *Server) inputKey(c *attachedClient, ev *input.Event) {
 		c.in.focused = false
 		s.updateFocus(c.window())
 		s.fireClient("client-focus-out", c)
+		// tmux fires focus keys as keys too: they clear a message.
+		s.messageKey(c)
 		return
 	case keys.FocusIn:
 		c.in.focused = true
 		s.fireClient("client-focus-in", c)
 		s.updateFocus(c.window())
 		s.updateLatest(c)
+		s.messageKey(c)
+		return
+	}
+	// A key clears the message, or is dropped when the message ignores keys.
+	if !s.messageKey(c) {
 		return
 	}
 	// A key makes the client its window's latest and its session active

@@ -483,7 +483,13 @@ modifyOtherKeys).
   layouts (a sidebar and one to four agent panes, zoomed and not) with its border options
   against tmux. Not yet: the marked pane's reversed borders (no `select-pane -m` yet).
 - **Messages:** `display-message` shows on the status line for `display-time`, or `-d N` ms;
-  `-d 0` until a key; `-d 1` clears a message at once.
+  `-d 0` until a key; `-d 1` clears a message at once. A key clears the message and goes on;
+  `-N` keeps it through keys, which are dropped. While it shows, the panes are not drawn
+  (unless `-C`) and the cursor is hidden. It is drawn with `message-format` in
+  `message-style` (whose `width` and `align` place it) on `message-line`, or over the window's
+  last line when the status is off. A key binding's error shows there, capitalised.
+  `testdata/diff/messages.txt` checks these against tmux, typing into the client with the
+  harness's `type` step.
 - **Popups:** `-w -h` (cells or percentages), `-x -y`, `-E` close on exit, `-d` start
   directory, `-c` client and `-t` pane, and focus and mouse inside the popup.
 - **Menus:** keyboard (keys, arrows, Enter, Escape) and mouse (`-M`, `-O` stay open on release),

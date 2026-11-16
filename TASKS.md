@@ -1134,7 +1134,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   and not) match tmux.
 - **Depends on:** C4.1.
 
-### [ ] C4.5 Messages
+### [x] C4.5 Messages
 - **Goal:** `display-message` shows like tmux.
 - **Details:**
   - The message replaces the status line for `display-time`, or `-d N` ms; `-d 0` until a key.

@@ -58,7 +58,3 @@ func (s *Server) ServerInfo() *format.Server {
 		Pid: s.Pid(), Start: s.started, SocketPath: s.opts.SocketPath, Version: version.Tmux,
 	}
 }
-
-// ShowMessage implements commands.Host. Messages on the status line come with task C4.2;
-// until then display-message without -p shows nothing.
-func (s *Server) ShowMessage(client, msg string, delay int) {}

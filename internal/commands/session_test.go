@@ -81,7 +81,7 @@ func (h *fakeHost) ServerInfo() *format.Server {
 	return &format.Server{Pid: 42, Start: time.Unix(1e9, 0), SocketPath: "/tmp/s", Version: "3.8"}
 }
 
-func (h *fakeHost) ShowMessage(client, msg string, delay int) {
+func (h *fakeHost) ShowMessage(client, msg string, _ MessageOptions) {
 	h.messages = append(h.messages, client+": "+msg)
 }
 

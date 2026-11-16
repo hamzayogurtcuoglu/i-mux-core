@@ -195,8 +195,9 @@ func (s *Server) armRepeat(c *attachedClient, d time.Duration) {
 
 // runBinding is key_bindings_dispatch: the binding's commands run in the loop for the
 // client that pressed the key, from its session, window and pane as the current target
-// (cmd_find_from_client). tmux shows their output and errors on the client's message
-// line, which is drawn with task C4.5.
+// (cmd_find_from_client). Errors go on the client's message line, their first letter
+// capitalised, as cmdq_error does; output goes there too until view mode comes (tmux shows
+// it in a view mode, task C4.8).
 func (s *Server) runBinding(c *attachedClient, bd *keys.Binding) {
 	list, _ := bd.Cmds.(*commands.List)
 	if list == nil {
@@ -205,11 +206,19 @@ func (s *Server) runBinding(c *attachedClient, bd *keys.Binding) {
 	sess := c.session
 	st := target.State{S: sess, WL: sess.Current, Idx: -1, W: sess.Current.Window, P: sess.Current.Window.Active}
 	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, func(res commands.Result) {
-		for _, line := range strings.Split(strings.TrimSuffix(res.Stdout+res.Stderr, "\n"), "\n") {
-			if line != "" {
-				s.ShowMessage(c.name, line, -1)
+		show := func(out string, capital bool) {
+			for _, line := range strings.Split(strings.TrimSuffix(out, "\n"), "\n") {
+				if line == "" {
+					continue
+				}
+				if capital {
+					line = strings.ToUpper(line[:1]) + line[1:]
+				}
+				s.ShowMessage(c.name, line, commands.MessageOptions{Delay: -1, IgnoreStyles: true})
 			}
 		}
+		show(res.Stdout, false)
+		show(res.Stderr, true)
 		s.redrawAll()
 	})
 }

@@ -248,3 +248,47 @@ func TestDrawLines(t *testing.T) {
 		t.Errorf("line 1 starts %+v", lines[1].Cells[0])
 	}
 }
+
+// MessageLines: a line even with the status off, filled in message-style; message-style's
+// width and align place it; with ignoreStyles its # are text.
+func TestMessageLines(t *testing.T) {
+	tr := model.NewTree()
+	oo := tr.Options.Session
+	sess, _ := tr.NewSession("s", "", time.Now())
+	wl, _ := tr.NewWindow(sess, -1, 0, 80, 24)
+	ctx := &format.Context{Tree: tr}
+	ctx.Defaults(nil, sess, wl, nil)
+
+	text := func(cells []vt.Cell) string {
+		var b strings.Builder
+		for _, c := range cells {
+			b.WriteString(c.Data)
+		}
+		return b.String()
+	}
+	lines := MessageLines(ctx, oo, 10, nil, "hi #[x]", true)
+	if len(lines) != 1 || text(lines[0]) != "hi #[x]   " {
+		t.Fatalf("lines %q", text(lines[0]))
+	}
+	if bg := lines[0][9].Bg; bg != vt.ColorFlagTheme|5 {
+		t.Errorf("fill: bg %#x", bg)
+	}
+
+	oo.SetString("message-style", false, "bg=red,width=4,align=right")
+	status := []Line{{Cells: make([]vt.Cell, 10)}, {Cells: make([]vt.Cell, 10)}}
+	for i := range status {
+		for x := range status[i].Cells {
+			status[i].Cells[x] = vt.DefaultCell
+			status[i].Cells[x].Data = "s"
+		}
+	}
+	oo.SetNumber("message-line", 1)
+	// The area is the last 4 cells; message-format's #[align=right] puts the text at its end.
+	lines = MessageLines(ctx, oo, 10, status, "#[fg=blue]abc", false)
+	if len(lines) != 2 || text(lines[0]) != "ssssssssss" || text(lines[1]) != "sssssssabc" {
+		t.Fatalf("lines %q %q", text(lines[0]), text(lines[1]))
+	}
+	if lines[1][7].Fg != vt.ColorFromString("blue") {
+		t.Errorf("styled: fg %#x", lines[1][7].Fg)
+	}
+}
