@@ -106,6 +106,8 @@ type Pane struct {
 
 	Dead   bool
 	Status pty.ExitStatus
+	// DeadTime is when a pane that remain-on-exit kept died (#{pane_dead_time}).
+	DeadTime time.Time
 
 	// Argv, Cwd and Shell are what the pane was started with (#{pane_start_command},
 	// #{pane_start_path}); Shell is the default-shell then.

@@ -1031,7 +1031,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   `source-file`'s forms and errors, with tmux 3.8. The startup config's errors are kept for
   the first client's view mode (C4.8); `source-file -` and `-v` are refused.
 
-### [ ] C3.12 Pane lifecycle
+### [x] C3.12 Pane lifecycle
 - **Goal:** dead and exited panes behave like tmux.
 - **Details:**
   - `remain-on-exit` keeps a dead pane, with tmux's "Pane is dead" line
@@ -1044,6 +1044,12 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** difftest for exit codes 0 and 3, a kill by signal, respawn, and the last-pane
   case.
 - **Depends on:** C3.9.
+- **Status:** done. `remain-on-exit` (`on`, `failed`, and `key`/`failed-key` as `on`/`failed`
+  until key presses in dead panes matter) keeps a dead pane, fires `pane-died`, records
+  `#{pane_dead_time}` and writes `remain-on-exit-format` at its bottom; `respawn-pane` brings
+  it back. `testdata/diff/lifecycle.txt` checks exits 0 and 3, a signal, the dead-pane line,
+  respawning, `failed`, and the last pane ending its session and the server, against tmux
+  3.8. The line's `#[…]` styles come with C4.1.
 
 ### [ ] C3.13 Environment of panes and jobs
 - **Goal:** programs in panes see the environment they see under tmux.

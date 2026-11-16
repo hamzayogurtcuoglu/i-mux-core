@@ -168,6 +168,12 @@ var timeVars = map[string]timeVar{
 		}
 		return c.S.Created, true
 	},
+	"pane_dead_time": func(c *Context) (time.Time, bool) {
+		if c.P == nil || c.P.DeadTime.IsZero() {
+			return time.Time{}, false
+		}
+		return c.P.DeadTime, true
+	},
 	"start_time": func(c *Context) (time.Time, bool) {
 		if c.Server == nil {
 			return time.Time{}, false

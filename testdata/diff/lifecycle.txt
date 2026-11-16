@@ -1,0 +1,37 @@
+# Pane lifecycle (C3.12): remain-on-exit keeps a dead pane with tmux's "Pane is dead" line,
+# for an exit with 0 and with 3 and a kill by a signal; respawn-pane brings it back; the last
+# pane closing ends its session and, with the last session, the server.
+size 60x8
+normalize [A-Z][a-z][a-z]\ [A-Z][a-z][a-z]\ [\ 0-9][0-9]\ [0-9:]{8}\ [0-9]{4} DATE
+run new-session -d -s l -n w 'exec cat'
+run set -g remain-on-exit on
+run split-window -h -t l:w 'printf "out 3\n"; exit 3'
+wait -t l:w.1 '#{pane_dead}' == 1
+run split-window -t l:w.1 'printf "out 0\n"; exit 0'
+wait -t l:w.2 '#{pane_dead}' == 1
+run split-window -t l:w.0 'printf "killed\n"; kill -9 $$'
+wait -t l:w.1 '#{pane_dead}' == 1
+run lsp -t l:w -F '#{pane_index} #{pane_dead} #{pane_dead_status} #{pane_dead_signal} #{?pane_dead_time,time,}'
+capture l:w.1
+capture l:w.2
+capture l:w.3
+run display -p -t l:w.2 '#{cursor_flag} #{cursor_y}'
+run set -p -t l:w.3 remain-on-exit-format 'gone: #{pane_dead_status} ## #{e|+:1,1}'
+run respawn-pane -t l:w.3 'printf "again\n"; exit 5'
+wait -t l:w.3 '#{pane_dead_status}' == 5
+capture l:w.3
+run respawn-pane -t l:w.2
+wait -t l:w.2 '#{pane_dead}' == 1
+run lsp -t l:w -F '#{pane_index} #{pane_dead} #{pane_dead_status}'
+# remain-on-exit failed: a pane that ends well goes, one that fails stays.
+run new-window -t l -n f 'exec cat' ; set -w -t l:f remain-on-exit failed
+run split-window -t l:f 'exit 0' ; split-window -t l:f 'sleep 0.2; exit 2'
+wait -t l:f '#{window_panes}' == 2
+wait -t l:f.1 '#{pane_dead}' == 1
+run lsp -t l:f -F '#{pane_index} #{pane_dead} #{pane_dead_status}'
+# The last pane of a session ends it; the last session ends the server.
+run set -gu remain-on-exit ; new-session -d -s single 'sleep 0.2'
+wait '#{N/s:single}' == 0
+run ls -F '#{session_name}'
+run kill-session -t l
+run has-session

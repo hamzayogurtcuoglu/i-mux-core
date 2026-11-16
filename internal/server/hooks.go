@@ -1,9 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/commands"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
@@ -101,14 +104,53 @@ func remainOnExit(p *model.Pane) bool {
 	return false
 }
 
-// paneDied keeps a dead pane (remain-on-exit) and fires pane-died. The line tmux writes at
-// its bottom (remain-on-exit-format) comes with the pane lifecycle (task C3.12).
+// paneDied keeps a dead pane (remain-on-exit, server_destroy_pane): pane-died fires, and
+// remain-on-exit-format, expanded for the pane, is written on a new line at its bottom; its
+// cursor is hidden.
 func (s *Server) paneDied(p *model.Pane, status pty.ExitStatus) {
-	if p.Term != nil {
-		p.Mu.Lock()
-		p.Term.Screen.Mode &^= vt.ModeCursor
-		p.Mu.Unlock()
-	}
+	p.DeadTime = s.opts.Now()
 	s.firePaneExit("pane-died", p, status)
+	if p.Term == nil {
+		return
+	}
+	text := ""
+	if f := p.Options.GetString("remain-on-exit-format"); f != "" {
+		ctx := &format.Context{Tree: s.tree, Server: s.ServerInfo(), Clients: s.Clients(), Now: s.opts.Now}
+		ctx.Defaults(nil, nil, nil, p)
+		text = ctx.Expand(f)
+	}
+	p.Mu.Lock()
+	sx, sy := p.Term.Screen.SizeX(), p.Term.Screen.SizeY()
+	if text != "" {
+		// screen_write_scrollregion, cursormove to the last line, linefeed, then format_draw
+		// of the line within the pane's width. Styles in the format are drawn with task C4.1;
+		// until then the text alone is.
+		line := format.TrimLeft(text, sx)
+		_, _ = p.Term.Write([]byte(fmt.Sprintf("\033[r\033[%d;1H\n", sy) + stripStyles(line)))
+	}
+	p.Term.Screen.Mode &^= vt.ModeCursor
+	p.Mu.Unlock()
 	s.paneChanged(p)
+}
+
+// stripStyles drops the #[…] of a format's result and turns ## into #.
+func stripStyles(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '#' && i+1 < len(s) {
+			switch s[i+1] {
+			case '[':
+				if e := strings.IndexByte(s[i:], ']'); e >= 0 {
+					i += e
+					continue
+				}
+			case '#':
+				b.WriteByte('#')
+				i++
+				continue
+			}
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
 }

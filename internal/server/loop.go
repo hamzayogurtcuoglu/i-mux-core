@@ -393,7 +393,7 @@ func (s *Server) Respawn(p *model.Pane, spec pty.Spec) error {
 		title = p.Term.Screen.Title
 		p.Mu.Unlock()
 	}
-	p.Dead, p.Status = false, pty.ExitStatus{}
+	p.Dead, p.Status, p.DeadTime = false, pty.ExitStatus{}, time.Time{}
 	if err := s.Spawn(p, spec); err != nil {
 		return err
 	}
