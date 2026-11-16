@@ -41,6 +41,7 @@ func TestAttachDetach(t *testing.T) {
 	}
 	w.env = append(w.env, "TERM=xterm-256color", "TERMINFO="+terminfo)
 	w.session("a")
+	w.must("set", "-g", "status", "off")
 
 	var rec struct{ Enter, Leave string }
 	b, err := os.ReadFile("../../testdata/term/xterm-256color.json")
@@ -136,6 +137,7 @@ func TestAttachEnds(t *testing.T) {
 		w := newWorld(t)
 		w.env = append(w.env, "TERM=xterm-256color", "TERMINFO="+terminfo)
 		w.session("a")
+		w.must("set", "-g", "status", "off")
 		p, err := pty.New().Start(pty.Spec{
 			Path: bin, Argv: []string{"imux-core", "-u", "-S", w.socket, "attach", "-t", "a"},
 			Env: w.env, Dir: w.dir, Cols: 80, Rows: 24,

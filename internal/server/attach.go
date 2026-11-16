@@ -4,10 +4,12 @@ import (
 	"net"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/render"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/status"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/termout"
 )
 
@@ -30,6 +32,12 @@ type attachedClient struct {
 	gone     bool              // detached or exited: nothing more is sent
 	draw     drawState
 	in       inputState
+	format   *format.Client
+
+	// Cached status lines (task C4.2).
+	statusLines []status.Line
+	statusAt    time.Time
+	statusTimer *time.Timer
 
 	// The key table the client is in (tmux's keytable), when it was set (its
 	// activity_time), and the repeat state (CLIENT_REPEAT, last_key, repeat_timer).
@@ -70,6 +78,7 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	}
 	c.tty = termout.NewTTY(term, hello.Size.Cols, hello.Size.Rows)
 	c.tty.UTF8 = hello.UTF8
+	c.format = s.formatClient(c)
 	if f, err := ipc.Encode(ipc.TypeAttach, nil); err == nil {
 		_ = queue.Push(f)
 	}
@@ -118,6 +127,10 @@ func (s *Server) endClient(c *attachedClient, t ipc.Type, reason string, code in
 	if c.repeatTimer != nil {
 		c.repeatTimer.Stop()
 		c.repeatTimer = nil
+	}
+	if c.statusTimer != nil {
+		c.statusTimer.Stop()
+		c.statusTimer = nil
 	}
 	c.tty.Stop(c.tty.Sy)
 	s.send(c)

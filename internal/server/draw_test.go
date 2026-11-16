@@ -36,6 +36,14 @@ func TestAttachedClientDrawn(t *testing.T) {
 	}
 	c.Close()
 
+	// Turn the status line off so this test checks pane drawing, not the status renderer.
+	time.Sleep(50 * time.Millisecond)
+	sc, sr := dial(t, path, ipc.ProtocolVersion)
+	if res := command(t, sc, sr, "set", "-g", "status", "off"); res.Code != 0 {
+		t.Fatalf("set status off: %+v", res)
+	}
+	sc.Close()
+
 	conn, err := ipc.Dial(path)
 	if err != nil {
 		t.Fatal(err)

@@ -1094,7 +1094,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   by frame in `testdata/diff/screen.txt`. Drawing `#[…]` inside formats (`format_draw`) comes
   with the status line (C4.2).
 
-### [ ] C4.2 Status lines
+### [x] C4.2 Status lines
 - **Goal:** i-mux's tab bar and agent bar look and click exactly as on tmux.
 - **Details:**
   - `status on|off|2..5`, `status-position top|bottom`, `status-format[N]`.

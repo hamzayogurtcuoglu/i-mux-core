@@ -4,11 +4,11 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
-	"github.com/hamzayogurtcuoglu/i-mux-core/internal/style"
-	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
-
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/render"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/status"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/style"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
 
 // Drawing attached clients (TASKS.md C2.8, ARCHITECTURE.md §4.4): when what a client shows may
@@ -42,6 +42,7 @@ func (s *Server) view(c *attachedClient) *render.View {
 	// The status lines are left out of the window; what they show comes with task C4.2.
 	v.StatusLines = s.statusLineSize(c)
 	v.StatusTop = c.session.Options.GetNumber("status-position") == 0
+	v.Status = s.statusCells(c)
 	return v
 }
 
@@ -142,4 +143,62 @@ func (s *Server) borderStyles(c *attachedClient) render.Styles {
 	ind := w.Options.GetNumber("pane-border-indicators")
 	st.TwoPaneColours = ind == 1 || ind == 3 // colour, both
 	return st
+}
+
+// statusCells renders the status lines for c (task C4.2).
+func (s *Server) statusCells(c *attachedClient) [][]vt.Cell {
+	lines := s.statusLines(c)
+	out := make([][]vt.Cell, len(lines))
+	for i, ln := range lines {
+		out[i] = ln.Cells
+	}
+	return out
+}
+
+// statusLines renders and caches the status lines for c.
+func (s *Server) statusLines(c *attachedClient) []status.Line {
+	if c.statusLines != nil && c.statusAt.Equal(s.opts.Now()) {
+		return c.statusLines
+	}
+	ctx := &format.Context{
+		Tree:       s.tree,
+		Server:     s.ServerInfo(),
+		Clients:    s.clientFormats(),
+		Now:        s.opts.Now,
+		ItemClient: c.format,
+	}
+	ctx.Defaults(c.format, c.session, c.session.Current, nil)
+	c.statusLines = status.Draw(ctx, c.session.Options, c.tty.Sx)
+	c.statusAt = s.opts.Now()
+	s.scheduleStatusRefresh(c)
+	return c.statusLines
+}
+
+// scheduleStatusRefresh starts a timer for status-interval if one is not already pending.
+func (s *Server) scheduleStatusRefresh(c *attachedClient) {
+	if c.statusTimer != nil {
+		return
+	}
+	interval := time.Duration(c.session.Options.GetNumber("status-interval")) * time.Second
+	if interval <= 0 {
+		return
+	}
+	c.statusTimer = time.AfterFunc(interval, func() {
+		s.post(func() {
+			c.statusTimer = nil
+			c.statusLines = nil
+			s.markDirty(c)
+		})
+	})
+}
+
+// clientFormats returns the attached clients as format.Client values.
+func (s *Server) clientFormats() []*format.Client {
+	out := make([]*format.Client, 0, len(s.attached))
+	for _, c := range s.attached {
+		if !c.gone {
+			out = append(out, c.format)
+		}
+	}
+	return out
 }
