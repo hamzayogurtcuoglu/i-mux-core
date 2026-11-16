@@ -46,7 +46,9 @@ func newWindow(it *Item) error {
 	}
 	w := wl.Window
 	if n, ok := a.Get('n'); ok {
+		// A window named when made is not renamed automatically (spawn.c).
 		w.Name = n
+		w.Options.SetNumber("automatic-rename", 0)
 	} else {
 		w.Name = defaultWindowName(a.Strings(), it.shell(s))
 	}

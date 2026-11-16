@@ -867,7 +867,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   `pane-base-index` and `default-size` from it. Not yet: `-F` (formats, C3.5), checking styles
   (C4.1, a bad style is accepted until then), `set-hook`/`show-hooks` (C3.9).
 
-### [ ] C3.5 Format engine
+### [x] C3.5 Format engine
 - **Goal:** every format i-mux writes expands as it does in tmux.
 - **Details:**
   - Variables from COMPATIBILITY.md §4, each tied to the model.
@@ -882,6 +882,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     (difftest), in sessions with several windows, panes and user options.
   - A fuzz target.
 - **Depends on:** C3.4.
+- **Status:** done. `internal/format` ports `format.c` (expansion, modifiers, loops, lookups),
+  tmux's `regsub`, `fnmatch` and glibc's `strftime`, and every variable the model has so far;
+  `display-message` (`-c -d -F -l -p -t`), `set-option -F`, `show-options -F` and `%if`
+  conditions use it. `testdata/diff/formats.txt` expands 759 expressions under both engines,
+  in two sessions with several windows, panes and user options at every scope, with and
+  without an attached client: every format in i-mux's source and generated config, the agent
+  bar, every modifier and variable of the contract, and strftime. `FuzzExpand` fuzzes it.
+  What waits for later tasks is listed in COMPATIBILITY.md §4.
 
 ### [ ] C3.6 Session, window and pane commands
 - **Goal:** the commands i-mux uses to build its workspace work like tmux.

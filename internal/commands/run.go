@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
@@ -29,7 +30,7 @@ type Host interface {
 	SocketPath() string
 	Pid() int
 	// Clients lists the attached clients; Detach detaches one.
-	Clients() []ClientInfo
+	Clients() []*ClientInfo
 	Detach(name string)
 	// PaneKey sends a key to a pane, encoded as the pane asked (TASKS.md C2.11); false when
 	// the key has no encoding there.
@@ -43,14 +44,14 @@ type Host interface {
 	DefaultSize(s *model.Session) (sx, sy int)
 	// RemovePane takes a pane out, killing its program, and its window and session if empty.
 	RemovePane(p *model.Pane)
+	// ServerInfo is what the server's format variables give (pid, start_time, …).
+	ServerInfo() *format.Server
+	// ShowMessage shows a message on a client's status line (display-message without -p).
+	ShowMessage(client, msg string, delay int)
 }
 
-// ClientInfo is an attached client, as the commands see it.
-type ClientInfo struct {
-	Name     string // its terminal (#{client_name})
-	Session  *model.Session
-	Activity time.Time
-}
+// ClientInfo is an attached client, as the commands and formats see it.
+type ClientInfo = format.Client
 
 // Client is the client a command list came from; nil for the config file.
 type Client struct {
@@ -140,6 +141,7 @@ var implemented = map[string]execFunc{
 	"split-window":        splitWindow,
 	"select-window":       selectWindow,
 	"select-pane":         selectPane,
+	"display-message":     displayMessage,
 }
 
 // Result is what a command list gave: its output, its errors and whether it failed.
@@ -199,6 +201,9 @@ func runOne(h Host, c *Client, cmd *Command, out *strings.Builder, current *targ
 // parse or build runs nothing; a failing command skips the rest of its line, and the next lines
 // still run. It returns the errors, with their file and line.
 func RunConfig(h Host, file, src string, opts cmdlang.Options) []string {
+	if opts.Cond == nil {
+		opts.Cond = func(f string) bool { return format.True(ParseFormat(h, nil, f)) }
+	}
 	cmds, err := cmdlang.Parse(src, opts)
 	if err != nil {
 		var pe *cmdlang.Error

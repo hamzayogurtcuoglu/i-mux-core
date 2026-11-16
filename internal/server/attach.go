@@ -2,10 +2,8 @@ package server
 
 import (
 	"net"
-	"sort"
 	"time"
 
-	"github.com/hamzayogurtcuoglu/i-mux-core/internal/commands"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/render"
@@ -23,19 +21,13 @@ type attachedClient struct {
 	features termout.Features
 	queue    *ipc.Queue
 	activity time.Time
-	gone     bool // detached or exited: nothing more is sent
+	created  time.Time
+	pid      int
+	termName string
+	last     *model.Session // the session shown before (client_last_session)
+	gone     bool           // detached or exited: nothing more is sent
 	draw     drawState
 	in       inputState
-}
-
-// Clients implements commands.Host.
-func (s *Server) Clients() []commands.ClientInfo {
-	out := make([]commands.ClientInfo, 0, len(s.attached))
-	for _, c := range s.attached {
-		out = append(out, commands.ClientInfo{Name: c.name, Session: c.session, Activity: c.activity})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
-	return out
 }
 
 // Detach implements commands.Host: the client is told it is detached from its session.
@@ -54,7 +46,11 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	if termName == "" {
 		termName = "unknown"
 	}
-	c := &attachedClient{name: hello.TTYName, session: sess, queue: queue, activity: s.opts.Now()}
+	now := s.opts.Now()
+	c := &attachedClient{
+		name: hello.TTYName, session: sess, queue: queue, activity: now, created: now,
+		pid: hello.Pid, termName: termName,
+	}
 	c.draw.r = render.New()
 	o := termout.DefaultOptions
 	o.ColorTerm = hello.Env["COLORTERM"]

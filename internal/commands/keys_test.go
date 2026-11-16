@@ -61,7 +61,7 @@ func TestSwitchClient(t *testing.T) {
 		t.Errorf("no client: %+v", r)
 	}
 	a := h.tree.SessionByName("a")
-	h.clients = []ClientInfo{
+	h.clients = []*ClientInfo{
 		{Name: "/dev/pts/1", Session: a, Activity: time.Unix(1, 0)},
 		{Name: "/dev/pts/2", Session: a, Activity: time.Unix(2, 0)},
 	}

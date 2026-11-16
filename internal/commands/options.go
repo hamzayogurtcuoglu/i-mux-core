@@ -27,7 +27,7 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 )
 
-// set-option and show-options (TASKS.md C3.4). -F expands formats, which come with task C3.5.
+// set-option and show-options (TASKS.md C3.4; -F with the formats of C3.5).
 
 // scopeFromFlags is options_scope_from_flags: the options -s, -p, -w (or a window command),
 // -g and -t name.
@@ -130,9 +130,6 @@ func optionTarget(it *Item, window bool) (target.State, error) {
 // setOption is set-option and set-window-option (cmd_set_option_exec).
 func setOption(it *Item) error {
 	a := it.Cmd.Args
-	if a.Has('F') {
-		return fmt.Errorf("%s -F: not implemented by imux-core yet", it.Cmd.Spec.Name)
-	}
 	window := it.Cmd.Spec.Name == "set-window-option"
 	appendTo := a.Has('a')
 	st, err := optionTarget(it, window)
@@ -154,6 +151,10 @@ func setOption(it *Item) error {
 	var value *string
 	if len(args) >= 2 {
 		value = &args[1]
+		if a.Has('F') {
+			v := it.formatSingle(st, args[1])
+			value = &v
+		}
 	}
 	oo, scope, err := scopeFromName(it, window, name, st)
 	if scope == options.ScopeNone {
@@ -232,9 +233,6 @@ func setOption(it *Item) error {
 // showOptions is show-options and show-window-options (cmd_show_options_exec).
 func showOptions(it *Item) error {
 	a := it.Cmd.Args
-	if a.Has('F') {
-		return fmt.Errorf("%s -F: not implemented by imux-core yet", it.Cmd.Spec.Name)
-	}
 	window := it.Cmd.Spec.Name == "show-window-options"
 	st, err := optionTarget(it, window)
 	if err != nil {
@@ -249,7 +247,7 @@ func showOptions(it *Item) error {
 			}
 			return err
 		}
-		showAll(it, scope, oo)
+		showAll(it, st, scope, oo)
 		return nil
 	}
 	argument := args[0]
@@ -281,7 +279,7 @@ func showOptions(it *Item) error {
 		if !hasKey && o.IsArray() && len(o.ArrayKeys()) == 0 {
 			printParent = false
 		}
-		showPrint(it, o, key, hasKey, printParent)
+		showPrint(it, st, o, key, hasKey, printParent)
 	case strings.HasPrefix(name, "@"):
 		if a.Has('q') {
 			return nil
@@ -291,10 +289,14 @@ func showOptions(it *Item) error {
 	return nil
 }
 
-// showPrint is cmd_show_options_print with tmux's default template:
-// name[key]* value, the value quoted as an argument when it is a string, or with -v the value
-// alone.
-func showPrint(it *Item, o *options.Option, key string, hasKey, parent bool) {
+// showOptionsTemplate is tmux's SHOW_OPTIONS_TEMPLATE.
+const showOptionsTemplate = "#{?option_value_only,#{option_value},#{option_name}#{?option_has_array_key,[#{option_array_key}],}#{?option_is_parent,*,}#{?option_has_value, #{?option_is_string,#{q/a:option_value},#{option_value}},}}"
+
+// showPrint is cmd_show_options_print: one option (each item of an array) through the -F
+// template or tmux's.
+func showPrint(it *Item, st target.State, o *options.Option, key string, hasKey, parent bool) {
+	a := it.Cmd.Args
+	template, hasTemplate := a.Get('F')
 	value := ""
 	hasValue := true
 	switch {
@@ -303,45 +305,54 @@ func showPrint(it *Item, o *options.Option, key string, hasKey, parent bool) {
 	case o.IsArray():
 		if keys := o.ArrayKeys(); len(keys) > 0 {
 			for _, k := range keys {
-				showPrint(it, o, k, true, parent)
+				showPrint(it, st, o, k, true, parent)
 			}
 			return
 		}
-		if it.Cmd.Args.Has('v') {
+		if !hasTemplate && a.Has('v') {
 			return
 		}
 		hasValue = false
 	default:
 		value = o.String("", false, false)
 	}
-	if it.Cmd.Args.Has('v') {
-		it.Print(value)
-		return
+	if !hasTemplate {
+		template = showOptionsTemplate
 	}
-	line := o.Name
-	if hasKey {
-		line += "[" + key + "]"
-	}
-	if parent {
-		line += "*"
-	}
-	if hasValue {
-		if o.IsString() {
-			line += " " + Escape(value)
-		} else {
-			line += " " + value
+	bit := func(v bool) string {
+		if v {
+			return "1"
 		}
+		return "0"
 	}
-	it.Print(line)
+	ctx := it.formatContext(it.clientInfoOf(it.targetClient()), st.S, st.WL, st.P)
+	ctx.Values = map[string]string{
+		"option_name":          o.Name,
+		"option_value":         value,
+		"option_value_only":    bit(a.Has('v')),
+		"option_is_parent":     bit(parent),
+		"option_is_array":      bit(o.IsArray()),
+		"option_is_string":     bit(o.IsString()),
+		"option_is_hook":       bit(o.Entry != nil && o.Entry.Flags&options.IsHook != 0),
+		"option_is_user":       bit(o.Entry == nil),
+		"option_has_value":     bit(hasValue),
+		"option_array_key":     "",
+		"option_has_array_key": "0",
+	}
+	if hasKey {
+		ctx.Values["option_array_key"] = key
+		ctx.Values["option_has_array_key"] = "1"
+	}
+	it.Print(ctx.Expand(template))
 }
 
 // showAll is cmd_show_options_all: the user options set, then the table's in the scope (with
 // -A the inherited ones too, marked *); hooks only with -H.
-func showAll(it *Item, scope int, oo *options.Options) {
+func showAll(it *Item, st target.State, scope int, oo *options.Options) {
 	a := it.Cmd.Args
 	for _, o := range oo.Sorted() {
 		if o.Entry == nil {
-			showPrint(it, o, "", false, false)
+			showPrint(it, st, o, "", false, false)
 		}
 	}
 	for i := range options.Table {
@@ -363,7 +374,7 @@ func showAll(it *Item, scope int, oo *options.Options) {
 			}
 			parent = true
 		}
-		showPrint(it, o, "", false, parent)
+		showPrint(it, st, o, "", false, parent)
 	}
 }
 

@@ -96,6 +96,12 @@ type Pane struct {
 	Dead   bool
 	Status pty.ExitStatus
 
+	// Argv, Cwd and Shell are what the pane was started with (#{pane_start_command},
+	// #{pane_start_path}); Shell is the default-shell then.
+	Argv  []string
+	Cwd   string
+	Shell string
+
 	// ActivePoint orders when panes were last made active (tmux's active_point): the pane in
 	// a direction is the most recently active of those there.
 	ActivePoint uint64
@@ -363,6 +369,12 @@ func (s *Session) SelectWindow(wl *Winlink) {
 	s.last = removeLink(s.last, wl)
 	s.Current = wl
 }
+
+// LastWindows are the windows that were current before, most recent first (tmux's lastw).
+func (s *Session) LastWindows() []*Winlink { return s.last }
+
+// NextSessionID is the id the next session will take.
+func (t *Tree) NextSessionID() int { return t.nextSession }
 
 // LastWindow returns the previously current window, or nil.
 func (s *Session) LastWindow() *Winlink {

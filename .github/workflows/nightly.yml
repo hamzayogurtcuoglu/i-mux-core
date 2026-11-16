@@ -21,6 +21,8 @@ jobs:
             package: ./internal/vt/
           - target: FuzzWalk
             package: ./internal/format/
+          - target: FuzzExpand
+            package: ./internal/format/
           - target: FuzzParse
             package: ./internal/cmdlang/
           - target: FuzzReader

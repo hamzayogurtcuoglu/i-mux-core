@@ -755,12 +755,12 @@ func CurrentClient(ctx *Context) *Client {
 	if s == nil {
 		return nil
 	}
-	return bestClient(ctx, s)
+	return BestClient(ctx, s)
 }
 
-// bestClient is cmd_find_best_client: the most recently active client of s, or of any
+// BestClient is cmd_find_best_client: the most recently active client of s, or of any
 // session when no client shows s.
-func bestClient(ctx *Context, s *model.Session) *Client {
+func BestClient(ctx *Context, s *model.Session) *Client {
 	if s.Attached == 0 {
 		s = nil
 	}

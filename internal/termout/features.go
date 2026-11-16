@@ -174,3 +174,14 @@ func (f *Features) Default(name string) {
 		f.Parse(s, ",")
 	}
 }
+
+// String is tmux's tty_get_features: the enabled features' names, separated by commas.
+func (f Features) String() string {
+	var names []string
+	for i, tf := range features {
+		if f.Enabled&(1<<i) != 0 {
+			names = append(names, tf.name)
+		}
+	}
+	return strings.Join(names, ",")
+}

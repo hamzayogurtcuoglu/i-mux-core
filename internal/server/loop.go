@@ -59,6 +59,8 @@ type Server struct {
 
 	latest map[*model.Window]*attachedClient // the client that used each window last
 
+	started time.Time // when the server started (start_time)
+
 	clients  int               // connected clients (in the loop)
 	attached []*attachedClient // the attached ones, in the order they attached
 	held     bool              // HoldForClient, until the first client
@@ -107,6 +109,7 @@ func New(o Options) *Server {
 		conns:  map[net.Conn]struct{}{},
 		latest: map[*model.Window]*attachedClient{},
 	}
+	s.started = o.Now()
 	s.tree.Resized = s.paneResized
 	s.startOptions()
 	return s
@@ -262,6 +265,10 @@ func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 		limit = int(w.Session().Options.GetNumber("history-limit"))
 	}
 	p.Term = vt.NewTerminal(p.Sx, p.Sy, limit)
+	// window_pane_create: a pane's title starts as the host name.
+	if h, err := os.Hostname(); err == nil {
+		p.Term.Screen.Title = h
+	}
 	p.Term.ExtendedKeys = s.extendedKeys()
 	if p.Term.ExtendedKeys == vt.ExtendedKeysAlways {
 		// As tmux's screen_init: the screen starts in extended keys mode 1.

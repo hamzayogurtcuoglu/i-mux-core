@@ -82,3 +82,6 @@ All notable changes to i-mux-core are listed here. The format follows
 - Options: tmux 3.8's option table, generated from its source, with scopes, inheritance,
   arrays and user options; `set-option`, `set-window-option`, `show-options` and
   `show-window-options` as tmux has them.
+- Formats: tmux 3.8's format engine (variables, every modifier, loops, strftime) for
+  `display-message`, `set-option -F`, `show-options -F` and `%if`; `show-options` prints
+  through tmux's own template.

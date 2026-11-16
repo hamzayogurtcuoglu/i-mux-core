@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
@@ -22,7 +24,8 @@ type fakeHost struct {
 	specs    []pty.Spec
 	spawnErr error
 	killed   bool
-	clients  []ClientInfo
+	clients  []*ClientInfo
+	messages []string
 	detached []string
 	sent     []string // PaneKey: "%id key"
 	options  []string // SetServerOption: "name=choice"
@@ -42,8 +45,8 @@ func (h *fakeHost) KillServer()                    { h.killed = true }
 func (h *fakeHost) Environ() []string {
 	return []string{"HOME=/home/u", "SHELL=/bin/sh", "TMUX=old", "PATH=/bin"}
 }
-func (h *fakeHost) Clients() []ClientInfo { return h.clients }
-func (h *fakeHost) Detach(name string)    { h.detached = append(h.detached, name) }
+func (h *fakeHost) Clients() []*ClientInfo { return h.clients }
+func (h *fakeHost) Detach(name string)     { h.detached = append(h.detached, name) }
 func (h *fakeHost) PaneKey(p *model.Pane, k keys.Key) bool {
 	h.sent = append(h.sent, fmt.Sprintf("%%%d %s", p.ID, k))
 	return k != keys.Parse("C-BSpace")
@@ -68,6 +71,13 @@ func (h *fakeHost) SwitchClient(name string, s *model.Session) error {
 
 func (h *fakeHost) SocketPath() string { return "/tmp/s" }
 func (h *fakeHost) Pid() int           { return 42 }
+func (h *fakeHost) ServerInfo() *format.Server {
+	return &format.Server{Pid: 42, Start: time.Unix(1e9, 0), SocketPath: "/tmp/s", Version: "3.8"}
+}
+
+func (h *fakeHost) ShowMessage(client, msg string, delay int) {
+	h.messages = append(h.messages, client+": "+msg)
+}
 
 func run(h Host, words ...string) Result {
 	return Run(h, &Client{Cwd: testCwd}, [][]string{words})

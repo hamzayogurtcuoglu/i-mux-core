@@ -108,7 +108,9 @@ func newSession(it *Item) error {
 	s.SelectWindow(wl)
 	w := wl.Window
 	if n, ok := a.Get('n'); ok {
+		// A window named when made is not renamed automatically (spawn.c).
 		w.Name = n
+		w.Options.SetNumber("automatic-rename", 0)
 	} else {
 		w.Name = defaultWindowName(a.Strings(), it.shell(s))
 	}
@@ -318,6 +320,7 @@ func CheckShell(sh string) bool {
 // TMUX and TMUX_PANE set.
 func (it *Item) spawnSpec(s *model.Session, p *model.Pane, argv []string, cwd string, extra []string) pty.Spec {
 	sh := it.shell(s)
+	p.Argv, p.Cwd, p.Shell = append([]string(nil), argv...), cwd, sh
 	// tmux's child goes to the directory, else home, else /.
 	if !isDir(cwd) {
 		cwd = "/"

@@ -1,6 +1,6 @@
 package format
 
-// The syntax helpers follow tmux's format.c (format_skip, format_build_modifiers and
+// The syntax helpers follow tmux 3.8's format.c (format_skip, format_build_modifiers and
 // format_choose), so formats split the same way as under tmux.
 
 import "strings"
@@ -57,7 +57,7 @@ func ParseModifiers(key string) ([]Modifier, string) {
 		}
 		c := key[i]
 		// Single character modifiers with no arguments.
-		if strings.IndexByte("labcdnwETSWPL!<>", c) >= 0 && isEnd(key, i+1) {
+		if strings.IndexByte("labdnwETSWPOVL!<>A", c) >= 0 && isEnd(key, i+1) {
 			list = append(list, Modifier{Name: string(c)})
 			i++
 			continue
@@ -72,7 +72,7 @@ func ParseModifiers(key string) ([]Modifier, string) {
 			}
 		}
 		// Single character modifiers with arguments.
-		if strings.IndexByte("mCLNPSst=pReqW", c) < 0 {
+		if strings.IndexByte("ImCLNPSOVst=pReqWcA", c) < 0 {
 			break
 		}
 		if isEnd(key, i+1) {
