@@ -406,6 +406,12 @@ Checked against tmux 3.8 in `testdata/diff/hooks.txt` (C3.9):
   and a failure) the pane stays dead and `pane-died` fires instead. The line tmux writes at a
   dead pane's bottom comes with C3.12.
 - `client-attached` fires for `attach-session`, not for a `new-session` that attaches.
+
+Dead panes (C3.12, `testdata/diff/lifecycle.txt`): a pane `remain-on-exit` keeps gets
+`remain-on-exit-format` (expanded for it, `#{t:pane_dead_time}` included) on a new line at its
+bottom, after its last output, and its cursor is hidden; `respawn-pane` without `-k` restarts
+it with its command and directory. The format's `#[…]` styles are drawn with C4.1; until then
+its text alone is.
 - `set-hook` is `set-option` for hooks (`-a` adds a command, `-u` removes them); `-R` runs a
   hook now; `show-hooks` lists them.
 
