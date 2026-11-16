@@ -75,7 +75,7 @@ func line(expanded string, width int) (string, []Range) {
 		cells[i] = vt.DefaultCell
 	}
 	var ranges []Range
-	drawFormat(cells, vt.DefaultCell, width, expanded, &ranges, false)
+	DrawFormat(cells, vt.DefaultCell, width, expanded, &ranges, false)
 	var b strings.Builder
 	for _, c := range cells {
 		if c.Flags&vt.FlagPadding == 0 {
@@ -197,7 +197,7 @@ func TestDrawDefaults(t *testing.T) {
 	for i := range cells {
 		cells[i] = vt.DefaultCell
 	}
-	drawFormat(cells, vt.DefaultCell, 6, "#[fg=red]#[push-default]a#[fg=blue]b#[default]c#[pop-default]#[default]d#[fill=colour4]", nil, false)
+	DrawFormat(cells, vt.DefaultCell, 6, "#[fg=red]#[push-default]a#[fg=blue]b#[default]c#[pop-default]#[default]d#[fill=colour4]", nil, false)
 	red, blue := vt.ColorFromString("red"), vt.ColorFromString("blue")
 	want := []vt.Color{red, blue, red, 8}
 	for i, fg := range want {

@@ -1,0 +1,48 @@
+# Pane borders (C4.4): i-mux's layouts, a sidebar and one to four agent panes, zoomed and not,
+# with pane-border-status top and i-mux's pane-border-format; then tmux's defaults, the
+# pane-border-lines and pane-border-indicators choices and pane-border-status bottom.
+# Panes run `exec cat`, never an interactive shell; each has an @imux_label so the
+# pane-border-format does not show the pane's command.
+conf borders.conf
+size 120x30
+run new-session -d -s a 'exec cat'
+run set -p -t %0 @imux_label claude ; split-window -h -b -f -d -l 30 -t %0 'exec cat' ; set -p -t %1 @imux_label i-mux
+screen 120x30
+run split-window -h -t %0 'exec cat' ; set -p -t %2 @imux_label codex ; set -p -t %2 @imux_name 'backend fix' ; set -p -t %2 @imux_flag '●'
+screen 120x30
+run split-window -v -t %0 'exec cat' ; set -p -t %3 @imux_label gemini
+screen 120x30
+run split-window -v -t %2 'exec cat' ; set -p -t %4 @imux_label copilot ; select-pane -t %0
+screen 120x30
+run resize-pane -Z -t %2
+screen 120x30
+run resize-pane -Z -t %2 ; select-pane -t %1
+screen 120x30
+# tmux's own border options.
+run set -gu pane-border-format ; set -gu pane-border-style ; set -gu pane-active-border-style ; set -g mouse off
+screen 120x30
+run set -g mouse on
+screen 120x30
+# pane-border-lines.
+run set -g pane-border-lines double
+screen 120x30
+run set -g pane-border-lines heavy
+screen 120x30
+run set -g pane-border-lines simple
+screen 120x30
+run set -g pane-border-lines number
+screen 120x30
+run set -g pane-border-lines spaces
+screen 120x30
+run set -g pane-border-lines single
+# pane-border-indicators, and the status line at the bottom.
+run set -g pane-border-indicators arrows ; select-pane -t %3
+screen 120x30
+run set -g pane-border-indicators both ; set -g pane-border-status bottom
+screen 120x30
+run set -g pane-border-indicators off ; set -g pane-border-status off
+screen 120x30
+# Two panes: the border between them is half in the active pane's colour.
+run new-window -d -t a:1 'exec cat' ; split-window -h -d -t a:1 'exec cat' ; select-window -t a:1 ; set -g pane-border-status top
+screen 120x30
+run kill-server

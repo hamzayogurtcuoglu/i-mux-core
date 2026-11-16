@@ -356,12 +356,12 @@ func (d *drawer) drawAbsoluteCentre(available, focusStart, focusEnd int) {
 	d.put(partAfter, off, 0, wafter)
 }
 
-// drawFormat is format_draw: it draws expanded (a format already expanded, with its #[…]
+// DrawFormat is format_draw: it draws expanded (a format already expanded, with its #[…]
 // styles) on out, available cells wide, over base. ranges, when not nil, gets the line's
 // ranges. With defaultColours, the styles' colours are replaced by base's.
 //
 // Hyperlinks (link= styles) are not kept: the status line has no hyperlink table yet.
-func drawFormat(out []vt.Cell, base vt.Cell, available int, expanded string, ranges *[]Range, defaultColours bool) {
+func DrawFormat(out []vt.Cell, base vt.Cell, available int, expanded string, ranges *[]Range, defaultColours bool) {
 	available = min(available, len(out))
 	baseDefault, currentDefault := base, base
 	sy := style.FromCell(currentDefault)

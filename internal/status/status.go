@@ -61,7 +61,7 @@ func Draw(ctx *format.Context, oo *options.Options, sx int) []Line {
 		if !ok {
 			continue
 		}
-		drawFormat(cells, base, sx, ctx.ExpandTime(v.Str), &out[i].Ranges, false)
+		DrawFormat(cells, base, sx, ctx.ExpandTime(v.Str), &out[i].Ranges, false)
 	}
 	return out
 }

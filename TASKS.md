@@ -648,7 +648,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   request. Later tasks draw the rest: the status line (C4.2, its line is not reserved until
   then), `pane-border-status` lines (C4.4), overlays (C4.6–C4.10), frames right after input
   (C2.10), and the theme colours a terminal reports (C2.10). Not drawn yet: scrollbars, the
-  marked pane, border arrows, and the bidi isolates tmux writes for terminals with `Bidi`.
+  marked pane, and the bidi isolates tmux writes for terminals with `Bidi`.
 
 ### [x] C2.9 Headless client in the differential harness
 - **Goal:** compare what users actually see, not only command output.
@@ -1121,7 +1121,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   markers.
 - **Depends on:** C4.2.
 
-### [ ] C4.4 Pane borders
+### [x] C4.4 Pane borders
 - **Goal:** borders, the active border and border status lines look the same.
 - **Details:**
   - Border cells and their joining characters, as tmux draws them (UTF-8 box drawing, or ACS

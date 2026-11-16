@@ -4,7 +4,9 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/options"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/render"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/status"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/style"
@@ -117,9 +119,10 @@ func (s *Server) paneChanged(p *model.Pane) {
 	}
 }
 
-// borderStyles are the window's border styles (pane-border-style, pane-active-border-style,
-// expanded as formats for the active pane, and pane-border-indicators), as tmux's
-// screen_redraw draws them.
+// borderStyles are how the window's borders are drawn, as tmux's screen_redraw does: the
+// window's pane-border-style (expanded with no pane) for borders next to no pane, each pane's
+// pane-border-style or pane-active-border-style and pane-border-format expanded for that pane,
+// pane-border-lines and pane-border-indicators.
 func (s *Server) borderStyles(c *attachedClient) render.Styles {
 	st := render.DefaultStyles()
 	wl := c.session.Current
@@ -127,21 +130,43 @@ func (s *Server) borderStyles(c *attachedClient) render.Styles {
 		return st
 	}
 	w := wl.Window
-	p := w.Active
-	ctx := &format.Context{Tree: s.tree, Server: s.ServerInfo(), Now: s.opts.Now}
-	ctx.Defaults(nil, c.session, wl, p)
-	apply := func(name string) vt.Cell {
+	ctx := &format.Context{
+		Tree:       s.tree,
+		Server:     s.ServerInfo(),
+		Clients:    s.clientFormats(),
+		Now:        s.opts.Now,
+		ItemClient: c.format,
+	}
+	apply := func(oo *options.Options, name string) vt.Cell {
 		gc := vt.DefaultCell
 		sy := style.Default()
-		if sy.Parse(vt.DefaultCell, ctx.Expand(p.Options.GetString(name))) == nil {
+		if sy.Parse(vt.DefaultCell, ctx.Expand(oo.GetString(name))) == nil {
 			sy.Add(&gc)
 		}
 		return gc
 	}
-	st.Border = apply("pane-border-style")
-	st.ActiveBorder = apply("pane-active-border-style")
+	ctx.Defaults(c.format, c.session, wl, nil)
+	st.Border = apply(w.Options, "pane-border-style")
+	st.Lines = int(w.Options.GetNumber("pane-border-lines"))
 	ind := w.Options.GetNumber("pane-border-indicators")
 	st.TwoPaneColours = ind == 1 || ind == 3 // colour, both
+	st.Arrows = ind == 2 || ind == 3         // arrows, both
+	borderStatus := w.BorderStatus() != layout.StatusOff
+	base := int(w.Options.GetNumber("pane-base-index"))
+	st.Panes = make(map[*model.Pane]render.PaneBorder, len(w.Panes))
+	for i, p := range w.Panes {
+		ctx.Defaults(c.format, c.session, wl, p)
+		name := "pane-border-style"
+		if p == w.Active {
+			name = "pane-active-border-style"
+		}
+		pb := render.PaneBorder{Style: apply(p.Options, name), Index: base + i}
+		if borderStatus {
+			pb.Status = ctx.ExpandTime(p.Options.GetString("pane-border-format"))
+		}
+		st.Panes[p] = pb
+	}
+	st.ActiveBorder = st.Panes[w.Active].Style
 	return st
 }
 

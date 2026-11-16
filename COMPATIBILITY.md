@@ -475,6 +475,13 @@ modifyOtherKeys).
   are `themelightgrey` and the active pane's `themegreen`, which a client gets as white and green
   until its terminal reports its theme; the window's unused parts and the area outside it are
   drawn with `fill-character` (`·` outside). `testdata/render` holds the screens tmux draws.
+  Each pane's borders take its own `pane-border-style` (or `pane-active-border-style`),
+  expanded for that pane; `pane-border-lines` (single, double, heavy, simple, number, spaces,
+  none) and `pane-border-indicators` arrows are drawn as tmux draws them. The
+  `pane-border-status` line starts two cells into the pane and runs to its right edge, the
+  border line showing where the format leaves it. `testdata/diff/borders.txt` checks i-mux's
+  layouts (a sidebar and one to four agent panes, zoomed and not) with its border options
+  against tmux. Not yet: the marked pane's reversed borders (no `select-pane -m` yet).
 - **Messages:** `display-message` shows on the status line for `display-time`, or `-d N` ms;
   `-d 0` until a key; `-d 1` clears a message at once.
 - **Popups:** `-w -h` (cells or percentages), `-x -y`, `-E` close on exit, `-d` start

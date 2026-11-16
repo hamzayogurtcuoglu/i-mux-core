@@ -104,6 +104,7 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 	sc := buildScene(v, areaSy, r.scene)
 	r.scene = sc.cells
 	active := w.Active
+	paneStatus := v.paneStatusLines(sc, active)
 
 	// Panes holding a synchronized update keep what the last frame showed of them.
 	hold := map[*model.Pane]bool{}
@@ -141,6 +142,14 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 		line := f.Line(areaY + y)
 		for x := 0; x < sc.sx && x < f.Sx; {
 			bc := sc.at(x, y)
+			if bc.typ == spanStatus {
+				line[x] = vt.DefaultCell
+				if ps := paneStatus[bc.stPane]; bc.stOffset < len(ps) {
+					line[x] = ps[bc.stOffset]
+				}
+				x++
+				continue
+			}
 			if bc.typ != spanPane {
 				line[x] = borderCell(v, bc, active)
 				x++

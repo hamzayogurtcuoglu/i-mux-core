@@ -19,6 +19,7 @@ package render
 import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/status"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/termout"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
@@ -26,16 +27,44 @@ import (
 // Styles are the options that decide how borders look, as cells: only their colours and
 // attributes are used.
 type Styles struct {
-	Border       vt.Cell // pane-border-style
-	ActiveBorder vt.Cell // pane-active-border-style
+	// Border is the window's pane-border-style, for border cells next to no pane; with
+	// ActiveBorder (pane-active-border-style) it is also the style of a pane not in Panes.
+	Border       vt.Cell
+	ActiveBorder vt.Cell
+	// Panes are each pane's border style (pane-active-border-style for the active pane,
+	// pane-border-style for the others, expanded for that pane) and pane-border-format line.
+	Panes map[*model.Pane]PaneBorder
+	// Lines is the window's pane-border-lines (LinesSingle, …).
+	Lines int
 	// TwoPaneColours is pane-border-indicators colour or both (tmux's default colour): with two
 	// panes, the active pane colours half of the border between them.
 	TwoPaneColours bool
+	// Arrows is pane-border-indicators arrows or both: arrows on the borders by the active pane.
+	Arrows bool
 	// InsideFill and OutsideFill are fill-character's cells, for the parts of the window no pane
 	// covers and for the client's area outside the window: their character, attributes, and
 	// any colours that are not the default, over the border style.
 	InsideFill, OutsideFill vt.Cell
 }
+
+// PaneBorder is how one pane's borders are drawn.
+type PaneBorder struct {
+	Style vt.Cell // its border style
+	Index int     // its index, pane-base-index added, for pane-border-lines number
+	// Status is its pane-border-format, expanded, for the pane-border-status line.
+	Status string
+}
+
+// pane-border-lines values (tmux's PANE_LINES_*).
+const (
+	LinesSingle = iota
+	LinesDouble
+	LinesHeavy
+	LinesSimple
+	LinesNumber
+	LinesSpaces
+	LinesNone
+)
 
 // Theme colours (tmux's COLOUR_THEME_*), used as vt.ColorFlagTheme|n.
 const (
@@ -129,6 +158,52 @@ const (
 
 const cellBorders = " xqlkmjwvtun~"
 
+// simpleBorders are pane-border-lines simple's characters (tmux's SIMPLE_BORDERS).
+const simpleBorders = " |-+++++++++."
+
+// doubleBorders and heavyBorders are pane-border-lines double's and heavy's characters (tmux's
+// tty_acs_double_borders and tty_acs_heavy_borders), by cell type.
+var (
+	doubleBorders = [...]string{"", "\u2551", "\u2550", "\u2554", "\u2557", "\u255a", "\u255d", "\u2566", "\u2569", "\u2560", "\u2563", "\u256c", "\u00b7"}
+	heavyBorders  = [...]string{"", "\u2503", "\u2501", "\u250f", "\u2513", "\u2517", "\u251b", "\u2533", "\u253b", "\u2523", "\u252b", "\u254b", "\u00b7"}
+)
+
+// borderChar is window_get_border_cell: gc with the character of a border cell of type ct for
+// pane-border-lines lines. index is the pane's index for number, or -1 for none.
+func borderChar(gc vt.Cell, lines, ct, index int) vt.Cell {
+	gc.Width = 1
+	switch lines {
+	case LinesNumber:
+		if ct == cellNone {
+			gc.Attr |= vt.AttrCharset
+			gc.Data = cellBorders[cellNone : cellNone+1]
+			break
+		}
+		gc.Attr &^= vt.AttrCharset
+		if index >= 0 {
+			gc.Data = string(rune('0' + index%10))
+		} else {
+			gc.Data = "*"
+		}
+	case LinesDouble:
+		gc.Attr &^= vt.AttrCharset
+		gc.Data = doubleBorders[ct]
+	case LinesHeavy:
+		gc.Attr &^= vt.AttrCharset
+		gc.Data = heavyBorders[ct]
+	case LinesSimple:
+		gc.Attr &^= vt.AttrCharset
+		gc.Data = simpleBorders[ct : ct+1]
+	case LinesNone, LinesSpaces:
+		gc.Attr &^= vt.AttrCharset
+		gc.Data = " "
+	default:
+		gc.Attr |= vt.AttrCharset
+		gc.Data = cellBorders[ct : ct+1]
+	}
+	return gc
+}
+
 // Border connections (tmux's REDRAW_BORDER_*).
 const (
 	borderL = 0x1
@@ -174,6 +249,7 @@ const (
 	spanOutside                 // outside the window
 	spanPane
 	spanBorder
+	spanStatus // a pane-border-status line
 )
 
 // buildCell is one cell of the window area while it is built (tmux's redraw_build_cell).
@@ -185,6 +261,12 @@ type buildCell struct {
 	top, bottom, left, right *model.Pane // spanBorder: the panes on each side
 	style                    *model.Pane // the pane chosen to colour it (two panes)
 	mask                     int
+	arrow                    bool // an indicator arrow goes here
+
+	// spanStatus: the pane, the offset in its status line and the border cell type beneath.
+	stPane   *model.Pane
+	stOffset int
+	stType   int
 }
 
 // scene is the window area of a client (tmux's redraw_build_ctx).
@@ -192,6 +274,7 @@ type scene struct {
 	w              *model.Window
 	ox, oy, sx, sy int
 	cells          []buildCell
+	arrows         bool // pane-border-indicators arrows or both
 }
 
 func (sc *scene) at(x, y int) *buildCell { return &sc.cells[y*sc.sx+x] }
@@ -313,6 +396,56 @@ func (sc *scene) markBorders(p *model.Pane) {
 	if markRight {
 		vertical(right)
 	}
+	sc.markBorderStatus(p, status, right, top, bottom)
+	sc.markBorderArrows(p, left, right, top, bottom)
+}
+
+// markBorderStatus is redraw_mark_border_status: the border cells of the pane's status line
+// become status cells, keeping their cell type for the line drawn beneath the text.
+func (sc *scene) markBorderStatus(p *model.Pane, status layout.Status, right, top, bottom int) {
+	var wy int
+	switch status {
+	case layout.StatusTop:
+		wy = top
+	case layout.StatusBottom:
+		wy = bottom
+	default:
+		return
+	}
+	off := 0
+	for wx := p.Xoff + 2; wx <= right-1; wx, off = wx+1, off+1 {
+		x, y, ok := sc.windowToScene(wx, wy)
+		if !ok {
+			continue
+		}
+		bc := sc.at(x, y)
+		if bc.typ != spanBorder {
+			continue
+		}
+		*bc = buildCell{typ: spanStatus, stPane: p, stOffset: off, stType: cellType(bc.mask)}
+	}
+}
+
+// markBorderArrows is redraw_mark_border_arrows: the border cells where indicator arrows go.
+func (sc *scene) markBorderArrows(p *model.Pane, left, right, top, bottom int) {
+	if !sc.arrows {
+		return
+	}
+	mark := func(wx, wy int) {
+		if x, y, ok := sc.windowToScene(wx, wy); ok {
+			if bc := sc.at(x, y); bc.typ == spanBorder {
+				bc.arrow = true
+			}
+		}
+	}
+	if wx := p.Xoff + 1; wx >= left && wx <= right {
+		mark(wx, top)
+		mark(wx, bottom)
+	}
+	if wy := p.Yoff + 1; wy >= top && wy <= bottom {
+		mark(left, wy)
+		mark(right, wy)
+	}
 }
 
 // markTwoPaneColours is redraw_mark_two_pane_colours: with two panes side by side, the border
@@ -400,7 +533,7 @@ func buildScene(v *View, sy int, buf []buildCell) *scene {
 	w := v.Window
 	ox, oy, wsx, wsy := windowOffset(w, v.Sx, sy)
 	// The scene covers the client's whole area even when the window is smaller.
-	sc := &scene{w: w, ox: ox, oy: oy, sx: max(wsx, v.Sx), sy: max(wsy, sy)}
+	sc := &scene{w: w, ox: ox, oy: oy, sx: max(wsx, v.Sx), sy: max(wsy, sy), arrows: v.Styles.Arrows}
 	if n := sc.sx * sc.sy; cap(buf) >= n {
 		sc.cells = buf[:n]
 	} else {
@@ -485,15 +618,103 @@ func borderCell(v *View, bc *buildCell, active *model.Pane) vt.Cell {
 		}
 		return gc
 	}
-	var gc vt.Cell
-	if p := bc.borderPane(active); p != nil && p == active {
-		gc = v.styled(v.Styles.ActiveBorder)
-	} else {
-		gc = v.styled(v.Styles.Border)
+	p := bc.borderPane(active)
+	gc := v.styled(v.Styles.Border)
+	if p != nil {
+		gc = v.styled(v.paneBorderStyle(p, active))
 	}
-	gc.Attr |= vt.AttrCharset
-	gc.Data = cellBorders[cellType(bc.mask) : cellType(bc.mask)+1]
+	gc = borderChar(gc, v.Styles.Lines, cellType(bc.mask), v.paneIndex(p))
+	// redraw_draw_border_arrow: an arrow (in the line drawing set) pointing at the active pane.
+	if bc.arrow && active != nil {
+		ch := ""
+		switch active {
+		case bc.left:
+			ch = ","
+		case bc.right:
+			ch = "+"
+		case bc.top:
+			ch = "-"
+		case bc.bottom:
+			ch = "."
+		}
+		if ch != "" {
+			gc.Data = ch
+			gc.Attr |= vt.AttrCharset
+		}
+	}
 	return gc
+}
+
+// paneBorderStyle is window_pane_get_border_style: the style of p's borders.
+func (v *View) paneBorderStyle(p, active *model.Pane) vt.Cell {
+	if pb, ok := v.Styles.Panes[p]; ok {
+		return pb.Style
+	}
+	if p == active {
+		return v.Styles.ActiveBorder
+	}
+	return v.Styles.Border
+}
+
+// paneIndex is window_pane_index: p's index for pane-border-lines number, or -1 for no pane.
+func (v *View) paneIndex(p *model.Pane) int {
+	if p == nil {
+		return -1
+	}
+	if pb, ok := v.Styles.Panes[p]; ok {
+		return pb.Index
+	}
+	return p.Window.PaneIndex(p)
+}
+
+// paneStatusLines is window_make_pane_status for each pane with status cells in the scene: the
+// border line beneath, as wide as the pane's status cells reach, with pane-border-format drawn
+// over it in the pane's border style.
+func (v *View) paneStatusLines(sc *scene, active *model.Pane) map[*model.Pane][]vt.Cell {
+	var types map[*model.Pane]map[int]int
+	for i := range sc.cells {
+		bc := &sc.cells[i]
+		if bc.typ != spanStatus {
+			continue
+		}
+		if types == nil {
+			types = map[*model.Pane]map[int]int{}
+		}
+		if types[bc.stPane] == nil {
+			types[bc.stPane] = map[int]int{}
+		}
+		types[bc.stPane][bc.stOffset] = bc.stType
+	}
+	if types == nil {
+		return nil
+	}
+	out := make(map[*model.Pane][]vt.Cell, len(types))
+	for p, ts := range types {
+		width := 0
+		for off := range ts {
+			width = max(width, off+1)
+		}
+		st := v.paneBorderStyle(p, active)
+		gc := vt.DefaultCell
+		gc.Fg, gc.Bg, gc.Us, gc.Attr = st.Fg, st.Bg, st.Us, st.Attr
+		cells := make([]vt.Cell, width)
+		for i := range cells {
+			ct, ok := ts[i]
+			if !ok {
+				ct = cellLR
+			}
+			gc = borderChar(gc, v.Styles.Lines, ct, v.paneIndex(p))
+			cells[i] = gc
+		}
+		gc.Attr &^= vt.AttrCharset
+		status.DrawFormat(cells, gc, width, v.Styles.Panes[p].Status, nil, false)
+		for i := range cells {
+			c := &cells[i]
+			c.Fg, c.Bg, c.Us = v.theme(c.Fg), v.theme(c.Bg), v.theme(c.Us)
+		}
+		out[p] = cells
+	}
+	return out
 }
 
 // resolve gives a pane's cell its final colours, as tmux's tty_attributes and the palette
