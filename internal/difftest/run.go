@@ -207,9 +207,33 @@ func Execute(ctx context.Context, script *Script, eng Engine) (*Transcript, erro
 			args = append(args, format)
 			r := wait(ctx, func() Result { return normalize(eng.Run(ctx, env, args)) }, value)
 			tr.Entries = append(tr.Entries, Entry{Step: st, Args: args, Result: r})
+		case "waittext":
+			args := []string{"capture-pane", "-p", "-t", st.Args[0]}
+			r := waitText(ctx, func() Result { return normalize(eng.Run(ctx, env, args)) }, st.Args[1])
+			tr.Entries = append(tr.Entries, Entry{Step: st, Args: args, Result: r})
 		}
 	}
 	return tr, nil
+}
+
+// waitText polls until get's stdout holds text; the result says only whether it did.
+func waitText(ctx context.Context, get func() Result, text string) Result {
+	deadline := time.Now().Add(WaitTimeout)
+	for {
+		r := get()
+		if strings.Contains(r.Stdout, text) && r.Code == 0 {
+			return Result{Stdout: text}
+		}
+		if time.Now().After(deadline) || ctx.Err() != nil {
+			return Result{Stdout: r.Stdout, Stderr: fmt.Sprintf("difftest: timed out waiting for %q", text)}
+		}
+		t := time.NewTimer(5 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+		case <-t.C:
+		}
+	}
 }
 
 // wait polls until get's stdout is value, and returns the last result. On a timeout the result

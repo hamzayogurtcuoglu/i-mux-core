@@ -22,6 +22,7 @@ import (
 //	wait [-t <target>] <format> == <value>
 //	                             poll display-message -p until the format gives the value
 //	capture <pane>               compare capture-pane -p -e of a pane
+//	waittext <pane> <text>       poll capture-pane -p of a pane until it shows text
 //	screen WxH                   attach a client of WxH in a PTY and compare what its terminal
 //	                             shows once it has settled (screen.go)
 //	client NAME WxH              attach a client of WxH that stays attached
@@ -42,7 +43,7 @@ type Script struct {
 // Step is one line of a script.
 type Step struct {
 	Line int
-	Kind string   // "run", "conf", "file", "size", "normalize", "skip-if-engine", "wait", "capture", "screen", "client", "resize", "type"
+	Kind string   // "run", "conf", "file", "size", "normalize", "skip-if-engine", "wait", "waittext", "capture", "screen", "client", "resize", "type"
 	Args []string // the words after the kind
 	Text string   // the line as written, for messages
 }
@@ -134,6 +135,10 @@ func ParseScript(path string) (*Script, error) {
 		case "wait":
 			if _, _, _, err := parseWait(st.Args); err != nil {
 				return nil, bad("%v", err)
+			}
+		case "waittext":
+			if len(st.Args) != 2 {
+				return nil, bad("want a pane and text")
 			}
 		case "capture":
 			if len(st.Args) != 1 {
