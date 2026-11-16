@@ -116,6 +116,7 @@ command or flag is used.
 | `respawn-pane` | `-k -c -t` + shell command | |
 | `run-shell` [`run`] | `-b -C -d -t` + command | `-C` runs a tmux command; `-d` delays, in seconds with fractions (`-d0.3`, `-d 0.5`), with or without a command |
 | `select-layout` | `-t` + layout | Restores a saved `#{window_layout}`, of either version (see below) |
+| `send-prefix` | | tmux's default `prefix C-b` binding runs it; i-mux itself never calls it |
 | `select-pane` | `-t` | |
 | `select-window` | `-t` | |
 | `send-keys` [`send`] | `-t -M -X`, `-l` † + keys | `-M` forwards the mouse event; `-X` runs a copy-mode command |
@@ -174,6 +175,50 @@ Checked against tmux 3.8 in `testdata/diff/names.txt`:
 - OSC 0 and 2 set the pane's title unless `allow-set-title` is off; `select-pane -T` sets it
   from a format. `ESC k … ST` renames the window only with `allow-rename` on, and turns
   `automatic-rename` off (an empty name gives it back).
+
+### Key tables and bindings (C3.8)
+
+Checked against tmux 3.8 in `testdata/diff/keys.txt`:
+
+- **Tables.** A binding lives in a named table (`prefix`, `root`, a custom one such as
+  i-mux's `imux-resize`), keyed by the key code without its flags. tmux 3.8's whole
+  default set — every table, `copy-mode`, `copy-mode-vi` and `move` included, mouse keys
+  and all — is loaded verbatim from its `key-bindings.c` when the server starts, so
+  `list-keys` shows what tmux shows. The commands those bindings run are only parsed:
+  running one that is not implemented yet fails (and shows on the message line with
+  C4.5), which is why `bind-key` also takes `-N` (note) and `-r` (repeat) — tmux's own
+  defaults use them.
+- **The prefix.** `prefix` and `prefix2` (session options, defaults `C-b` and none) switch
+  a client's table to `prefix`; a second press of the prefix key is looked up there (the
+  default `C-b` binding runs `send-prefix`, which sends the prefix key to the pane).
+  `prefix-timeout` (server, default 0: off) drops a client back to its default table after
+  that long in `prefix`.
+- **Dispatch.** A key is looked up in the client's table, then as `Any`, then (unless the
+  table already is the default) in the default table (the session's `key-table` option,
+  default `root`) — so a binding for one key does not hide the default table's. A key
+  bound nowhere that reached the default table goes to the pane; one that fell out of
+  another table (`prefix`, a `switch-client -T` table) is swallowed, not sent. `repeat-time`
+  (session, default 500) and `initial-repeat-time` (default 0) keep a repeat (`-r`)
+  binding live for that many milliseconds: presses within it run the binding again instead
+  of the pane.
+- **`switch-client -T`** puts the client (the `-c` one, else the current) in a table for
+  one key: a bound key runs and, unless the binding repeats or re-enters, the client is
+  back in its default table; an unbound key is looked up in the default table as above.
+  A table that does not exist is `table <name> doesn't exist`; with no current client,
+  `no current client`.
+- **`unbind-key`** removes a binding (`-n`: `root`, `-T`: that table, else `prefix`);
+  a table that has no bindings left and never had tmux defaults goes away entirely —
+  with `-q` the errors are silent but still fail. `bind-key key` with no command only
+  sets the note and repeat flag of an existing binding.
+- **`list-keys`** prints with tmux's own template: `bind-key ` (`-r` or two spaces when
+  any listed binding repeats) `-T <table padded> <key escaped and padded> <command>`;
+  tables in name order, bindings by key code; `list-keys -T <table>` lists one table,
+  `list-keys <key>` filters. The harness's `list-keys -T` (†) is what i-mux's e2e suite
+- **`list-keys`** prints with tmux's own template: `bind-key ` (`-r` or two spaces when
+  any listed binding repeats) `-T <table padded> <key escaped and padded> <command>`;
+  tables in name order, bindings by key code; `list-keys -T <table>` lists one table,
+  `list-keys <key>` filters. The harness's `list-keys -T` (†) is what i-mux's e2e suite
+  uses.
 
 ### Layout strings
 
