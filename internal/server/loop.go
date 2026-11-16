@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/status"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/commands"
@@ -59,7 +61,9 @@ type Server struct {
 	panes   map[*model.Pane]*paneState
 	menus   map[*model.Window]*menu // each window's menu (task C4.7)
 	buffers *buffers.Store          // the paste buffers (task C4.9)
-	exiting bool
+	// promptHistory is the command prompts' history (task C4.10).
+	promptHistory *status.History
+	exiting       bool
 
 	latest map[*model.Window]*attachedClient // the client that used each window last
 
@@ -108,17 +112,18 @@ func New(o Options) *Server {
 		o.HoldTimeout = 5 * time.Second
 	}
 	s := &Server{
-		opts:    o,
-		tree:    model.NewTree(),
-		events:  make(chan func(), 256),
-		stop:    make(chan struct{}),
-		done:    make(chan struct{}),
-		panes:   map[*model.Pane]*paneState{},
-		menus:   map[*model.Window]*menu{},
-		buffers: buffers.New(),
-		held:    o.HoldForClient,
-		conns:   map[net.Conn]struct{}{},
-		latest:  map[*model.Window]*attachedClient{},
+		opts:          o,
+		tree:          model.NewTree(),
+		events:        make(chan func(), 256),
+		stop:          make(chan struct{}),
+		done:          make(chan struct{}),
+		panes:         map[*model.Pane]*paneState{},
+		menus:         map[*model.Window]*menu{},
+		buffers:       buffers.New(),
+		promptHistory: &status.History{},
+		held:          o.HoldForClient,
+		conns:         map[net.Conn]struct{}{},
+		latest:        map[*model.Window]*attachedClient{},
 
 		nameTimers: map[*model.Window]bool{},
 	}

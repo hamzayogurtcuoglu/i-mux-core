@@ -175,6 +175,9 @@ func (s *Server) inputKey(c *attachedClient, ev *input.Event) {
 		}
 		return
 	}
+	if c.prompt != nil && s.promptKey(c, key) {
+		return
+	}
 	// A key makes the client its window's latest and its session active
 	// (server_client_key_callback).
 	c.session.Activity = c.activity

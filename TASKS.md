@@ -1211,7 +1211,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   without bracketed paste.
 - **Depends on:** C2.11.
 
-### [ ] C4.10 Command prompt
+### [x] C4.10 Command prompt
 - **Goal:** the rename-tab prompt works.
 - **Details:**
   - `command-prompt -I <initial> -p <prompt> <template>`.

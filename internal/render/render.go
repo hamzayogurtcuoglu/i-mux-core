@@ -189,6 +189,8 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 		r.popupCursor(f, v)
 	case v.Menu != nil:
 		r.menuCursor(f, v, sc, areaY)
+	case v.PromptCursor != nil:
+		r.promptCursor(f, v)
 	default:
 		r.cursor(f, v, sc, areaY)
 	}

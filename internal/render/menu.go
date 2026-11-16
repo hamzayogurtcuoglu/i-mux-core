@@ -134,3 +134,27 @@ func (r *Renderer) menuCursor(f *Frame, v *View, sc *scene, areaY int) {
 	mode &^= vt.ModeBracketPaste
 	f.Mode = mode
 }
+
+// promptCursor is server_client_reset_state with a prompt: the cursor in the prompt, the mode
+// the status line's (the cursor on), the panes' mouse modes, and no bracketed paste.
+func (r *Renderer) promptCursor(f *Frame, v *View) {
+	mode := vt.ModeCursor | vt.ModeWrap
+	f.Cx, f.Cy = v.PromptCursor[0], min(v.PromptCursor[1], f.Sy-1)
+	if v.NoCursor {
+		mode &^= vt.ModeCursor
+	}
+	if v.Mouse {
+		for _, q := range v.Window.Panes {
+			q.Mu.Lock()
+			all := q.Term != nil && q.Term.Screen.Mode&vt.ModeMouseAll != 0
+			q.Mu.Unlock()
+			if all {
+				mode |= vt.ModeMouseAll
+			}
+		}
+		if mode&vt.ModeMouseAll == 0 {
+			mode |= vt.ModeMouseButton
+		}
+	}
+	f.Mode = mode
+}

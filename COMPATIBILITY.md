@@ -507,8 +507,16 @@ modifyOtherKeys).
   `menu-selected-style` and `menu-border-style`; a long name keeps its end, cut with `>`.
   `testdata/diff/menus.txt` checks i-mux's menus against tmux. Not yet: the mouse event that
   opened a menu (`-x M -y M`, and `-M` implied by a mouse binding) comes with the mouse (C5.1).
-- **Command prompt:** `-I` initial text, `-p` prompt, `-t` client; the template's `%%` is
-  replaced.
+- **Command prompt:** `-I` initial text (a format), `-p` prompt, `-t` client; several prompts
+  and inputs separated by commas (`-l` one); the template's `%1`… are the inputs, `%%` the
+  first single-quoted and `%%%` double-quoted, as tmux's `cmd_template_replace` does; without
+  `-b` the command waits. `-1 -N -k -e -C -F -T` too. Line editing as tmux's emacs keys
+  (arrows, Home/End, Backspace/Delete, C-a C-e C-b C-f C-u C-k C-w C-y C-t C-v, M-b M-f) and its
+  vi keys with `status-keys vi`; Up and Down walk the history; Escape cancels. It is drawn
+  with `message-format` in `message-style` (`message-command-style` in vi's command mode) on
+  `message-line`, the panes frozen unless `-C`. `testdata/diff/prompt.txt` checks i-mux's
+  rename-tab binding against tmux. Not yet: Tab completion, `-i` (incremental) and `-P` (a
+  prompt in a pane); clicks in the prompt come with the mouse (C5.1).
 - **Paste buffers:** `set-buffer` (`-a -b -n -w`), `delete-buffer`, `load-buffer` (`-b -w`),
   `save-buffer` (`-a`), `show-buffer`, `paste-buffer` (`-b -d -p -r -s -S -t`) and
   `list-buffers` (`-F -f -O -r`) work as tmux's: automatic buffers are `bufferN` and

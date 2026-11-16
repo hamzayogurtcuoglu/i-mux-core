@@ -45,8 +45,16 @@ func (s *Server) view(c *attachedClient) *render.View {
 	v.StatusLines = s.statusLineSize(c)
 	v.StatusTop = c.session.Options.GetNumber("status-position") == 0
 	v.Status = s.statusCells(c)
+	if c.prompt != nil {
+		// status_prompt_set: the prompt line, the panes frozen unless -C, the cursor in it.
+		lines, cx := s.promptLines(c)
+		v.Message = lines
+		v.Freeze = c.prompt.pr.Flags&status.PromptNoFreeze == 0
+		v.PromptCursor = &[2]int{cx, s.promptScreenLine(c)}
+	}
 	if c.message != nil {
-		// status_message_set: the message line, the panes frozen unless -C, no cursor.
+		// status_message_set: the message line, the panes frozen unless -C, no cursor. A
+		// message shows over the prompt.
 		v.Message = s.messageLines(c)
 		v.Freeze = !c.message.noFreeze
 		v.NoCursor = true

@@ -97,6 +97,8 @@ func (h *fakeHost) Buffers() *buffers.Store {
 	}
 	return h.buffers
 }
+func (h *fakeHost) SetPrompt(PromptSpec) bool            { return false }
+func (h *fakeHost) RunCommands(string, *List)            {}
 func (h *fakeHost) SetSelection(string, []byte)          {}
 func (h *fakeHost) PaneWrite(*model.Pane, []byte)        {}
 func (h *fakeHost) ClientGeometry(string) ClientGeometry { return ClientGeometry{StatusAt: -1} }
@@ -348,5 +350,27 @@ func TestAddMenuItem(t *testing.T) {
 	}
 	if width != 36 {
 		t.Errorf("width %d", width)
+	}
+}
+
+// templateReplace: %1 as it is, %% single-quoted (the first only), %%% double-quoted.
+func TestTemplateReplace(t *testing.T) {
+	tests := []struct {
+		template, s string
+		idx         int
+		want        string
+	}{
+		{"no percent", "x", 1, "no percent"},
+		{"a %1 b %1", "v w", 1, "a v w b v w"},
+		{"a %2", "v", 1, "a %2"},
+		{"set @x %%", "it's", 1, `set @x it'\''s`},
+		{"set @x %% %%", "a", 1, "set @x a %%"},
+		{`set @x "%%%"`, `say "hi" $x; ~`, 1, `set @x "say \"hi\" \$x\; \~"`},
+		{`set @x "%1%"`, `a"b`, 1, `set @x "a\"b"`},
+	}
+	for _, tt := range tests {
+		if got := templateReplace(tt.template, tt.s, tt.idx); got != tt.want {
+			t.Errorf("templateReplace(%q, %q, %d) = %q, want %q", tt.template, tt.s, tt.idx, got, tt.want)
+		}
 	}
 }

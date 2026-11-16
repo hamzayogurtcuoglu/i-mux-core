@@ -79,6 +79,12 @@ type Host interface {
 	SetSelection(client string, data []byte)
 	// PaneWrite writes bytes to a pane's program, as typed.
 	PaneWrite(p *model.Pane, b []byte)
+	// SetPrompt opens a command prompt on a client (status_prompt_set); false when it shows
+	// one already.
+	SetPrompt(spec PromptSpec) bool
+	// RunCommands runs a command list for an attached client, from its current target
+	// (cmdq_append for the client).
+	RunCommands(client string, list *List)
 }
 
 // MessageOptions are how a message is shown (status_message_set's arguments).
@@ -249,6 +255,7 @@ func init() {
 		"save-buffer":         saveBuffer,
 		"show-buffer":         saveBuffer,
 		"list-buffers":        listBuffers,
+		"command-prompt":      commandPrompt,
 		"list-sessions":       listSessions,
 		"list-windows":        listWindows,
 		"list-panes":          listPanes,

@@ -45,6 +45,8 @@ type attachedClient struct {
 
 	// The popup the client shows (its overlay, task C4.6).
 	popup *popup
+	// The command prompt on its status line (task C4.10).
+	prompt *prompt
 
 	// The key table the client is in (tmux's keytable), when it was set (its
 	// activity_time), and the repeat state (CLIENT_REPEAT, last_key, repeat_timer).
@@ -144,6 +146,7 @@ func (s *Server) endClient(c *attachedClient, t ipc.Type, reason string, code in
 		c.messageTimer = nil
 	}
 	s.clearOverlay(c)
+	s.clearPrompt(c)
 	c.tty.Stop(c.tty.Sy)
 	s.send(c)
 	c.gone = true
@@ -166,8 +169,9 @@ func (s *Server) removeAttached(c *attachedClient) {
 	}
 	s.updateFocus(c.window())
 	s.updatePaneColours()
-	// server_client_lost: the client's overlay goes with it.
+	// server_client_lost: the client's overlay and prompt go with it.
 	s.clearOverlay(c)
+	s.clearPrompt(c)
 	s.lostClient(c)
 }
 

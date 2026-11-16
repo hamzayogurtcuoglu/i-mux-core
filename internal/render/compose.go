@@ -118,6 +118,9 @@ type View struct {
 	// Freeze keeps the panes as the last frame showed them (TTY_FREEZE: a message is shown);
 	// NoCursor hides the cursor (TTY_NOCURSOR).
 	Freeze, NoCursor bool
+	// PromptCursor is where the cursor goes while the client's prompt is open (its column and
+	// terminal line), nil without one.
+	PromptCursor *[2]int
 	// Popup is the popup the client shows over everything, if any.
 	Popup *Popup
 	// Menu is the window's menu, drawn over its panes and borders, if any.

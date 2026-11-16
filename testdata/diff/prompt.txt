@@ -1,0 +1,58 @@
+# The command prompt (C4.10): i-mux's rename-tab binding (prefix and a key; command-prompt -I
+# with the tab's name, -p, and a template with %%%), line editing, Escape, several prompts and
+# %% and %1 substitution.
+conf messages.conf
+size 60x10
+run new-session -d -s a -n w 'exec cat'
+client c 60x10
+run bind T command-prompt -I '#{@imux_tab}' -p 'Tab name:' 'set-option -w @imux_tab "%%%"' ; set -w -t a @imux_tab 'old name'
+type c '\x02T'
+screen c
+# C-u clears the input; a name with spaces, quotes, $ and ; is set as typed.
+type c '\x15my "quoted" $tab; x'
+screen c
+type c '\r'
+screen c
+run display-message -p -t a '#{@imux_tab}'
+# Line editing: Left, Home, End, Backspace, Delete, C-a, C-e, C-w.
+type c '\x02T'
+screen c
+type c '\x1b[D\x1b[DZ'
+screen c
+type c '\x1b[H\x1b[3~A\x1b[F!\x7f?'
+screen c
+type c '\x01<\x05>'
+screen c
+type c '\x17\x17'
+screen c
+type c '\r'
+screen c
+run display-message -p -t a '#{@imux_tab}'
+# Escape cancels.
+type c '\x02T'
+screen c
+type c 'nope'
+screen c
+type c '\x1b'
+screen c
+run display-message -p -t a '#{@imux_tab}'
+# Two prompts, %1 and %2; %% single-quoted.
+run bind U command-prompt -I 'x,y' -p 'one,two' 'set -g @p "%1|%2"' ; bind V command-prompt -p 'q' "set -g @q %%"
+type c '\x02U'
+screen c
+type c '1\r'
+screen c
+type c '2\r'
+screen c
+run display-message -p '#{@p}'
+type c '\x02V'
+screen c
+type c "it's\r"
+screen c
+run display-message -p '#{@q}'
+# Without a status line the prompt takes the last line.
+run set -g status off
+type c '\x02T'
+screen c
+type c '\x1b'
+run kill-server
