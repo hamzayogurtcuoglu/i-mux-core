@@ -4,6 +4,7 @@ package difftest
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -11,10 +12,15 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt/vtfixture"
 )
 
-// TestMain lets the test binary be the probe's helper in a pane, as cmd/vtfixture is for tmux.
+// TestMain lets the test binary be the probe's helper in a pane, as cmd/vtfixture is for tmux,
+// and points attached clients at testdata's terminfo.
 func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && os.Args[1] == "__probe" {
 		os.Exit(vtfixture.ProbeHelper(os.Args[2:]))
+	}
+	// Attached clients read the same terminfo on every system.
+	if dir, err := filepath.Abs("../../testdata/term/terminfo"); err == nil {
+		ClientTerminfo = dir
 	}
 	os.Exit(m.Run())
 }

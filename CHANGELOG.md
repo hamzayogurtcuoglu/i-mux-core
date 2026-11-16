@@ -62,3 +62,5 @@ All notable changes to i-mux-core are listed here. The format follows
   synchronized output when the terminal has it; a pane in a synchronized update keeps its last
   frame. `make render-fixtures` records what tmux draws for `testdata/render`, and the tests
   compare.
+- The differential harness's `screen WxH` step: a client attached in a PTY, its terminal's
+  screen compared with tmux's once it settles, and a difference shown side by side.

@@ -51,6 +51,8 @@ func TestParseScriptErrors(t *testing.T) {
 		"normalize '(' x\n",
 		"wait '#{x}' 1\n",
 		"capture\n",
+		"screen\n",
+		"screen 80x24 now\n",
 		"skip-if-engine imux-core\n",
 	} {
 		if _, err := ParseScript(writeScript(t, text)); err == nil {
@@ -189,5 +191,23 @@ func TestNewEnv(t *testing.T) {
 		if strings.HasPrefix(v, "TMUX=") || strings.HasPrefix(v, "TMUX_PANE=") {
 			t.Errorf("%s leaks into the environment", v)
 		}
+	}
+}
+
+// dumpCells splits a Dump line into cells: styles in braces, escaped braces, wide characters
+// taking two cells and combining characters joining the one before.
+func TestDumpCells(t *testing.T) {
+	got := dumpCells("a{fg=0x1}b\\{日e\u0301{}c")
+	want := []screenCell{
+		{"a", "{}"},
+		{"b", "{fg=0x1}"},
+		{"{", "{fg=0x1}"},
+		{"日", "{fg=0x1}"},
+		{"", "{fg=0x1}"},
+		{"e\u0301", "{fg=0x1}"},
+		{"c", "{}"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("dumpCells:\n got %q\nwant %q", got, want)
 	}
 }

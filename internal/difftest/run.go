@@ -131,6 +131,14 @@ func Execute(ctx context.Context, script *Script, eng Engine) (*Transcript, erro
 		case "capture":
 			args := []string{"capture-pane", "-p", "-e", "-t", st.Args[0]}
 			tr.Entries = append(tr.Entries, Entry{Step: st, Args: args, Result: normalize(eng.Run(ctx, env, args))})
+		case "screen":
+			cols, rows := parseSize(st.Args[0])
+			sc, ok := eng.(Screener)
+			if !ok {
+				return nil, fmt.Errorf("%s:%d: engine %s cannot attach a client", script.Path, st.Line, eng.Name())
+			}
+			r := normalize(sc.Screen(ctx, env, cols, rows))
+			tr.Entries = append(tr.Entries, Entry{Step: st, Args: screenArgs(cols, rows), Result: r})
 		case "wait":
 			target, format, value, _ := parseWait(st.Args)
 			args := []string{"display-message", "-p"}
@@ -197,6 +205,9 @@ type Difference struct {
 }
 
 func (d Difference) String() string {
+	if d.Step.Kind == "screen" && d.What == "stdout" {
+		return fmt.Sprintf("%s:%d: %s\n%s", d.Path, d.Step.Line, d.Step.Text, sideBySide(d.EngA, d.EngB, d.A, d.B))
+	}
 	return fmt.Sprintf("%s:%d: %s\n  %s differs:\n    %-10s %q\n    %-10s %q",
 		d.Path, d.Step.Line, d.Step.Text, d.What, d.EngA+":", d.A, d.EngB+":", d.B)
 }

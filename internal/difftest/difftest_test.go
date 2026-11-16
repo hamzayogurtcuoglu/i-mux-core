@@ -93,8 +93,9 @@ func TestScriptsDeterministic(t *testing.T) {
 }
 
 // replay is a stub engine that answers what tmux answered in tr; plant may change an answer.
+// The same words asked again get the next answer recorded for them (the last one is kept).
 func replay(name string, tr *Transcript, plant func(step Step, r Result) Result) *Func {
-	answers := map[string]Result{}
+	answers := map[string][]Result{}
 	for _, e := range tr.Entries {
 		r := e.Result
 		if e.Step.Kind == "wait" {
@@ -104,11 +105,16 @@ func replay(name string, tr *Transcript, plant func(step Step, r Result) Result)
 		if plant != nil {
 			r = plant(e.Step, r)
 		}
-		answers[strings.Join(e.Args, "\x00")] = r
+		k := strings.Join(e.Args, "\x00")
+		answers[k] = append(answers[k], r)
 	}
 	return &Func{Label: name, Fn: func(args []string) Result {
-		if r, ok := answers[strings.Join(args, "\x00")]; ok {
-			return r
+		k := strings.Join(args, "\x00")
+		if rs := answers[k]; len(rs) > 0 {
+			if len(rs) > 1 {
+				answers[k] = rs[1:]
+			}
+			return rs[0]
 		}
 		return Result{Stderr: "stub: no answer for " + strings.Join(args, " "), Code: 1}
 	}}
@@ -222,5 +228,68 @@ func TestEmptyCommandLine(t *testing.T) {
 	a, b := results(ref), results(core)
 	if !reflect.DeepEqual(a, b) {
 		t.Errorf("tmux:\n%+v\nimux-core:\n%+v", a, b)
+	}
+}
+
+// TestHarnessScreen checks the screen step on the screen script: tmux against a stub that
+// gives tmux's own screens agrees, and one planted cell is reported, with both screens shown
+// side by side and the cell marked.
+func TestHarnessScreen(t *testing.T) {
+	ref := tmuxEngine(t)
+	p := "../../testdata/diff/screen.txt"
+	s, err := ParseScript(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr, err := Execute(context.Background(), s, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var screens []string
+	for _, e := range tr.Entries {
+		if e.Step.Kind == "screen" {
+			if e.Result.Stderr != "" || !strings.Contains(e.Result.Stdout, "--- screen\n") {
+				t.Fatalf("screen: %+v", e.Result)
+			}
+			screens = append(screens, e.Result.Stdout)
+		}
+	}
+	if len(screens) != 4 || !strings.Contains(screens[0], "one pane") || !strings.Contains(screens[1], "│") {
+		t.Fatalf("screens:\n%s", strings.Join(screens, "\n"))
+	}
+	t.Logf("tmux's first screen:\n%s", screens[0])
+	diffs, _, err := RunPair(context.Background(), p, ref, replay("stub", tr, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	report(t, diffs)
+
+	first := 0
+	for _, e := range tr.Entries {
+		if e.Step.Kind == "screen" {
+			first = e.Step.Line
+			break
+		}
+	}
+	planted := replay("planted", tr, func(st Step, r Result) Result {
+		if st.Kind == "screen" && st.Line == first {
+			r.Stdout = strings.Replace(r.Stdout, "one pane", "one Pane", 1)
+		}
+		return r
+	})
+	diffs, _, err = RunPair(context.Background(), p, ref, planted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(diffs) != 1 || diffs[0].Step.Kind != "screen" || diffs[0].What != "stdout" {
+		t.Fatalf("planted difference: got %v", diffs)
+	}
+	msg := diffs[0].String()
+	t.Logf("%s", msg)
+	// Row 0 is marked, and the caret is under the planted cell: 7 columns of margin, the first
+	// screen (40), " | ", then column 4.
+	if !strings.Contains(msg, "screen.txt:9:") || !strings.Contains(msg, "  ≠  0 one pane ") ||
+		!strings.Contains(msg, "\n"+strings.Repeat(" ", 7+40+3+4)+"^\n") || strings.Count(msg, "≠") != 1 {
+		t.Fatalf("message:\n%s", msg)
 	}
 }

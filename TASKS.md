@@ -650,7 +650,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   (C2.10), and the theme colours a terminal reports (C2.10). Not drawn yet: scrollbars, the
   marked pane, border arrows, and the bidi isolates tmux writes for terminals with `Bidi`.
 
-### [ ] C2.9 Headless client in the differential harness
+### [x] C2.9 Headless client in the differential harness
 - **Goal:** compare what users actually see, not only command output.
 - **Details:**
   - `difftest` gets a `screen WxH` step:
@@ -670,6 +670,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - The basic layout scripts run on tmux and give the same screens twice; they pass on
     i-mux-core once C3.4, C3.6 and C4.2 are done.
 - **Depends on:** C2.8, C0.4.
+- **Status:** done. Scripts have a `screen WxH` step (`internal/difftest/screen.go`); a
+  difference prints both screens side by side with the differing cells marked
+  (`TestHarnessScreen` plants one). `testdata/diff/screen.txt` (one to three panes and a zoom)
+  runs on tmux only until C3.6.
 
 ### [ ] C2.10 Input from the client terminal
 - **Goal:** keys, mouse, paste, focus and terminal reports are understood like tmux does.

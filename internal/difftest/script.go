@@ -20,6 +20,8 @@ import (
 //	wait [-t <target>] <format> == <value>
 //	                             poll display-message -p until the format gives the value
 //	capture <pane>               compare capture-pane -p -e of a pane
+//	screen WxH                   attach a client of WxH in a PTY and compare what its terminal
+//	                             shows once it has settled (screen.go)
 //
 // Words are split as a POSIX shell does: '…' is literal, "…" takes \" \\ \$ and \` escapes, and
 // \ escapes one character outside quotes. A lone ; is a word, as on tmux's command line.
@@ -31,7 +33,7 @@ type Script struct {
 // Step is one line of a script.
 type Step struct {
 	Line int
-	Kind string   // "run", "conf", "size", "normalize", "skip-if-engine", "wait", "capture"
+	Kind string   // "run", "conf", "size", "normalize", "skip-if-engine", "wait", "capture", "screen"
 	Args []string // the words after the kind
 	Text string   // the line as written, for messages
 }
@@ -77,7 +79,7 @@ func ParseScript(path string) (*Script, error) {
 			if ran {
 				return nil, bad("must come before the first run")
 			}
-		case "size":
+		case "size", "screen":
 			if len(st.Args) != 1 || !reSize.MatchString(st.Args[0]) {
 				return nil, bad("want WxH")
 			}
