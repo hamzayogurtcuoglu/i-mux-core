@@ -29,7 +29,8 @@ All notable changes to i-mux-core are listed here. The format follows
   (kept per cell and given back by `capture-pane -e`), OSC 4/10/11/12 colours and queries with
   their resets, OSC 52 under `set-clipboard`, OSC 133 prompt marks, OSC 9;4 progress, and DECRQSS.
 - Replies to programs as tmux 3.8 gives them (DA1, DA2, XTVERSION, DSR, DECRQM, window sizes,
-  colour queries, DECRQSS, the theme report), checked against tmux by a probe.
+  colour queries, DECRQSS, the theme report), checked against tmux by a probe on the emulator
+  and in a pane on both engines.
 - `testdata/faketui`, a stand-in for agent CLIs in tests: a full-screen frame in synchronized
   output, key, mouse and paste echo, resizing, streaming, title, cwd and copy, and exits.
 - History and `capture-pane` ranges checked against tmux with 5000 lines and wrapped lines, and

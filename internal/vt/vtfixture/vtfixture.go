@@ -202,8 +202,10 @@ func FromTmux(tmux, self, in string, timeout time.Duration) (string, error) {
 
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
-// ProbeFromTmux runs a probe file on an 80x24 tmux pane and returns the replies.out text.
-func ProbeFromTmux(tmux, self, probe string, timeout time.Duration) (string, error) {
+// Probe runs a probe file on an 80x24 pane of a tmux-compatible program (tmux, imux-core), with
+// self as the helper that runs in the pane (it must handle "__probe" as cmd/vtfixture does),
+// and returns the replies in replies.out's format.
+func Probe(tmux, self, probe string, timeout time.Duration) (string, error) {
 	probe, err := filepath.Abs(probe)
 	if err != nil {
 		return "", err

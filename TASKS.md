@@ -337,7 +337,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** fixtures and probe tests match tmux's titles, captured screens and replies.
 - **Depends on:** C1.6.
 
-### [ ] C1.8 Replies to the program
+### [x] C1.8 Replies to the program
 - **Goal:** programs that query the terminal get the answers they get under tmux.
 - **Details:**
   - DA1, DA2, DA3 if tmux answers it.
@@ -352,8 +352,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     the probe in i-mux-core's panes too.
 - **Acceptance:** every probe reply is identical, or the difference is recorded in
   COMPATIBILITY.md §13 with a reason.
-- **Status:** the unit part is done: every reply in the probe matches tmux 3.8. The difftest run
-  waits for C2.6.
+- **Status:** done. Every reply in the probe matches tmux 3.8, on the emulator
+  (`TestRepliesMatchTmux`) and in a pane through the server and its PTY (the difftest
+  `TestReplyProbe`, which runs the probe on both engines).
 - **Depends on:** C1.7, C2.6 (for the difftest run; the unit part can come earlier).
 
 ### [x] C1.9 Fake TUI for tests

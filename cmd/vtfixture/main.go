@@ -88,7 +88,7 @@ func main() {
 	// The reply probe: testdata/vt/replies.txt, answered by tmux into replies.out.
 	if probe := filepath.Join(*dir, "replies.txt"); len(flag.Args()) == 0 {
 		if _, err := os.Stat(probe); err == nil {
-			got, err := vtfixture.ProbeFromTmux(tmuxPath, self, probe, 60*time.Second)
+			got, err := vtfixture.Probe(tmuxPath, self, probe, 60*time.Second)
 			out := filepath.Join(*dir, "replies.out")
 			switch {
 			case err != nil:
