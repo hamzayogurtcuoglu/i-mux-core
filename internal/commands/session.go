@@ -75,7 +75,7 @@ func newSession(it *Item) error {
 	// A session made for a client to attach takes the client's size, less a status line.
 	if attach && it.Client.Cols > 0 && it.Client.Rows > 0 {
 		sx, sy = it.Client.Cols, it.Client.Rows
-		if sy > 0 && it.Host.StatusLines() != 0 {
+		if sy > 0 && t.Options.Session.GetNumber("status") != 0 {
 			sy--
 		}
 		sx, sy = max(sx, 1), max(sy, 1)
@@ -84,12 +84,23 @@ func newSession(it *Item) error {
 	if !ok {
 		cwd = it.clientCwd()
 	}
+	// -x and -y give the session a default-size.
+	dsx, dsy := sx, sy
+	if v, err := size(a, 'x', "width", 80); err == nil && a.Has('x') {
+		dsx = v
+	}
+	if v, err := size(a, 'y', "height", 24); err == nil && a.Has('y') {
+		dsy = v
+	}
 	now := it.Host.Now()
 	s, err := t.NewSession(sname, cwd, now)
 	if err != nil {
 		return err
 	}
-	wl, err := t.NewWindow(s, -1, 0, sx, sy)
+	if a.Has('x') || a.Has('y') {
+		s.Options.SetString("default-size", false, fmt.Sprintf("%dx%d", dsx, dsy))
+	}
+	wl, err := t.NewWindow(s, -1, int(s.Options.GetNumber("base-index")), sx, sy)
 	if err != nil {
 		t.RemoveSession(s)
 		return err
@@ -99,7 +110,7 @@ func newSession(it *Item) error {
 	if n, ok := a.Get('n'); ok {
 		w.Name = n
 	} else {
-		w.Name = defaultWindowName(a.Strings(), it.shell())
+		w.Name = defaultWindowName(a.Strings(), it.shell(s))
 	}
 	p := t.NewPane(w, nil, false, sx, sy)
 	spec := it.spawnSpec(s, p, a.Strings(), cwd, a.All('e'))
@@ -284,21 +295,29 @@ func (it *Item) getenv(name string) string {
 	return ""
 }
 
-// shell is tmux's default-shell: $SHELL when it is an absolute path to an executable that is
-// not this program, else /bin/sh.
-func (it *Item) shell() string {
-	sh := it.getenv("SHELL")
-	if sh == "" || !filepath.IsAbs(sh) || isExecutable(sh) != nil || filepath.Base(sh) == "imux-core" {
-		return "/bin/sh"
+// shell is the session's default-shell when it is a suitable shell, else /bin/sh (tmux's
+// spawn.c).
+func (it *Item) shell(s *model.Session) string {
+	oo := it.Host.Tree().Options.Session
+	if s != nil {
+		oo = s.Options
 	}
-	return sh
+	if sh := oo.GetString("default-shell"); CheckShell(sh) {
+		return sh
+	}
+	return "/bin/sh"
+}
+
+// CheckShell is tmux's checkshell: an absolute path to an executable that is not the engine.
+func CheckShell(sh string) bool {
+	return sh != "" && filepath.IsAbs(sh) && isExecutable(sh) == nil && filepath.Base(sh) != "imux-core"
 }
 
 // spawnSpec is how tmux's spawn.c runs a pane's program: several words with execvp, one word
 // with the shell's -c, none as a login shell. The environment is the server's, with TERM,
 // TMUX and TMUX_PANE set.
 func (it *Item) spawnSpec(s *model.Session, p *model.Pane, argv []string, cwd string, extra []string) pty.Spec {
-	sh := it.shell()
+	sh := it.shell(s)
 	// tmux's child goes to the directory, else home, else /.
 	if !isDir(cwd) {
 		cwd = "/"
@@ -316,7 +335,7 @@ func (it *Item) spawnSpec(s *model.Session, p *model.Pane, argv []string, cwd st
 		spec.Argv = append([]string(nil), argv...)
 	}
 	set := map[string]string{
-		"TERM":      "tmux-256color",
+		"TERM":      it.Host.Tree().Options.Server.GetString("default-terminal"),
 		"TMUX":      fmt.Sprintf("%s,%d,%d", it.Host.SocketPath(), it.Host.Pid(), s.ID),
 		"TMUX_PANE": fmt.Sprintf("%%%d", p.ID),
 	}

@@ -79,3 +79,6 @@ All notable changes to i-mux-core are listed here. The format follows
   ids, exact (`=`), prefix and glob names, window and pane tokens, positions and directions,
   `TMUX_PANE` for commands run inside a pane, a command list's current target, and basic
   `new-window`, `split-window`, `select-window` and `select-pane`.
+- Options: tmux 3.8's option table, generated from its source, with scopes, inheritance,
+  arrays and user options; `set-option`, `set-window-option`, `show-options` and
+  `show-window-options` as tmux has them.

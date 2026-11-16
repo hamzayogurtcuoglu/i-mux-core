@@ -7,11 +7,14 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/commands"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
@@ -53,12 +56,6 @@ type Server struct {
 	readers sync.WaitGroup
 	panes   map[*model.Pane]*paneState
 	exiting bool
-
-	// Server options set so far (the option table comes with task C3.4).
-	extendedKeys   vt.ExtendedKeysOption
-	extendedFormat keys.ExtendedFormat
-	statusLines    int // the status option: 0 off, 1 on, 2 to 5 lines
-	windowSize     int // window-size
 
 	latest map[*model.Window]*attachedClient // the client that used each window last
 
@@ -108,14 +105,43 @@ func New(o Options) *Server {
 		panes:  map[*model.Pane]*paneState{},
 		held:   o.HoldForClient,
 		conns:  map[net.Conn]struct{}{},
-
-		extendedFormat: keys.FormatXterm,
-		statusLines:    1,
-		windowSize:     windowSizeLatest,
-		latest:         map[*model.Window]*attachedClient{},
+		latest: map[*model.Window]*attachedClient{},
 	}
 	s.tree.Resized = s.paneResized
+	s.startOptions()
 	return s
+}
+
+// startOptions sets the options tmux sets when its server starts (tmux.c): default-shell from
+// SHELL, and with VISUAL or EDITOR, editor and vi or emacs keys.
+func (s *Server) startOptions() {
+	g := s.tree.Options
+	getenv := func(name string) (string, bool) {
+		for _, kv := range s.opts.Environ {
+			if v, ok := strings.CutPrefix(kv, name+"="); ok {
+				return v, true
+			}
+		}
+		return "", false
+	}
+	shell, _ := getenv("SHELL")
+	if !commands.CheckShell(shell) {
+		shell = "/bin/sh"
+	}
+	g.Session.SetString("default-shell", false, shell)
+	ed, ok := getenv("VISUAL")
+	if !ok {
+		ed, ok = getenv("EDITOR")
+	}
+	if ok {
+		g.Server.SetString("editor", false, ed)
+		mode := int64(0) // emacs
+		if strings.Contains(path.Base(ed), "vi") {
+			mode = 1
+		}
+		g.Session.SetNumber("status-keys", mode)
+		g.Window.SetNumber("mode-keys", mode)
+	}
 }
 
 // paneResized resizes a pane's screen and its program's terminal when its layout cell changes
@@ -231,9 +257,13 @@ func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 		return err
 	}
 	p.Proc = proc
-	p.Term = vt.NewTerminal(p.Sx, p.Sy, s.opts.HistoryLimit)
-	p.Term.ExtendedKeys = s.extendedKeys
-	if s.extendedKeys == vt.ExtendedKeysAlways {
+	limit := s.opts.HistoryLimit
+	if w := p.Window; w != nil && w.Session() != nil {
+		limit = int(w.Session().Options.GetNumber("history-limit"))
+	}
+	p.Term = vt.NewTerminal(p.Sx, p.Sy, limit)
+	p.Term.ExtendedKeys = s.extendedKeys()
+	if p.Term.ExtendedKeys == vt.ExtendedKeysAlways {
 		// As tmux's screen_init: the screen starts in extended keys mode 1.
 		p.Term.Screen.Mode |= vt.ModeKeysExtended
 	}

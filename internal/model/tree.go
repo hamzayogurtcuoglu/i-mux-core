@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/options"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
@@ -23,6 +24,8 @@ import (
 type Tree struct {
 	// Resized is called when a pane's size changes (its program and screen are resized).
 	Resized func(p *Pane)
+	// Options are the global options, the parents of every session's, window's and pane's.
+	Options *options.Globals
 
 	sessions map[int]*Session
 	windows  map[int]*Window
@@ -39,6 +42,7 @@ type Session struct {
 	Created  time.Time
 	Activity time.Time
 	Attached int
+	Options  *options.Options
 
 	links   map[int]*Winlink // by index
 	Current *Winlink
@@ -54,9 +58,10 @@ type Winlink struct {
 
 // Window is a window: its panes in order, the active and last ones, its size.
 type Window struct {
-	ID     int
-	Name   string
-	Sx, Sy int
+	ID      int
+	Name    string
+	Sx, Sy  int
+	Options *options.Options
 
 	Panes  []*Pane
 	Active *Pane
@@ -82,6 +87,8 @@ type Pane struct {
 	Xoff   int
 	Yoff   int
 
+	Options *options.Options
+
 	Mu   sync.Mutex
 	Term *vt.Terminal
 	Proc pty.Proc
@@ -106,7 +113,10 @@ var (
 
 // NewTree returns an empty tree.
 func NewTree() *Tree {
-	return &Tree{sessions: map[int]*Session{}, windows: map[int]*Window{}, panes: map[int]*Pane{}}
+	return &Tree{
+		sessions: map[int]*Session{}, windows: map[int]*Window{}, panes: map[int]*Pane{},
+		Options: options.NewGlobals(),
+	}
 }
 
 // Sessions returns the sessions in tmux's order: by name.
@@ -151,7 +161,7 @@ func (t *Tree) SessionByName(name string) *Session {
 // NewSession creates a session. An empty name gives it its id as name, as tmux does. The name
 // is used as given: the commands check and clean it (tmux's check_name and clean_name).
 func (t *Tree) NewSession(name, cwd string, now time.Time) (*Session, error) {
-	s := &Session{Cwd: cwd, Created: now, Activity: now, links: map[int]*Winlink{}}
+	s := &Session{Cwd: cwd, Created: now, Activity: now, links: map[int]*Winlink{}, Options: options.New(t.Options.Session)}
 	if name != "" {
 		if t.SessionByName(name) != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDuplicateSession, name)
@@ -256,7 +266,7 @@ func (t *Tree) NewWindow(s *Session, idx, base, sx, sy int) (*Winlink, error) {
 	} else if s.links[idx] != nil {
 		return nil, fmt.Errorf("%w: %d", ErrIndexInUse, idx)
 	}
-	w := &Window{ID: t.nextWindow, Sx: sx, Sy: sy}
+	w := &Window{ID: t.nextWindow, Sx: sx, Sy: sy, Options: options.New(t.Options.Window)}
 	t.nextWindow++
 	wl := &Winlink{Index: idx, Window: w, Session: s}
 	w.link = wl
@@ -277,7 +287,7 @@ func (w *Window) Link() *Winlink { return w.link }
 // NewPane adds a pane to w, after the pane at, or before it when before is set, or last
 // when at is nil. The first pane of a window becomes its active pane.
 func (t *Tree) NewPane(w *Window, at *Pane, before bool, sx, sy int) *Pane {
-	p := &Pane{ID: t.nextPane, Window: w, Sx: sx, Sy: sy}
+	p := &Pane{ID: t.nextPane, Window: w, Sx: sx, Sy: sy, Options: options.New(w.Options)}
 	t.nextPane++
 	i := len(w.Panes)
 	if at != nil {

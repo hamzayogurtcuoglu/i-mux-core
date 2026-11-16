@@ -494,9 +494,9 @@ func (f *finder) getPaneWithWindow(pane string) bool {
 		return set(w.Panes[((i-n)%len(w.Panes)+len(w.Panes))%len(w.Panes)])
 	}
 	if idx, ok := strtonum(pane, 0, math.MaxInt32); ok {
-		// pane-base-index is 0 until options exist (task C3.4).
-		if idx < len(w.Panes) {
-			return set(w.Panes[idx])
+		// window_pane_at_index: indexes start at pane-base-index.
+		if i := idx - int(w.Options.GetNumber("pane-base-index")); i >= 0 && i < len(w.Panes) {
+			return set(w.Panes[i])
 		}
 	}
 	return set(findString(w, pane))

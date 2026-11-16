@@ -18,6 +18,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 )
@@ -45,10 +46,11 @@ const (
 // statusLineSize is status_line_size: the lines the client's status takes, none when the
 // client is too small for them.
 func (s *Server) statusLineSize(c *attachedClient) int {
-	if c.tty.Sy <= s.statusLines {
+	lines := int(c.session.Options.GetNumber("status"))
+	if c.tty.Sy <= lines {
 		return 0
 	}
-	return s.statusLines
+	return lines
 }
 
 // shows reports whether a client shows a window's session (session_has).
@@ -67,7 +69,8 @@ func (s *Server) recalculateSizes() {
 
 // recalculateSize is recalculate_size and clients_calculate_size for one window.
 func (s *Server) recalculateSize(w *model.Window) {
-	if w.Active == nil || s.windowSize == windowSizeManual {
+	windowSize := w.Options.GetNumber("window-size")
+	if w.Active == nil || windowSize == windowSizeManual {
 		return
 	}
 	n := 0
@@ -81,14 +84,14 @@ func (s *Server) recalculateSize(w *model.Window) {
 		if !c.shows(w) {
 			continue
 		}
-		if s.windowSize == windowSizeLatest && n > 1 && c != s.latest[w] {
+		if windowSize == windowSizeLatest && n > 1 && c != s.latest[w] {
 			continue
 		}
 		cx, cy := c.tty.Sx, c.tty.Sy-s.statusLineSize(c)
 		switch {
 		case !found:
 			sx, sy = cx, cy
-		case s.windowSize == windowSizeLargest:
+		case windowSize == windowSizeLargest:
 			sx, sy = max(sx, cx), max(sy, cy)
 		default:
 			sx, sy = min(sx, cx), min(sy, cy)
@@ -120,7 +123,7 @@ func (s *Server) updateLatest(c *attachedClient) {
 		return
 	}
 	s.latest[w] = c
-	if s.windowSize == windowSizeLatest {
+	if w.Options.GetNumber("window-size") == windowSizeLatest {
 		s.recalculateSize(w)
 	}
 	s.fire("client-active", c.name)
@@ -180,8 +183,8 @@ func (s *Server) SwitchClient(name string, sess *model.Session) error {
 }
 
 // DefaultSize implements commands.Host: a new window of s takes the size the clients showing s
-// give (the smallest, less their status lines), else 80x24 (tmux's default_window_size with
-// no target client and default-size at its default).
+// give (the smallest, less their status lines), else the session's default-size (tmux's
+// default_window_size with no target client).
 func (s *Server) DefaultSize(sess *model.Session) (sx, sy int) {
 	found := false
 	for _, c := range s.attached {
@@ -198,6 +201,11 @@ func (s *Server) DefaultSize(sess *model.Session) (sx, sy int) {
 		found = true
 	}
 	if !found {
+		// default-size, else 80x24.
+		var x, y int
+		if n, err := fmt.Sscanf(sess.Options.GetString("default-size"), "%dx%d", &x, &y); n == 2 && err == nil {
+			return min(max(x, windowMinimum), windowMaximum), min(max(y, windowMinimum), windowMaximum)
+		}
 		return 80, 24
 	}
 	return min(max(sx, windowMinimum), windowMaximum), min(max(sy, windowMinimum), windowMaximum)

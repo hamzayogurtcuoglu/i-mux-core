@@ -837,7 +837,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   `split-window`, `select-window` and `select-pane` are implemented in their basic form.
   `testdata/diff/targets.txt` and `TestInsidePaneTarget`.
 
-### [ ] C3.4 Options
+### [x] C3.4 Options
 - **Goal:** `set-option` and `show-options` behave like tmux for every option i-mux uses.
 - **Details:**
   - The option table:
@@ -854,6 +854,18 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** difftest of set and show for every option in the contract, in every scope i-mux
   uses, including unset and inheritance.
 - **Depends on:** C3.3.
+- **Status:** done. `internal/options` holds tmux 3.8's whole option table, generated from its
+  own `options-table.c` (`scripts/gen-options-table.sh`, so every default is tmux's), with
+  `options.c`'s scopes, inheritance, arrays and user options; `set-option`,
+  `set-window-option`, `show-options` and `show-window-options` port tmux's commands with
+  `-a -A -g -o -p -q -s -t -u -U -v -w`. `testdata/diff/options.txt` sets and shows every
+  option of the contract in each scope i-mux uses, lists every scope's options (with `-A`),
+  and checks the errors; all of it matches tmux 3.8. The server starts with tmux's startup
+  options (`default-shell` from `SHELL`, `editor` and the keys from `VISUAL`/`EDITOR`) and
+  reads `extended-keys`, `extended-keys-format`, `escape-time`, `status`, `status-position`,
+  `window-size`, `mouse`, `history-limit`, `default-terminal`, `default-shell`, `base-index`,
+  `pane-base-index` and `default-size` from it. Not yet: `-F` (formats, C3.5), checking styles
+  (C4.1, a bad style is accepted until then), `set-hook`/`show-hooks` (C3.9).
 
 ### [ ] C3.5 Format engine
 - **Goal:** every format i-mux writes expands as it does in tmux.

@@ -1,2 +1,3 @@
-// Package options owns the option tables, their scopes (server, session, window, pane), user options and arrays.
+// Package options holds tmux's options: the option table, the scopes and their inheritance,
+// user options and arrays, and their values as set-option takes and show-options shows them.
 package options

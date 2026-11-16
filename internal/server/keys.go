@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
@@ -21,40 +23,48 @@ func (s *Server) PaneKey(p *model.Pane, k keys.Key) bool {
 	p.Mu.Lock()
 	mode := p.Term.Screen.Mode
 	p.Mu.Unlock()
-	b, ok := keys.Encode(k, mode, backspace, s.extendedFormat)
+	b, ok := keys.Encode(k, mode, backspace, s.extendedFormat())
 	if len(b) > 0 {
 		_, _ = p.Proc.Write(b)
 	}
 	return ok
 }
 
-// SetServerOption implements commands.Host for the options it knows: extended-keys (which a
-// pane's request for extended keys is checked against), extended-keys-format, and status and
-// window-size, which windows' sizes follow.
-func (s *Server) SetServerOption(name string, choice int) {
+// OptionChanged implements commands.Host: what depends on the option takes its new value
+// (tmux's options_push_changes, for what the engine has so far), and every client is drawn
+// again.
+func (s *Server) OptionChanged(name string) {
 	switch name {
 	case "extended-keys":
-		s.extendedKeys = vt.ExtendedKeysOption(choice)
 		for _, p := range s.tree.Panes() {
 			if p.Term != nil {
 				p.Mu.Lock()
-				p.Term.ExtendedKeys = s.extendedKeys
+				p.Term.ExtendedKeys = s.extendedKeys()
 				p.Mu.Unlock()
 			}
 		}
-	case "extended-keys-format":
-		s.extendedFormat = keys.ExtendedFormat(choice)
-	case "status":
-		s.statusLines = choice
-		s.recalculateSizes()
+	case "escape-time":
 		for _, c := range s.attached {
-			s.invalidate(c)
+			if c.in.parser != nil {
+				c.in.parser.EscapeTime = s.escapeTime()
+			}
 		}
-	case "window-size":
-		s.windowSize = choice
-		s.recalculateSizes()
+	}
+	s.recalculateSizes()
+	for _, c := range s.attached {
+		s.invalidate(c)
 	}
 }
 
-// StatusLines implements commands.Host.
-func (s *Server) StatusLines() int { return s.statusLines }
+// The server options the engine reads.
+func (s *Server) extendedKeys() vt.ExtendedKeysOption {
+	return vt.ExtendedKeysOption(s.tree.Options.Server.GetNumber("extended-keys"))
+}
+
+func (s *Server) extendedFormat() keys.ExtendedFormat {
+	return keys.ExtendedFormat(s.tree.Options.Server.GetNumber("extended-keys-format"))
+}
+
+func (s *Server) escapeTime() time.Duration {
+	return time.Duration(s.tree.Options.Server.GetNumber("escape-time")) * time.Millisecond
+}

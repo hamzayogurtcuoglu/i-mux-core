@@ -26,9 +26,8 @@ type drawState struct {
 func (s *Server) view(c *attachedClient) *render.View {
 	v := &render.View{
 		Sx: c.tty.Sx, Sy: c.tty.Sy,
-		Styles: render.DefaultStyles(),
-		// tmux 3.8's mouse option is on by default; options come with task C3.4.
-		Mouse:    true,
+		Styles:   render.DefaultStyles(),
+		Mouse:    c.session.Options.GetNumber("mouse") != 0,
 		NoBright: c.tty.Term.Has("Nobr"),
 		// The theme colours, once the terminal has told its colours or theme.
 		ThemeColours: c.in.themes,
@@ -38,6 +37,7 @@ func (s *Server) view(c *attachedClient) *render.View {
 	}
 	// The status lines are left out of the window; what they show comes with task C4.2.
 	v.StatusLines = s.statusLineSize(c)
+	v.StatusTop = c.session.Options.GetNumber("status-position") == 0
 	return v
 }
 

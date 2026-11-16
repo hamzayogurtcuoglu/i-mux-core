@@ -49,7 +49,7 @@ func (h *fakeHost) PaneKey(p *model.Pane, k keys.Key) bool {
 	return k != keys.Parse("C-BSpace")
 }
 
-func (h *fakeHost) StatusLines() int                      { return 1 }
+func (h *fakeHost) OptionChanged(name string)             { h.options = append(h.options, name) }
 func (h *fakeHost) DefaultSize(*model.Session) (int, int) { return 80, 24 }
 func (h *fakeHost) RemovePane(p *model.Pane) {
 	w := p.Window
@@ -66,9 +66,6 @@ func (h *fakeHost) SwitchClient(name string, s *model.Session) error {
 	return nil
 }
 
-func (h *fakeHost) SetServerOption(name string, choice int) {
-	h.options = append(h.options, fmt.Sprintf("%s=%d", name, choice))
-}
 func (h *fakeHost) SocketPath() string { return "/tmp/s" }
 func (h *fakeHost) Pid() int           { return 42 }
 

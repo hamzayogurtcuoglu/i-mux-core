@@ -48,32 +48,6 @@ func TestSendKeys(t *testing.T) {
 	}
 }
 
-// set-option knows the extended-keys options and their values; other options are not
-// implemented yet.
-func TestSetOptionExtendedKeys(t *testing.T) {
-	h := newFakeHost()
-	for _, tc := range []struct {
-		args []string
-		err  string
-	}{
-		{[]string{"-s", "extended-keys", "on"}, ""},
-		{[]string{"-g", "extended-keys", "always"}, ""},
-		{[]string{"extended-keys-format", "csi-u"}, ""},
-		{[]string{"-s", "extended-keys", "maybe"}, "unknown value: maybe"},
-		{[]string{"-g", "status", "off"}, ""},
-		{[]string{"-g", "window-size", "largest"}, ""},
-		{[]string{"-g", "mouse", "off"}, "set-option mouse: not implemented by imux-core yet"},
-	} {
-		r := run(h, append([]string{"set-option"}, tc.args...)...)
-		if (tc.err == "") == r.Failed || (tc.err != "" && r.Stderr != tc.err+"\n") {
-			t.Errorf("%q: %+v, want %q", tc.args, r, tc.err)
-		}
-	}
-	if want := []string{"extended-keys=1", "extended-keys=2", "extended-keys-format=0", "status=0", "window-size=0"}; !slices.Equal(h.options, want) {
-		t.Errorf("options %q, want %q", h.options, want)
-	}
-}
-
 // switch-client moves the client given with -c, else the most recently active one; with no
 // client attached there is no current client.
 func TestSwitchClient(t *testing.T) {

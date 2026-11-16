@@ -48,6 +48,7 @@ func (s *Server) fire(name, client string) {
 // startInput sets up a client's input once its terminal has been sent the queries.
 func (s *Server) startInput(c *attachedClient, erase int) {
 	c.in = inputState{parser: input.New(c.tty.Term, erase), focused: true, fg: -1, bg: -1}
+	c.in.parser.EscapeTime = s.escapeTime()
 	c.in.parser.Requested()
 	time.AfterFunc(queryTimeout, func() {
 		s.post(func() {

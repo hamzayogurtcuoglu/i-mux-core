@@ -34,10 +34,9 @@ type Host interface {
 	// PaneKey sends a key to a pane, encoded as the pane asked (TASKS.md C2.11); false when
 	// the key has no encoding there.
 	PaneKey(p *model.Pane, k keys.Key) bool
-	// SetServerOption sets a server option to the index of its choice.
-	SetServerOption(name string, choice int)
-	// StatusLines is the status option: how many lines the status takes.
-	StatusLines() int
+	// OptionChanged tells the server an option was set, to apply and redraw what depends on
+	// it (tmux's options_push_changes).
+	OptionChanged(name string)
 	// SwitchClient makes an attached client show another session.
 	SwitchClient(name string, s *model.Session) error
 	// DefaultSize is the size of a new window of s (tmux's default_window_size).
@@ -124,20 +123,23 @@ type execFunc func(*Item) error
 // implemented are the commands the engine runs so far; the rest of tmux's table is known (for
 // lookup and argument errors) but not run yet. The command table grows in task C3.2.
 var implemented = map[string]execFunc{
-	"new-session":    newSession,
-	"has-session":    hasSession,
-	"kill-session":   killSession,
-	"kill-server":    killServer,
-	"start-server":   func(*Item) error { return nil },
-	"attach-session": attachSession,
-	"detach-client":  detachClient,
-	"send-keys":      sendKeys,
-	"set-option":     setOption,
-	"switch-client":  switchClient,
-	"new-window":     newWindow,
-	"split-window":   splitWindow,
-	"select-window":  selectWindow,
-	"select-pane":    selectPane,
+	"new-session":         newSession,
+	"has-session":         hasSession,
+	"kill-session":        killSession,
+	"kill-server":         killServer,
+	"start-server":        func(*Item) error { return nil },
+	"attach-session":      attachSession,
+	"detach-client":       detachClient,
+	"send-keys":           sendKeys,
+	"set-option":          setOption,
+	"set-window-option":   setOption,
+	"show-options":        showOptions,
+	"show-window-options": showOptions,
+	"switch-client":       switchClient,
+	"new-window":          newWindow,
+	"split-window":        splitWindow,
+	"select-window":       selectWindow,
+	"select-pane":         selectPane,
 }
 
 // Result is what a command list gave: its output, its errors and whether it failed.

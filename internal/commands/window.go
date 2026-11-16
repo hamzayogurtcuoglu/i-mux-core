@@ -37,7 +37,7 @@ func newWindow(it *Item) error {
 	}
 	s, t := st.S, it.Host.Tree()
 	sx, sy := it.Host.DefaultSize(s)
-	wl, err := t.NewWindow(s, st.Idx, 0, sx, sy)
+	wl, err := t.NewWindow(s, st.Idx, int(s.Options.GetNumber("base-index")), sx, sy)
 	if err != nil {
 		if errors.Is(err, model.ErrIndexInUse) {
 			return fmt.Errorf("create window failed: index %d in use", st.Idx)
@@ -48,7 +48,7 @@ func newWindow(it *Item) error {
 	if n, ok := a.Get('n'); ok {
 		w.Name = n
 	} else {
-		w.Name = defaultWindowName(a.Strings(), it.shell())
+		w.Name = defaultWindowName(a.Strings(), it.shell(s))
 	}
 	cwd, ok := a.Get('c')
 	if !ok {

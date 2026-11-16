@@ -946,3 +946,80 @@ var x11ColorNames = map[string]Color{
 	"yellowgreen":            0x9acd32,
 	"yellow green":           0x9acd32,
 }
+
+// themeColourNames are tmux's theme colours by number (colour_theme_table).
+var themeColourNames = []string{
+	"themeblack", "themewhite", "themelightgrey", "themedarkgrey", "themegreen",
+	"themeyellow", "themered", "themeblue", "themecyan", "thememagenta",
+}
+
+var basicColourNames = []string{"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
+
+// ColorFromString parses a colour as tmux's colour_fromstring does: #rrggbb, colourN or
+// colorN, default, terminal, a theme colour, an ANSI name or number, or an X11 name; -1 if
+// none.
+func ColorFromString(s string) Color {
+	if len(s) == 7 && s[0] == '#' {
+		n, err := strconv.ParseUint(s[1:], 16, 32)
+		if err != nil || strings.ContainsAny(s[1:], "+-") {
+			return -1
+		}
+		return Color(n) | ColorFlagRGB
+	}
+	for _, p := range []string{"colour", "color"} {
+		if len(s) >= len(p) && strings.EqualFold(s[:len(p)], p) {
+			n, err := strconv.Atoi(s[len(p):])
+			if err != nil || n < 0 || n > 255 {
+				return -1
+			}
+			return Color(n) | ColorFlag256
+		}
+	}
+	switch {
+	case strings.EqualFold(s, "default"):
+		return 8
+	case strings.EqualFold(s, "terminal"):
+		return 9
+	}
+	for i, n := range themeColourNames {
+		if strings.EqualFold(s, n) {
+			return Color(i) | ColorFlagTheme
+		}
+	}
+	for i, n := range basicColourNames {
+		if strings.EqualFold(s, n) || s == strconv.Itoa(i) {
+			return Color(i)
+		}
+		if strings.EqualFold(s, "bright"+n) || s == strconv.Itoa(90+i) {
+			return Color(90 + i)
+		}
+	}
+	return colorByName(s)
+}
+
+// ColorToString names a colour as tmux's colour_tostring does.
+func ColorToString(c Color) string {
+	switch {
+	case c == -1:
+		return "none"
+	case c&ColorFlagTheme != 0:
+		if n := int(c & 0xff); n < len(themeColourNames) {
+			return themeColourNames[n]
+		}
+		return "invalid"
+	case c&ColorFlagRGB != 0:
+		r, g, b := ColorSplitRGB(c)
+		return fmt.Sprintf("#%02x%02x%02x", r, g, b)
+	case c&ColorFlag256 != 0:
+		return fmt.Sprintf("colour%d", c&0xff)
+	case c >= 0 && c <= 7:
+		return basicColourNames[c]
+	case c == 8:
+		return "default"
+	case c == 9:
+		return "terminal"
+	case c >= 90 && c <= 97:
+		return "bright" + basicColourNames[c-90]
+	}
+	return "invalid"
+}

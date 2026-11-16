@@ -1,0 +1,89 @@
+# Options (C3.4): set-option and show-options for the options i-mux uses, in every scope,
+# with inheritance, arrays, user options and the errors.
+size 80x24
+run new-session -d -s a 'exec cat'
+run split-window -t a 'exec cat'
+# Every option at its default, in each scope, and with -A what is inherited.
+run show-options -s
+run show-options -g
+run show-options -gw
+run show-options -t a
+run show-options -A -t a
+run show-options -w -t a
+run show-options -wA -t a
+run show-options -p -t %0
+run show-options -pA -t %1
+run show-window-options -g
+# The options i-mux sets, as it sets them.
+run set -g default-terminal screen-256color ; show -sv default-terminal
+run set -as terminal-features ',*:RGB' ; set -as terminal-features ',*:extkeys' ; show -s terminal-features
+run set -as terminal-overrides ',*:Sync=\E[?2026%?%p1%{1}%-%tl%eh%;' ; show -s terminal-overrides
+run set -s extended-keys on ; show -s extended-keys
+run set -s escape-time 10 ; show -sv escape-time
+run set -g focus-events on ; show -s focus-events
+run set -g history-limit 50000 ; show -g history-limit
+run set -g mouse off ; show -gv mouse ; set -g mouse on ; show -g mouse
+run set -g pane-border-status top ; show -gw pane-border-status
+run set -g pane-border-format ' #{pane_index} #{pane_title} ' ; show -gw pane-border-format
+run set -g automatic-rename-format '#{b:pane_current_path}' ; show -gw automatic-rename-format
+run set -g status 2 ; show -g status ; set -g status on ; show -gv status
+run set -g status-position top ; show -g status-position
+run set -g 'status-format[1]' '#[align=centre]second line' ; show -g 'status-format[1]'
+run show -g status-format
+run set -gu 'status-format[0]' ; show -g status-format
+run set -gu status-format ; show -gv 'status-format[1]'
+run set -g status-right '#{?client_prefix,P,} %H:%M' ; show -g status-right
+run set -g status-right-length 60 ; set -g status-left-length 20 ; show -g status-right-length ; show -g status-left-length
+run set -g status-style 'bg=colour235,fg=white' ; show -g status-style
+run set -p -t %0 remain-on-exit on ; show -p -t %0 remain-on-exit ; show -pA -t %1 remain-on-exit
+run set -p -t %0 remain-on-exit off ; show -pv -t %0 remain-on-exit
+run show -gqv default-shell
+run show -gqv prefix
+run set -s set-clipboard external ; show -s set-clipboard
+# The theme's styles, set and unset.
+run set -g message-style 'fg=black,bg=yellow' ; set -g mode-style 'reverse' ; show -g message-style ; show -gw mode-style
+run set -g pane-active-border-style 'fg=#{?pane_in_mode,yellow,green}' ; show -gw pane-active-border-style
+run set -gu message-style ; set -gu pane-active-border-style ; show -g message-style ; show -gw pane-active-border-style
+run set -g 'pane-colours[0]' '#112233' ; set -g 'pane-colours[3]' red ; show -gw pane-colours
+run set -gu 'pane-colours[0]' ; show -gw pane-colours ; set -gu pane-colours ; show -gw pane-colours
+# Session, window and pane values and their inheritance.
+run set -t a history-limit 100 ; show -t a history-limit ; show -A -t a history-limit
+run set -w -t a pane-base-index 1 ; show -w -t a pane-base-index ; set -wu -t a pane-base-index ; show -wA -t a pane-base-index
+run set -p -t %1 window-style 'bg=blue' ; show -p -t %1 ; set -w -t a -U window-style ; show -p -t %1
+# User options at every scope.
+run set -g @g 'global value' ; set -t a @s 'session value' ; set -w -t a @w "with 'quotes'" ; set -p -t %0 @p '$HOME #{x}'
+run show -g @g ; show -t a @s ; show -w -t a @w ; show -p -t %0 @p ; show -gv @g
+run set -ga @g ' and more' ; show -gv @g
+run show -t a ; show -w -t a ; show -p -t %0
+run set -gu @g ; show -gqv @g ; show -gv @g
+# -o, -a, toggles and choices.
+run set -go @g first ; set -go @g second
+run set -go @g third ; show -gv @g
+run set -g visual-bell ; show -g visual-bell ; set -g visual-bell ; show -g visual-bell
+run set -g status-justify ; show -g status-justify
+run set -ag status-left 'X' ; show -g status-left
+run set -g prefix C-a ; show -g prefix ; set -g prefix2 None ; show -g prefix2
+run set -g display-time 0 ; show -g display-time
+run set -g status-bg colour200 ; show -g status-bg ; set -g status-bg '#aabbcc' ; show -g status-bg
+run set -w -t a -q nonsense on ; set -q -g @nothing x
+# Errors.
+run set -g nonsense on
+run set -g s on
+run set -g history-limit -5
+run set -g history-limit abc
+run set -g mouse maybe
+run set -g status-justify nowhere
+run set -g prefix C-
+run set -g status-bg nope
+run set -g history-limit
+run set -g 'status-format[x' 'y'
+run set -g 'history-limit[1]' 5
+run set -g @user
+run show -g nonsense
+run show -g @missing
+run show -t nope history-limit
+run set -t nope history-limit 5
+run show -p -t %9 remain-on-exit
+run show -w -t nope:9
+run set -s 'command-alias[100]' 'zz=has-session' ; show -s 'command-alias[100]'
+run kill-server

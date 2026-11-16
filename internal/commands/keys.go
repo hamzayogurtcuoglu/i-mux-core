@@ -83,39 +83,6 @@ func textKeys(s string) []keys.Key {
 	return out
 }
 
-// serverOptions are the options set-option knows so far, with their choices.
-var serverOptions = map[string][]string{
-	"extended-keys":        {"off", "on", "always"},
-	"extended-keys-format": {"csi-u", "xterm"},
-	"status":               {"off", "on", "2", "3", "4", "5"},
-	"window-size":          {"largest", "smallest", "manual", "latest"},
-}
-
-// setOption is set-option for the server options in serverOptions.
-func setOption(it *Item) error {
-	a := it.Cmd.Args
-	for _, f := range []byte("aFopqtuUw") {
-		if a.Has(f) {
-			return fmt.Errorf("set-option -%c: not implemented by imux-core yet", f)
-		}
-	}
-	args := a.Strings()
-	choices, ok := serverOptions[args[0]]
-	if !ok {
-		return fmt.Errorf("set-option %s: not implemented by imux-core yet", args[0])
-	}
-	if len(args) < 2 {
-		return fmt.Errorf("set-option %s: not implemented by imux-core yet", args[0])
-	}
-	for i, c := range choices {
-		if c == args[1] {
-			it.Host.SetServerOption(args[0], i)
-			return nil
-		}
-	}
-	return fmt.Errorf("unknown value: %s", args[1])
-}
-
 // switchClient is switch-client -t: the client (-c, else the current client) shows the target
 // session, selecting a target window and pane when given.
 func switchClient(it *Item) error {

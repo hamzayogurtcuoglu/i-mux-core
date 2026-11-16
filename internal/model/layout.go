@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/options"
 )
 
 // A window's layout operations, as tmux's spawn.c, window.c, resize.c and the split-window,
@@ -58,7 +59,7 @@ func (t *Tree) SplitPane(target *Pane, o SplitOptions) (*Pane, error) {
 		return nil, err
 	}
 	t.nextPane++
-	p := &Pane{ID: id, Window: w}
+	p := &Pane{ID: id, Window: w, Options: options.New(w.Options)}
 	// tmux's window_add_pane: before or after the target; with -f at the start or the end.
 	i := w.PaneIndex(target)
 	switch {
@@ -203,6 +204,7 @@ func (t *Tree) SwapPanes(src, dst *Pane, detached bool) {
 	// The panes' places in their windows' lists.
 	si, di := sw.PaneIndex(src), dw.PaneIndex(dst)
 	sw.Panes[si], dw.Panes[di] = dst, src
+	src.Options.Parent, dst.Options.Parent = dw.Options, sw.Options
 	// And in their windows' z orders (tmux's TAILQ_REPLACE and insert in cmd-swap-pane.c).
 	zs, zd := zIndex(sw, src), zIndex(dw, dst)
 	if zs >= 0 && zd >= 0 {
