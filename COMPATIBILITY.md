@@ -493,6 +493,15 @@ started the server. i-mux and its tests rely on it for `HOME`, `PATH`, `SHELL`, 
 (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `COPILOT_HOME`). The same holds for `run-shell` and
 `if-shell` jobs.
 
+How tmux 3.8 builds a pane's environment, which the engine follows (C3.13, checked by
+`testdata/diff/env.txt`): the global environment; then the session's, which `new-session` (and
+`attach-session`, `switch-client`) fill from the client's environment for each
+`update-environment` pattern, a pattern the client has nothing for removing the variable;
+then `TERM`, `TERM_PROGRAM=tmux`, `TERM_PROGRAM_VERSION=3.8`, `COLORTERM=truecolor` and
+`TMUX`; then `-e`; then `TMUX_PANE`; `PATH` from a command-line client (else the global one,
+else `/usr/bin:/bin`); `SHELL` (the pane's shell) and `PWD` (the directory it starts in). The
+client therefore sends its whole environment, as tmux's does.
+
 ## 10. Config file features
 
 - `%if "#{…}"` / `%endif` (i-mux's config uses `%if "#{!=:#{@imux_loaded},1}"`);

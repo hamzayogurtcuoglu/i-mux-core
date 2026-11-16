@@ -212,7 +212,7 @@ of cells for the terminal's capabilities (`tty_draw_line`, `tty_colours`, the li
 
   | Message | Direction | Content |
   | --- | --- | --- |
-  | `Hello` | client → server | protocol version, client version, argv, cwd, the environment i-mux needs (`TERM`, `COLORTERM`, `LANG`/`LC_*`, `TERM_PROGRAM`, `PATH`, `HOME`, `TMUX`, `TMUX_PANE`, `IMUX_*`, `-u`), terminal size, whether stdin/stdout are terminals, client pid; for a terminal, its path (`#{client_name}`), its terminfo capabilities (E15) and its erase character (termios `VERASE`, which tmux reads as `BSpace`) |
+  | `Hello` | client → server | protocol version, client version, argv, cwd, the client's whole environment, as tmux's client sends it (a session takes the `update-environment` variables from it, and clears those the client lacks; C3.13), `-u`, terminal size, whether stdin/stdout are terminals, client pid; for a terminal, its path (`#{client_name}`), its terminfo capabilities (E15) and its erase character (termios `VERASE`, which tmux reads as `BSpace`) |
   | `Command` | client → server | the command list (already split into argv lists, or the raw string for `source-file`-style input) |
   | `Result` | server → client | stdout, stderr, exit code |
   | `Attach` | server → client | the client switches to attached mode |
