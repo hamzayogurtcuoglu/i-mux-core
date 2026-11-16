@@ -54,6 +54,9 @@ func TestParseScriptErrors(t *testing.T) {
 		"screen\n",
 		"screen 80x24 now\n",
 		"skip-if-engine imux-core\n",
+		"type c x\n",
+		"client c 80x24\ntype c\n",
+		"client c 80x24\ntype c '\\q'\n",
 	} {
 		if _, err := ParseScript(writeScript(t, text)); err == nil {
 			t.Errorf("ParseScript(%q): no error", text)
@@ -65,6 +68,14 @@ func TestParseScriptErrors(t *testing.T) {
 	}
 	if len(s.Steps) != 3 || s.Steps[1].Line != 4 || !reflect.DeepEqual(s.Steps[1].Args, []string{"a", "b c"}) {
 		t.Fatalf("steps %+v", s.Steps)
+	}
+}
+
+// typedText takes Go's escapes.
+func TestTypedText(t *testing.T) {
+	b, err := typedText(`q\r\x1b[A"`)
+	if err != nil || string(b) != "q\r\x1b[A\"" {
+		t.Fatalf("got %q, %v", b, err)
 	}
 }
 

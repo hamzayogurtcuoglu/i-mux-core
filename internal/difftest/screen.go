@@ -37,6 +37,8 @@ type Client interface {
 	Screen(ctx context.Context) Result
 	// Resize resizes its terminal, as a terminal emulator does: its screen first, then the PTY.
 	Resize(cols, rows int) error
+	// Type writes b to its terminal, as keys typed into it.
+	Type(b []byte) error
 	Close()
 }
 
@@ -146,6 +148,12 @@ func (h *headless) Resize(cols, rows int) error {
 	return h.p.Resize(cols, rows)
 }
 
+// Type implements Client.
+func (h *headless) Type(b []byte) error {
+	_, err := h.p.Write(b)
+	return err
+}
+
 // Close implements Client: the client is killed.
 func (h *headless) Close() {
 	_ = h.p.Kill()
@@ -180,6 +188,7 @@ type funcClient struct {
 
 func (c *funcClient) Screen(context.Context) Result { return c.f.Fn([]string{"screen", c.name}) }
 func (c *funcClient) Resize(int, int) error         { return nil }
+func (c *funcClient) Type([]byte) error             { return nil }
 func (c *funcClient) Close()                        {}
 
 func screenArgs(cols, rows int) []string {

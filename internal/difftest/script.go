@@ -27,6 +27,8 @@ import (
 //	client NAME WxH              attach a client of WxH that stays attached
 //	resize NAME WxH              resize that client's terminal
 //	screen NAME                  compare what that client's terminal shows
+//	type NAME TEXT               type TEXT into that client's terminal; TEXT takes Go's
+//	                             escapes (\r, \x1b), so quote it with '…'
 //
 // Words are split as a POSIX shell does: '…' is literal, "…" takes \" \\ \$ and \` escapes, and
 // \ escapes one character outside quotes. A lone ; is a word, as on tmux's command line.
@@ -38,7 +40,7 @@ type Script struct {
 // Step is one line of a script.
 type Step struct {
 	Line int
-	Kind string   // "run", "conf", "file", "size", "normalize", "skip-if-engine", "wait", "capture", "screen", "client", "resize"
+	Kind string   // "run", "conf", "file", "size", "normalize", "skip-if-engine", "wait", "capture", "screen", "client", "resize", "type"
 	Args []string // the words after the kind
 	Text string   // the line as written, for messages
 }
@@ -108,6 +110,13 @@ func ParseScript(path string) (*Script, error) {
 				clients[st.Args[0]] = true
 			} else if !clients[st.Args[0]] {
 				return nil, bad("no client %s", st.Args[0])
+			}
+		case "type":
+			if len(st.Args) != 2 || !clients[st.Args[0]] {
+				return nil, bad("want a client and text")
+			}
+			if _, err := typedText(st.Args[1]); err != nil {
+				return nil, bad("%v", err)
 			}
 		case "normalize":
 			if len(st.Args) != 2 {
@@ -206,4 +215,13 @@ func SplitWords(line string) ([]string, error) {
 		return nil, fmt.Errorf("empty line")
 	}
 	return words, nil
+}
+
+// typedText is a type step's text with its Go escapes made bytes.
+func typedText(s string) ([]byte, error) {
+	t, err := strconv.Unquote(`"` + strings.ReplaceAll(s, `"`, `\"`) + `"`)
+	if err != nil {
+		return nil, fmt.Errorf("bad text %q", s)
+	}
+	return []byte(t), nil
 }

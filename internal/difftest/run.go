@@ -164,6 +164,11 @@ func Execute(ctx context.Context, script *Script, eng Engine) (*Transcript, erro
 				return nil, fmt.Errorf("%s:%d: %w", script.Path, st.Line, err)
 			}
 			clients[st.Args[0]] = c
+		case "type":
+			b, _ := typedText(st.Args[1])
+			if err := clients[st.Args[0]].Type(b); err != nil {
+				return nil, fmt.Errorf("%s:%d: %w", script.Path, st.Line, err)
+			}
 		case "resize":
 			cols, rows := parseSize(st.Args[1])
 			if err := clients[st.Args[0]].Resize(cols, rows); err != nil {
