@@ -184,6 +184,11 @@ func (s *Server) DisplayPopup(spec commands.PopupSpec, done func(status int)) bo
 		status: 128 + int(syscall.SIGHUP),
 	}
 	pd.term.ExtendedKeys = s.extendedKeys()
+	pd.term.ClipboardMode = s.clipboardMode()
+	pd.term.SetClipboard = func(clip string, b []byte) {
+		data := append([]byte(nil), b...)
+		go s.post(func() { s.popupClipboard(pd, clip, data) })
+	}
 	c.popup = pd
 	s.updateFocus(c.window())
 	s.readers.Add(1)

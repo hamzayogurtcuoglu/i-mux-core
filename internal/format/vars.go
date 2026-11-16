@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/platform"
@@ -86,6 +87,15 @@ func screenVar(f func(*model.Pane, *vt.Screen) (string, bool)) stringVar {
 		defer p.Mu.Unlock()
 		return f(p, p.Term.Screen)
 	})
+}
+
+func bv(f func(*buffers.Buffer) (string, bool)) stringVar {
+	return func(c *Context) (string, bool) {
+		if c.Buffer == nil {
+			return "", false
+		}
+		return f(c.Buffer)
+	}
 }
 
 func cv(f func(*Client) (string, bool)) stringVar {
@@ -162,6 +172,12 @@ var timeVars = map[string]timeVar{
 		}
 		return c.S.Activity, true
 	},
+	"buffer_created": func(c *Context) (time.Time, bool) {
+		if c.Buffer == nil {
+			return time.Time{}, false
+		}
+		return c.Buffer.Created, true
+	},
 	"session_created": func(c *Context) (time.Time, bool) {
 		if c.S == nil {
 			return time.Time{}, false
@@ -184,6 +200,11 @@ var timeVars = map[string]timeVar{
 
 func init() {
 	stringVars = map[string]stringVar{
+		// Paste buffers (list-buffers).
+		"buffer_name":   bv(func(b *buffers.Buffer) (string, bool) { return b.Name, true }),
+		"buffer_size":   bv(func(b *buffers.Buffer) (string, bool) { return itoa(len(b.Data)) }),
+		"buffer_sample": bv(func(b *buffers.Buffer) (string, bool) { return buffers.Sample(b), true }),
+		"buffer_full":   bv(func(b *buffers.Buffer) (string, bool) { return string(b.Data), true }),
 		// Server.
 		"host":       func(*Context) (string, bool) { return host(), true },
 		"host_short": func(*Context) (string, bool) { h, _, _ := strings.Cut(host(), "."); return h, true },

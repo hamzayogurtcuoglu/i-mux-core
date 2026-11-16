@@ -18,6 +18,7 @@ package termout
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
@@ -528,4 +529,13 @@ func (t *TTY) Margin(rleft, rright int) {
 		t.putcodeII("Cmg", rleft, rright)
 	}
 	t.cx, t.cy = unknown, unknown
+}
+
+// SetSelection is tty_set_selection: data given to the terminal's clipboard clip (OSC 52, the
+// Ms capability), base64 encoded; nothing for a terminal without Ms or not started.
+func (t *TTY) SetSelection(clip string, data []byte) {
+	if !t.started || !t.Term.Has("Ms") {
+		return
+	}
+	t.putcodeSS("Ms", clip, base64.StdEncoding.EncodeToString(data))
 }

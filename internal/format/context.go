@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
@@ -35,6 +37,8 @@ type Context struct {
 	Now func() time.Time
 	// Mouse is the mouse event of the command's key, if any.
 	Mouse *Mouse
+	// Buffer is the paste buffer the buffer_* variables give (format_defaults_paste_buffer).
+	Buffer *buffers.Buffer
 }
 
 // Type is format_type.

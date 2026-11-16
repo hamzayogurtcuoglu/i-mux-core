@@ -1,0 +1,61 @@
+# Paste buffers (C4.9): their contents and names, list-buffers, load-buffer and save-buffer,
+# and the bytes paste-buffer writes to a pane (the fake TUI echoes them), with and without
+# bracketed paste.
+file data.txt buffers.data
+size 80x24
+run new-session -d -s a -n w 'faketui -mode keys'
+waittext %0 'key READY'
+# Automatic and named buffers.
+run set-buffer foo ; set-buffer -b named bar ; set-buffer 'second line'
+run list-buffers -F '#{buffer_name}|#{buffer_size}|#{buffer_sample}'
+run show-buffer ; show-buffer -b named
+run set-buffer -a -b named baz ; show-buffer -b named
+run set-buffer -a -b fresh new ; show-buffer -b fresh
+run set-buffer -b named -n renamed ; list-buffers -F '#{buffer_name}'
+run set-buffer -n top-renamed ; list-buffers -F '#{buffer_name}'
+run list-buffers -O name -F '#{buffer_name}' ; list-buffers -O size -r -F '#{buffer_name}'
+run list-buffers -O creation -F '#{buffer_name}' ; list-buffers -O order -r -F '#{buffer_name}'
+run list-buffers -r -F '#{buffer_name}' ; list-buffers -O nope
+run list-buffers -f '#{==:#{buffer_name},fresh}'
+# Errors.
+run show-buffer -b nope ; delete-buffer -b nope ; set-buffer -n x -b nope ; paste-buffer -b nope
+run set-buffer -b '' x ; set-buffer -b empty ''
+run set-buffer -b x
+# Delete.
+run delete-buffer -b fresh ; delete-buffer ; list-buffers -F '#{buffer_name}'
+# buffer-limit drops the oldest automatic buffers.
+run set -g buffer-limit 2 ; set-buffer one ; set-buffer two ; set-buffer three ; list-buffers -F '#{buffer_name} #{buffer_sample}'
+# load-buffer and save-buffer.
+run load-buffer -b file data.txt ; show-buffer -b file
+run list-buffers -F '#{buffer_name}|#{buffer_size}|#{buffer_sample}' -f '#{==:#{buffer_name},file}'
+run save-buffer -b file out.txt ; load-buffer -b again out.txt ; show-buffer -b again
+run save-buffer -a -b file out.txt ; load-buffer -b again out.txt ; show-buffer -b again
+run load-buffer missing.txt
+# Pasting into a pane: line feeds become carriage returns; -r keeps them, -s gives the
+# separator, control characters go as ^X unless -S. (tmux's own parser makes the \n and \033.)
+run if-shell -F 1 'set-buffer -b p "one\ntwo"' ; paste-buffer -b p -t %0
+waittext %0 6f6e650d74776f
+capture %0
+run paste-buffer -b p -r -t %0
+waittext %0 6f6e650a74776f
+capture %0
+run paste-buffer -b p -s '|' -t %0
+waittext %0 6f6e657c74776f
+capture %0
+run if-shell -F 1 'set-buffer -b esc "a\033b"' ; paste-buffer -b esc -t %0
+waittext %0 615e5b62
+capture %0
+run paste-buffer -b esc -S -t %0
+waittext %0 611b62
+capture %0
+# -p wraps the paste in bracketed paste only when the pane asked for it; -d deletes it.
+run paste-buffer -p -b p -t %0
+waittext %0 6f6e650d74776f
+capture %0
+run respawn-pane -k -t %0 'faketui -mode paste'
+waittext %0 'paste READY'
+run paste-buffer -p -d -b p -t %0
+waittext %0 pasted
+capture %0
+run list-buffers -F '#{buffer_name}' -f '#{==:#{buffer_name},p}'
+run kill-server

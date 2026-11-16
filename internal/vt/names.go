@@ -151,3 +151,8 @@ func StrnVis(s string, size int) string {
 // CleanName is tmux's clean_name: a name made safe to show (control characters encoded), or
 // false when it is not valid UTF-8.
 func CleanName(name string, untrusted bool) (string, bool) { return cleanName(name, untrusted) }
+
+// PasteVis is what paste-buffer writes of a buffer (utf8_stravisx with VIS_SAFE and
+// VIS_NOSLASH): control characters other than tab, newline, backspace, BEL and CR as ^X,
+// bytes that are not UTF-8 as M-x or M^X.
+func PasteVis(s string) string { return utf8Strvis(s, visSafe|visNoSlash) }

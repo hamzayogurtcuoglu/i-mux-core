@@ -55,6 +55,22 @@ func (s *Server) OptionChanged(name string) {
 		for _, p := range s.tree.Panes() {
 			s.applyPaneOptions(p)
 		}
+	case "set-clipboard":
+		mode := s.clipboardMode()
+		for _, p := range s.tree.Panes() {
+			if p.Term != nil {
+				p.Mu.Lock()
+				p.Term.ClipboardMode = mode
+				p.Mu.Unlock()
+			}
+		}
+		for _, c := range s.attached {
+			if pd := c.popup; pd != nil {
+				pd.mu.Lock()
+				pd.term.ClipboardMode = mode
+				pd.mu.Unlock()
+			}
+		}
 	case "escape-time":
 		for _, c := range s.attached {
 			if c.in.parser != nil {

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
@@ -70,6 +72,13 @@ type Host interface {
 	ClientGeometry(client string) ClientGeometry
 	// DisplayMenu shows a menu on a window (menu_display), replacing its menu.
 	DisplayMenu(spec MenuSpec)
+	// Buffers are the paste buffers.
+	Buffers() *buffers.Store
+	// SetSelection gives data to a client's terminal clipboard (tty_set_selection: OSC 52,
+	// when the terminal has Ms).
+	SetSelection(client string, data []byte)
+	// PaneWrite writes bytes to a pane's program, as typed.
+	PaneWrite(p *model.Pane, b []byte)
 }
 
 // MessageOptions are how a message is shown (status_message_set's arguments).
@@ -111,6 +120,10 @@ type Client struct {
 	// Session is the session an attached client shows: such a client runs the commands of
 	// the key bindings it presses (tmux's cmdq_get_client for a binding).
 	Session *model.Session
+
+	// stdoutClosed is set once a file write to "-" (show-buffer, save-buffer -) is done: the
+	// client closes its stdout after it, and a second one fails.
+	stdoutClosed bool
 }
 
 // Item is one command being run.
@@ -229,6 +242,13 @@ func init() {
 		"display-message":     displayMessage,
 		"display-popup":       displayPopup,
 		"display-menu":        displayMenu,
+		"set-buffer":          setBuffer,
+		"delete-buffer":       setBuffer,
+		"load-buffer":         loadBuffer,
+		"paste-buffer":        pasteBuffer,
+		"save-buffer":         saveBuffer,
+		"show-buffer":         saveBuffer,
+		"list-buffers":        listBuffers,
 		"list-sessions":       listSessions,
 		"list-windows":        listWindows,
 		"list-panes":          listPanes,

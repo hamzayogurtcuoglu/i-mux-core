@@ -509,6 +509,16 @@ modifyOtherKeys).
   opened a menu (`-x M -y M`, and `-M` implied by a mouse binding) comes with the mouse (C5.1).
 - **Command prompt:** `-I` initial text, `-p` prompt, `-t` client; the template's `%%` is
   replaced.
+- **Paste buffers:** `set-buffer` (`-a -b -n -w`), `delete-buffer`, `load-buffer` (`-b -w`),
+  `save-buffer` (`-a`), `show-buffer`, `paste-buffer` (`-b -d -p -r -s -S -t`) and
+  `list-buffers` (`-F -f -O -r`) work as tmux's: automatic buffers are `bufferN` and
+  `buffer-limit` drops the oldest, `paste-buffer` writes line feeds as carriage returns and
+  control characters as `^X` (unless `-S`), and `-p` brackets the paste only for a pane that
+  asked for it. As in tmux, a command-line client's `show-buffer` writes to its stdout, which
+  it closes after: a second `show-buffer` in the same command fails with `Bad file descriptor`.
+  `-w` and a program's OSC 52 with `set-clipboard on` reach the client's terminal clipboard
+  (`Ms`); with the default, `external`, a program's OSC 52 is ignored.
+  `testdata/diff/buffers.txt` checks these against tmux.
 - **Copy mode:** entering it (`copy-mode -H`); the mouse selection a double or triple click
   makes; `copy-pipe-and-cancel` to buffer and clipboard; wheel scrolling in and out of it, and
   `pane_in_mode`.

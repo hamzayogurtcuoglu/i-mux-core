@@ -34,11 +34,13 @@ import "strings"
 
 // Vis flags from compat.h.
 const (
-	visOctal  = 0x01
-	visCStyle = 0x02
-	visTab    = 0x08
-	visNL     = 0x10
-	visDQ     = 0x200 // escape '"', and '$' before a name (utf8_strvis)
+	visOctal   = 0x01
+	visCStyle  = 0x02
+	visTab     = 0x08
+	visNL      = 0x10
+	visDQ      = 0x200 // escape '"', and '$' before a name (utf8_strvis)
+	visSafe    = 0x20  // only encode what is unsafe: \b, BEL and \r stay
+	visNoSlash = 0x40  // no backslash before an encoding, nor doubled backslashes
 )
 
 func isVisVisible(c byte, flag int) bool {
@@ -55,13 +57,16 @@ func isVisVisible(c byte, flag int) bool {
 		if flag&visNL == 0 && c == '\n' {
 			return true
 		}
+		if flag&visSafe != 0 && (c == '\b' || c == '\a' || c == '\r') {
+			return true
+		}
 	}
 	return false
 }
 
 func visByte(b *strings.Builder, c byte, flag int, nextc byte) {
 	if isVisVisible(c, flag) {
-		if c == '\\' || (c == '"' && flag&visDQ != 0) {
+		if (c == '\\' && flag&visNoSlash == 0) || (c == '"' && flag&visDQ != 0) {
 			b.WriteByte('\\')
 		}
 		b.WriteByte(c)
@@ -108,7 +113,9 @@ func visByte(b *strings.Builder, c byte, flag int, nextc byte) {
 		b.WriteByte(c&0x7 + '0')
 		return
 	}
-	b.WriteByte('\\')
+	if flag&visNoSlash == 0 {
+		b.WriteByte('\\')
+	}
 	if c&0x80 != 0 {
 		c &= 0x7f
 		b.WriteByte('M')

@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/commands"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
@@ -56,6 +58,7 @@ type Server struct {
 	readers sync.WaitGroup
 	panes   map[*model.Pane]*paneState
 	menus   map[*model.Window]*menu // each window's menu (task C4.7)
+	buffers *buffers.Store          // the paste buffers (task C4.9)
 	exiting bool
 
 	latest map[*model.Window]*attachedClient // the client that used each window last
@@ -105,16 +108,17 @@ func New(o Options) *Server {
 		o.HoldTimeout = 5 * time.Second
 	}
 	s := &Server{
-		opts:   o,
-		tree:   model.NewTree(),
-		events: make(chan func(), 256),
-		stop:   make(chan struct{}),
-		done:   make(chan struct{}),
-		panes:  map[*model.Pane]*paneState{},
-		menus:  map[*model.Window]*menu{},
-		held:   o.HoldForClient,
-		conns:  map[net.Conn]struct{}{},
-		latest: map[*model.Window]*attachedClient{},
+		opts:    o,
+		tree:    model.NewTree(),
+		events:  make(chan func(), 256),
+		stop:    make(chan struct{}),
+		done:    make(chan struct{}),
+		panes:   map[*model.Pane]*paneState{},
+		menus:   map[*model.Window]*menu{},
+		buffers: buffers.New(),
+		held:    o.HoldForClient,
+		conns:   map[net.Conn]struct{}{},
+		latest:  map[*model.Window]*attachedClient{},
 
 		nameTimers: map[*model.Window]bool{},
 	}
@@ -290,6 +294,12 @@ func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 		go s.post(func() { s.renamePane(p, name) })
 	}
 	p.Term.Screen.DisallowSetTitle = p.Options.GetNumber("allow-set-title") == 0
+	p.Term.ClipboardMode = s.clipboardMode()
+	p.Term.SetClipboard = func(clip string, b []byte) {
+		// Called from the pane's reader with the pane locked: the loop applies it later.
+		data := append([]byte(nil), b...)
+		go s.post(func() { s.paneClipboard(p, clip, data) })
+	}
 	p.Term.ExtendedKeys = s.extendedKeys()
 	if p.Term.ExtendedKeys == vt.ExtendedKeysAlways {
 		// As tmux's screen_init: the screen starts in extended keys mode 1.

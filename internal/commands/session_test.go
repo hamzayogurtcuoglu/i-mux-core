@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
@@ -22,6 +24,7 @@ import (
 
 // fakeHost runs the commands on a tree without programs.
 type fakeHost struct {
+	buffers  *buffers.Store
 	tree     *model.Tree
 	specs    []pty.Spec
 	spawnErr error
@@ -88,7 +91,15 @@ func (h *fakeHost) ClearOverlay(string)                    {}
 func (h *fakeHost) DisplayPopup(PopupSpec, func(int)) bool { return false }
 func (h *fakeHost) ModifyPopup(string, PopupChange)        {}
 func (h *fakeHost) DisplayMenu(MenuSpec)                   {}
-func (h *fakeHost) ClientGeometry(string) ClientGeometry   { return ClientGeometry{StatusAt: -1} }
+func (h *fakeHost) Buffers() *buffers.Store {
+	if h.buffers == nil {
+		h.buffers = buffers.New()
+	}
+	return h.buffers
+}
+func (h *fakeHost) SetSelection(string, []byte)          {}
+func (h *fakeHost) PaneWrite(*model.Pane, []byte)        {}
+func (h *fakeHost) ClientGeometry(string) ClientGeometry { return ClientGeometry{StatusAt: -1} }
 
 func (h *fakeHost) ShowMessage(client, msg string, _ MessageOptions) {
 	h.messages = append(h.messages, client+": "+msg)
