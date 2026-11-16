@@ -157,6 +157,24 @@ C3.8); `capture-pane` without `-p` (paste buffers, C4.9); `select-layout`'s name
 `-E -n -o -p`; `resize-pane -M -T`; `resize-window -a -A`; `respawn-pane -E`;
 `new-window -E -k -S`. These are not in i-mux's contract and are refused.
 
+### Names and titles (C3.7)
+
+Checked against tmux 3.8 in `testdata/diff/names.txt`:
+
+- A new window is named from its command as tmux's `default_window_name` does (`exec ` and
+  leading dashes dropped, the first word, a path's base name, control characters encoded), and
+  with `-n` keeps that name (`automatic-rename` off).
+- With `automatic-rename` on, the name is `automatic-rename-format` expanded for the active
+  pane, worked out when that pane writes, becomes active or `automatic-rename` is set, and at
+  most every half second. Setting an option of the pane (`@imux_agent`) is not such a change;
+  i-mux sets `automatic-rename` again after it. Right after a window is made, the name races
+  with its program's start in both engines (`sh` before `exec`), so tests wait for it.
+- `#{pane_current_command}` and `#{pane_current_path}` come from the PTY's foreground process
+  (E11) each time a format asks.
+- OSC 0 and 2 set the pane's title unless `allow-set-title` is off; `select-pane -T` sets it
+  from a format. `ESC k … ST` renames the window only with `allow-rename` on, and turns
+  `automatic-rename` off (an empty name gives it back).
+
 ### Layout strings
 
 tmux 3.8's `#{window_layout}` is JSON, version 2:
