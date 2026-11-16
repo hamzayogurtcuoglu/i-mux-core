@@ -463,7 +463,13 @@ modifyOtherKeys).
   - `status 2` gives two lines, `status-format[0..1]` with `#[align]` and `#[range]`;
   - clicks map to `mouse_status_range` (`window|N` gives the window index, `user|X` gives `X`);
   - tmux 3.4+ rule: a range is one cell longer than drawn. i-mux works around that; match it;
-  - `%H:%M` refreshes every `status-interval`.
+  - `%H:%M` refreshes every `status-interval`;
+  - the default window list (`window-status-format`, `window-status-current-format`, the
+    separator and the `window-status-*-style` options): when it does not fit, it is cut around
+    the current window, with `<` and `>` on the sides cut; `status-justify` places it.
+    `testdata/diff/status.txt` checks 1, 3 and 12 windows against tmux;
+  - the default `status-style` is `bg=themegreen,fg=themeblack`, green and black until the
+    client's terminal reports its theme.
 - **Pane borders:** single-line borders; the active pane's in `pane-active-border-style`; the
   `pane-border-status top` line shows `pane-border-format`. With tmux 3.8's defaults, borders
   are `themelightgrey` and the active pane's `themegreen`, which a client gets as white and green

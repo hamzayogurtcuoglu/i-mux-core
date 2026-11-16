@@ -153,6 +153,20 @@ func TestEmpty(t *testing.T) {
 	}
 }
 
+// Status cells in theme colours get the client's colours, as tmux's tty maps every cell: the
+// default status-style is bg=themegreen,fg=themeblack.
+func TestStatusThemeColours(t *testing.T) {
+	gc := vt.DefaultCell
+	gc.Fg, gc.Bg = vt.ColorFlagTheme+ThemeBlack, vt.ColorFlagTheme+ThemeGreen
+	r := New()
+	f := r.Compose(&View{Sx: 2, Sy: 1, StatusLines: 1, Status: [][]vt.Cell{{gc, gc}}}, time.Time{})
+	for _, c := range f.Cells {
+		if c.Fg != 0 || c.Bg != 2 {
+			t.Fatalf("cell fg %#x bg %#x, want 0 and 2", c.Fg, c.Bg)
+		}
+	}
+}
+
 // One changed cell in a large window writes a small, bounded amount.
 func BenchmarkOneChangedCell(b *testing.B) {
 	w := newWorld(b)

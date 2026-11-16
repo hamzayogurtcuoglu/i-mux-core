@@ -1112,7 +1112,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   Click ranges match (C5.1 checks them by clicking).
 - **Depends on:** C4.1.
 
-### [ ] C4.3 Window list defaults
+### [x] C4.3 Window list defaults
 - **Goal:** the default status line's window list matches tmux.
 - **Details:**
   - `window-status-format`, `window-status-current-format`, the separator and the styles, with

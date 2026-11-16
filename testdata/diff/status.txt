@@ -1,0 +1,45 @@
+# The default status line's window list (C4.3): window-status-format,
+# window-status-current-format, the separator and the styles, with tmux 3.8's defaults.
+# Panes run fixed commands that print and wait, never an interactive shell.
+conf status.conf
+size 80x24
+run new-session -d -s a -n zero 'exec cat'
+# One window: the current-window marker.
+screen 80x24
+# Three windows: the current (*) and last-window (-) markers.
+run new-window -d -t a:1 -n one 'exec cat' ; new-window -d -t a:2 -n two 'exec cat'
+run select-window -t a:2 ; select-window -t a:1
+screen 80x24
+# Twelve windows: more than fit, so the list is cut around the current window with the
+# < and > markers.
+run new-window -d -t a:3 -n three 'exec cat' ; new-window -d -t a:4 -n four 'exec cat' ; new-window -d -t a:5 -n five 'exec cat' ; new-window -d -t a:6 -n six 'exec cat'
+run new-window -d -t a:7 -n seven 'exec cat' ; new-window -d -t a:8 -n eight 'exec cat' ; new-window -d -t a:9 -n nine 'exec cat' ; new-window -d -t a:10 -n ten 'exec cat' ; new-window -d -t a:11 -n eleven 'exec cat'
+screen 80x24
+run select-window -t a:6
+screen 80x24
+run select-window -t a:11
+screen 80x24
+run select-window -t a:0
+screen 80x24
+# The styles: window-status-style, -current-style, -last-style and the separator.
+run set -g window-status-style 'fg=blue' ; set -g window-status-current-style 'bg=red,bold' ; set -g window-status-last-style 'underscore' ; set -g window-status-separator '|'
+screen 80x24
+# A narrow client.
+screen 30x10
+# The list's other places: status-justify centre, right and absolute-centre, cut or not.
+run set -g status-justify centre
+screen 80x24
+screen 200x10
+run set -g status-justify right
+screen 80x24
+screen 200x10
+run set -g status-justify absolute-centre
+screen 80x24
+screen 200x10
+# A window name with # in it, and a fill colour.
+run set -g status-justify left ; rename-window -t a:0 'a#b##c' ; set -g status-style 'fill=colour4'
+screen 200x10
+# A second status line: status-format[1] lists the panes.
+run set -g status 2 ; split-window -d -t a:0 'exec cat'
+screen 80x24
+run kill-server

@@ -190,6 +190,11 @@ func (r *Renderer) status(f *Frame, v *View, lines int) {
 		if i < len(v.Status) {
 			copy(line, v.Status[i])
 		}
+		// Theme colours become the client's colours, as tmux's tty does for every cell.
+		for x := range line {
+			gc := &line[x]
+			gc.Fg, gc.Bg, gc.Us = v.theme(gc.Fg), v.theme(gc.Bg), v.theme(gc.Us)
+		}
 	}
 }
 
