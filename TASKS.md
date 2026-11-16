@@ -660,9 +660,15 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     3. compare the cells (characters, colours, attributes) and the cursor with tmux's,
        produced the same way.
   - A failure prints both screens side by side, with the differing cells marked.
+  - The screen is compared as the render cases compare it (`renderfixture.Dump`): what can be
+    seen, with both clients reading the same terminfo (`testdata/term/terminfo`).
+  - The layout scripts need `set-option` (the status line off), `split-window` and the status
+    line on i-mux-core: until C3.4, C3.6 and C4.2 they run on tmux only (`skip-if-engine`),
+    which still checks that tmux draws them the same way every time. C3.6 removes the skip.
 - **Acceptance:**
   - The harness detects a planted one-cell difference.
-  - The basic layout scripts pass.
+  - The basic layout scripts run on tmux and give the same screens twice; they pass on
+    i-mux-core once C3.4, C3.6 and C4.2 are done.
 - **Depends on:** C2.8, C0.4.
 
 ### [ ] C2.10 Input from the client terminal
@@ -811,6 +817,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     `select-layout`, `list-panes`, `capture-pane`, `switch-client`, `detach-client`.
   - Implement every flag i-mux uses for each.
   - Turn the layout scenarios of C2.5 (`testdata/layout`) into difftest scripts.
+  - Remove the `skip-if-engine imux-core` of C2.9's screen scripts (`testdata/diff/screen*.txt`)
+    once the status line (C4.2) is there too, or turn the status line off in them.
 - **Acceptance:** a difftest script per command, covering every flag i-mux uses and the error
   cases.
 - **Depends on:** C3.5, C2.5.
