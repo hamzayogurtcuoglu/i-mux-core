@@ -1078,7 +1078,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 
 ## Phase 4: UI surfaces
 
-### [ ] C4.1 Styles
+### [x] C4.1 Styles
 - **Goal:** `#[…]` and the `*-style` options draw as tmux draws them.
 - **Details:**
   - Parse colours (names, `colourN`, `#rrggbb`, `default`, `terminal`) and attributes, with `no`
@@ -1087,6 +1087,12 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Apply them to cells.
 - **Acceptance:** unit tests, plus frame difftests in C4.2–C4.4.
 - **Depends on:** C3.5, C2.8.
+- **Status:** done. `internal/style` ports `style_parse`, `style_tostring`, `style_add` and
+  `attributes.c`, with unit tests; style and colour options are now checked when set
+  (`testdata/diff/styles.txt`); pane borders draw with `pane-border-style`,
+  `pane-active-border-style` (expanded as formats) and `pane-border-indicators`, checked frame
+  by frame in `testdata/diff/screen.txt`. Drawing `#[…]` inside formats (`format_draw`) comes
+  with the status line (C4.2).
 
 ### [ ] C4.2 Status lines
 - **Goal:** i-mux's tab bar and agent bar look and click exactly as on tmux.

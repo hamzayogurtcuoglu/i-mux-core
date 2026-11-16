@@ -102,3 +102,4 @@ All notable changes to i-mux-core are listed here. The format follows
 - Dead panes: `remain-on-exit`'s "Pane is dead" line, `#{pane_dead_time}`, respawning.
 - Environment: sessions' own environments with `update-environment`, and panes' and jobs'
   environments built as tmux builds them; the client sends its whole environment.
+- Styles: tmux's style parser, style options checked when set, border styles from the options.

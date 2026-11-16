@@ -24,7 +24,9 @@ import (
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/options"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/style"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
 
 // set-option and show-options (TASKS.md C3.4; -F with the formats of C3.5).
@@ -403,4 +405,6 @@ func init() {
 		return list.Print(), nil
 	}
 	options.Checker.Shell = CheckShell
+	options.Checker.Style = style.Valid
+	options.Checker.Colour = func(s string) bool { return vt.ColorFromString(s) != -1 }
 }

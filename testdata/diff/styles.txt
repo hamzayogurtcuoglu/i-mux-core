@@ -1,0 +1,18 @@
+# Styles (C4.1): style options are checked as tmux checks them (a value with a format is not),
+# and #[…] passes through formats untouched; drawing them is checked by the frame scripts.
+size 80x24
+run new-session -d -s st 'exec cat'
+run set -g status-style 'fg=red,bg=colour235 bold' ; show -g status-style
+run set -g status-style 'fg=nope'
+run set -g status-style 'bogus'
+run set -g status-style 'align=middle'
+run set -g status-style 'range=pane|4'
+run set -g status-style '#{?pane_active,fg=red,nonsense}' ; show -g status-style
+run set -g message-style 'bg=themeyellow,fg=themeblack,fill=themeyellow' ; show -g message-style
+run set -gw pane-border-style 'fg=#{@c} dim' ; show -gw pane-border-style
+run set -gw window-style 'fg=default,bg=terminal' ; show -gw window-style
+run set -gw cursor-colour nope
+run set -gw cursor-colour red ; show -gw cursor-colour
+run set -g status-left-style 'list=focus range=user|imux:agent:claude norange' ; show -g status-left-style
+run display -p '#[fg=red,bold]x#[default]#[range=user|abc]y#[norange]'
+run kill-server

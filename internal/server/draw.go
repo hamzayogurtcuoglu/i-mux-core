@@ -3,6 +3,10 @@ package server
 import (
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/style"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/render"
 )
@@ -26,7 +30,7 @@ type drawState struct {
 func (s *Server) view(c *attachedClient) *render.View {
 	v := &render.View{
 		Sx: c.tty.Sx, Sy: c.tty.Sy,
-		Styles:   render.DefaultStyles(),
+		Styles:   s.borderStyles(c),
 		Mouse:    c.session.Options.GetNumber("mouse") != 0,
 		NoBright: c.tty.Term.Has("Nobr"),
 		// The theme colours, once the terminal has told its colours or theme.
@@ -110,4 +114,32 @@ func (s *Server) paneChanged(p *model.Pane) {
 			s.markDirty(c)
 		}
 	}
+}
+
+// borderStyles are the window's border styles (pane-border-style, pane-active-border-style,
+// expanded as formats for the active pane, and pane-border-indicators), as tmux's
+// screen_redraw draws them.
+func (s *Server) borderStyles(c *attachedClient) render.Styles {
+	st := render.DefaultStyles()
+	wl := c.session.Current
+	if wl == nil || wl.Window.Active == nil {
+		return st
+	}
+	w := wl.Window
+	p := w.Active
+	ctx := &format.Context{Tree: s.tree, Server: s.ServerInfo(), Now: s.opts.Now}
+	ctx.Defaults(nil, c.session, wl, p)
+	apply := func(name string) vt.Cell {
+		gc := vt.DefaultCell
+		sy := style.Default()
+		if sy.Parse(vt.DefaultCell, ctx.Expand(p.Options.GetString(name))) == nil {
+			sy.Add(&gc)
+		}
+		return gc
+	}
+	st.Border = apply("pane-border-style")
+	st.ActiveBorder = apply("pane-active-border-style")
+	ind := w.Options.GetNumber("pane-border-indicators")
+	st.TwoPaneColours = ind == 1 || ind == 3 // colour, both
+	return st
 }

@@ -16,4 +16,9 @@ run select-pane -t %0
 screen 40x10
 run resize-pane -Z -t %0
 screen 40x10
+# Border styles from the options (C4.1), one of them a format.
+run resize-pane -Z -t %0 ; set -g pane-border-style 'fg=red,dim' ; set -g pane-active-border-style 'fg=#{?pane_active,#00ff00,blue} bold'
+screen 40x10
+run set -g pane-border-indicators off ; set -g pane-border-style 'bg=colour238 fg=default'
+screen 40x10
 run kill-server

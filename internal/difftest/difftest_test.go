@@ -254,7 +254,7 @@ func TestHarnessScreen(t *testing.T) {
 			screens = append(screens, e.Result.Stdout)
 		}
 	}
-	if len(screens) != 4 || !strings.Contains(screens[0], "one pane") || !strings.Contains(screens[1], "│") {
+	if len(screens) < 4 || !strings.Contains(screens[0], "one pane") || !strings.Contains(screens[1], "│") {
 		t.Fatalf("screens:\n%s", strings.Join(screens, "\n"))
 	}
 	t.Logf("tmux's first screen:\n%s", screens[0])
