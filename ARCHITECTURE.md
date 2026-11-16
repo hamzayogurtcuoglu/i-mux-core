@@ -185,6 +185,13 @@ A per-client ticker (at most every 16 ms, and right away after input) then:
 4. **Wraps** the update in synchronized output (DEC mode 2026) when the terminal supports it, and
    ends it with the cursor where the active pane, or the overlay, wants it.
 
+The frame is what the client's terminal is to show, not how tmux gets there: tmux draws scenes
+of spans and updates panes incrementally, the engine diffs frames, and only the resulting
+screen must be the same. The parts that decide that screen are ported: the border cells and
+which pane colours them (`screen-redraw.c`, with tmux's z order of panes kept in the model),
+the fill cells (`window-border.c`), a pane's colours (`tty_attributes`), and the writing of a run
+of cells for the terminal's capabilities (`tty_draw_line`, `tty_colours`, the line drawing set).
+
 ---
 
 ## 5. IPC protocol (E3)
@@ -501,6 +508,10 @@ properly):
    - `capture-pane -p -e` of chosen panes;
    - the full rendered frame of a headless attached client: the client's output is fed into a
      `vt.Screen` and compared cell by cell.
+
+   Before the engine has the commands to build layouts, **render cases** (`testdata/render`) do
+   the same for the renderer alone: `cmd/renderfixture` records the client screen tmux draws,
+   and `internal/render`'s tests draw the same panes and compare what can be seen.
 
    tmux's version is pinned (3.8, built from its release tarball by `scripts/build-tmux.sh`),
    in CI and locally (`make tmux`).

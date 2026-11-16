@@ -624,8 +624,17 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - A pane in its own 2026 update keeps its last complete frame until it ends or times out
     (tmux's timeout).
   - Frame rate: at most one frame per 16 ms per client, and right away after input.
+  - Borders and fill as tmux 3.8 draws them by default: `pane-border-style fg=themelightgrey`,
+    `pane-active-border-style fg=themegreen`, the half-coloured border of two panes
+    (`pane-border-indicators colour`), `fill-character` inside and outside the window, and the
+    theme colours a client has before its terminal is known (the terminal's ANSI colours).
+  - Render cases: `cmd/renderfixture` records what a client terminal shows on the pinned tmux
+    for `testdata/render/*.txt` (layouts, terminals from `testdata/term`, window sizes, zoom);
+    `internal/render`'s tests draw the same panes, whole and frame by frame, and compare. The
+    commands to build such layouts on i-mux-core come with Phase 3, so C2.9 repeats this
+    through real commands.
 - **Acceptance:**
-  - Headless-client tests (C2.9) for a few layouts match tmux frame for frame.
+  - The render cases match tmux's client screens, for a few layouts and terminals.
   - A benchmark shows that one changed cell produces a small, bounded write.
 - **Depends on:** C2.5, C2.7.
 

@@ -282,7 +282,10 @@ modifyOtherKeys).
   - tmux 3.4+ rule: a range is one cell longer than drawn. i-mux works around that; match it;
   - `%H:%M` refreshes every `status-interval`.
 - **Pane borders:** single-line borders; the active pane's in `pane-active-border-style`; the
-  `pane-border-status top` line shows `pane-border-format`.
+  `pane-border-status top` line shows `pane-border-format`. With tmux 3.8's defaults, borders
+  are `themelightgrey` and the active pane's `themegreen`, which a client gets as white and green
+  until its terminal reports its theme; the window's unused parts and the area outside it are
+  drawn with `fill-character` (`·` outside). `testdata/render` holds the screens tmux draws.
 - **Messages:** `display-message` shows on the status line for `display-time`, or `-d N` ms;
   `-d 0` until a key; `-d 1` clears a message at once.
 - **Popups:** `-w -h` (cells or percentages), `-x -y`, `-E` close on exit, `-d` start
