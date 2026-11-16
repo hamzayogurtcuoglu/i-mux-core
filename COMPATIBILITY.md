@@ -202,6 +202,37 @@ position.
 Status formats and `display-message` go through strftime: i-mux uses `%H:%M` in `status-right`,
 and doubles `%` in literal messages.
 
+### The engine (C3.5)
+
+`internal/format` ports tmux 3.8's `format.c`: every modifier above and the rest of tmux's
+(`=` `p` `s` `R` `n` `w` `b` `d` `q` `l` `a` `c` `t` `N` `E` `T` `S` `W` `P` `L` `I` `e` and the
+comparisons), with tmux's limits (100 nested expansions, `R` at 10000 repeats and 64 KiB,
+widths at 10000, and an expansion that runs over 100 ms gives what it has so far). Checked
+against tmux 3.8 in `testdata/diff/formats.txt` (over 750 expressions, every format in i-mux's
+source and generated config among them):
+
+- Variables are looked up as tmux does: an option first (server, pane, window, session, with
+  their parents; `status-format[1]` takes an array key), then the variable, then what the
+  command added, then the environment (`#{HOME}`).
+- `%if` and `%elif` conditions are expanded when the file is parsed, before any of its commands
+  run: a file that sets `@imux_loaded` and then tests it sees it unset.
+- `show-options` prints through tmux's own template (`option_name`, `option_value`, …), and `-F`
+  takes another; `set-option -F` expands the value for the target.
+- Quirks kept: `#{s/x*/-/:ab}` is `a-b-` (no empty match before the first character); a key
+  that does not end (`#{session_name`) ends the expansion; `#{e|/:1,0}` is
+  `-9223372036854775808`, as C's conversion of infinity.
+- `#{version}` is `3.8`, the tmux the engine follows (`imux-core -V` names both).
+- A window named with `-n` has `automatic-rename` off, as tmux's `spawn.c` does.
+- `pane_dead_signal` is the signal's number, as tmux on a system without `sys_signame` (Linux).
+
+Not yet, with the task that brings each: `#(…)` gives nothing (C4.2's status jobs); `#{A:…}`
+moves only in status formats (C4.2); `#{C:…}` gives `0` (copy mode, C4.8); `pane_fg` and
+`pane_bg` read only the `fg=` and `bg=` of `window-style` and `window-active-style` (C4.1);
+the alert flags (`window_activity_flag`, `#` `!` `~` in `window_flags`) are off (C4.5);
+`display-message` without `-p` shows nothing (C4.5), and its `-a`, `-I` and `-j` are refused.
+The fuzzy matches (`m/p`, `m/z`) and the option and environment loops (`O`, `V`) are not in
+i-mux's contract and give nothing.
+
 ## 5. Options
 
 ### Options i-mux sets and reads
