@@ -1198,7 +1198,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - The exact list of keys is settled by C0.3 and recorded in COMPATIBILITY.md §3.
 - **Acceptance:** engine tests, and difftest of buffer contents, for the double- and
   triple-click bindings in i-mux's config and for a wheel scroll in and out.
-- **Depends on:** C4.4, C1.10.
+- **Depends on:** C4.4, C1.10, C4.9 (the copied text goes to a paste buffer), C5.1 (the clicks
+  and the wheel are mouse keys). It is done after C5.1: C4.9, C4.10 and C5.1 come first.
 
 ### [ ] C4.9 Paste buffers and clipboard
 - **Goal:** pasting, and copying to the user's clipboard, work as in tmux.
