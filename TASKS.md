@@ -691,9 +691,15 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     from keys and used:
     - colours answer the panes' queries;
     - 2031 fires `client-light-theme` / `client-dark-theme`.
+  - The client sends its erase character (`VERASE`) in `Hello`, as tmux's client sends its
+    termios: that byte is `BSpace`.
+  - Parsed keys and mouse events that are not paste, focus or theme reports are handed on: to
+    pane encoding (C2.11), key bindings (C3.8) and mouse classification (C5.1). Client events
+    (`client-focus-in`, `client-dark-theme`, …) go to the server's event callback; C3.9 runs
+    the hooks set for them.
 - **Acceptance:**
   - A table test of byte sequences to key names (the names tmux shows in `list-keys`).
-  - Theme reports fire the hooks.
+  - Theme reports fire the client events (and so the hooks, once C3.9 has them).
   - Paste and focus reach the fake TUI's echo correctly (engine test).
 - **Depends on:** C2.7.
 
