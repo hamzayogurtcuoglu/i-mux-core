@@ -147,3 +147,7 @@ func StrnVis(s string, size int) string {
 	}
 	return b.String()
 }
+
+// CleanName is tmux's clean_name: a name made safe to show (control characters encoded), or
+// false when it is not valid UTF-8.
+func CleanName(name string, untrusted bool) (string, bool) { return cleanName(name, untrusted) }

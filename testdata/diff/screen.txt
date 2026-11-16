@@ -1,7 +1,7 @@
 # The headless client (C2.9): what an attached client's terminal shows, for a few layouts.
 # Panes run fixed commands that print and wait, never an interactive shell.
-# i-mux-core needs set-option, split-window and select-pane for these (C3.4, C3.6).
-skip-if-engine imux-core set-option and split-window come with Phase 3 (C3.4, C3.6)
+# The status line is off (screen.conf) until imux-core draws it (C4.2); both engines run
+# these since C3.6.
 conf screen.conf
 size 40x10
 run new-session -d -s a 'printf "one pane\n\033[1;31mbold red\033[0m \033[44mon blue\033[0m\n"; exec cat'

@@ -1,0 +1,62 @@
+# kill-pane, swap-pane, resize-pane, resize-window, select-layout, respawn-pane and
+# capture-pane (C3.6), with the flags i-mux uses and the errors.
+size 80x24
+run new-session -d -s s -n w 'exec cat'
+run split-window -h -t s 'exec cat' ; split-window -v -t s:0.1 'exec cat' ; split-window -v -t s:0.0 'exec cat'
+run new-window -t s -n other 'exec cat' ; split-window -t s:1 'exec cat' ; select-window -t s:0
+run lsp -t s:0 -F '#{pane_id} #{pane_index} #{pane_left},#{pane_top} #{pane_width}x#{pane_height} #{pane_active}'
+# swap-pane: -s -t, -d, -D, -U, across windows, -Z.
+run swap-pane -s %0 -t %1 ; lsp -t s:0 -F '#{pane_id} #{pane_index} #{pane_left},#{pane_top} #{pane_active}'
+run swap-pane -d -s %2 -t %3 ; lsp -t s:0 -F '#{pane_id} #{pane_index} #{pane_active}'
+run swap-pane -D -t %1 ; lsp -t s:0 -F '#{pane_id} #{pane_active}' ; swap-pane -U -t %1 ; lsp -t s:0 -F '#{pane_id} #{pane_active}'
+run swap-pane -s %5 -t %0 ; lsp -a -F '#{window_index} #{pane_id} #{pane_active} #{pane_width}x#{pane_height}'
+run swap-pane -s %5 -t %0 -d ; lsp -a -F '#{window_index} #{pane_id} #{pane_active}'
+run resize-pane -Z -t %1 ; swap-pane -s %1 -t %2 -Z ; display -p -t s:0 '#{window_zoomed_flag} #{pane_id}' ; resize-pane -Z -t s:0
+run resize-pane -Z -t %1 ; swap-pane -s %1 -t %2 ; display -p -t s:0 '#{window_zoomed_flag}'
+run swap-pane -s %0 -t %0 ; swap-pane -s %99 -t %0
+# resize-pane: -x -y (cells and %), -L -R -U -D with and without counts, -Z.
+run resize-pane -t %0 -x 30 ; resize-pane -t %0 -y 50% ; lsp -t s:0 -F '#{pane_id} #{pane_width}x#{pane_height}'
+run resize-pane -t %1 -L ; resize-pane -t %1 -R 5 ; resize-pane -t %1 -U 2 ; resize-pane -t %1 -D ; lsp -t s:0 -F '#{pane_id} #{pane_width}x#{pane_height}'
+run resize-pane -t %1 -L 3 ; lsp -t s:0 -F '#{pane_id} #{pane_width}x#{pane_height}'
+run resize-pane -Z -t %3 ; display -p -t s:0 '#{window_zoomed_flag} #{pane_id} #{pane_width}x#{pane_height}' ; resize-pane -t %3 -x 20 ; display -p -t s:0 '#{window_zoomed_flag}'
+run resize-pane -t %0 -x 20000
+run resize-pane -t %0 -x abc
+run resize-pane -t %0 -y 101%
+run resize-pane -t %0 -L x
+run resize-pane -t %77 -x 5
+# resize-window.
+run resize-window -t s:0 -x 100 -y 30 ; display -p -t s:0 '#{window_width}x#{window_height} #{window-size}' ; lsp -t s:0 -F '#{pane_id} #{pane_width}x#{pane_height}'
+run resize-window -t s:0 -L 10 ; resize-window -t s:0 -U ; display -p -t s:0 '#{window_width}x#{window_height}'
+run resize-window -t s:0 -x 0
+run resize-window -t s:0 -R x
+# select-layout with saved layouts of both versions.
+run display -p -t s:0 '#{window_layout}'
+run select-layout -t s:0 '{"V":2,"L":{"t":"h","w":90,"h":29,"x":0,"y":0,"c":[{"t":"p","w":45,"h":29,"x":0,"y":0,"l":0,"i":0,"I":"%5"},{"t":"v","w":44,"h":29,"x":46,"y":0,"c":[{"t":"p","w":44,"h":14,"x":46,"y":0,"a":true,"i":1,"I":"%1"},{"t":"p","w":44,"h":7,"x":46,"y":15,"i":2,"I":"%2"},{"t":"p","w":44,"h":6,"x":46,"y":23,"i":3,"I":"%3"}]}]}}' ; lsp -t s:0 -F '#{pane_id} #{pane_index} #{pane_left},#{pane_top} #{pane_width}x#{pane_height} #{pane_active}'
+run select-layout -t s:0 'bb62,90x29,0,0{45x29,0,0,1,44x29,46,0[44x9,46,0,2,44x9,46,10,3,44x9,46,20,4]}' ; lsp -t s:0 -F '#{pane_id} #{pane_left},#{pane_top} #{pane_width}x#{pane_height}'
+run select-layout -t s:0 'nonsense'
+run select-layout -t s:0 '0000,90x29,0,0,1'
+run select-layout -t s:0 '{"V":2,"L":{"t":"p","w":10,"h":10,"x":0,"y":0,"i":0,"I":"%5"}}'
+# respawn-pane.
+run respawn-pane -t %1
+run respawn-pane -k -t %1 -c /tmp 'exec cat' ; display -p -t %1 '#{pane_start_path}|#{pane_start_command}|#{pane_dead}'
+run respawn-pane -k -t %1 ; display -p -t %1 '#{pane_start_path}|#{pane_start_command}'
+run respawn-pane -k -t %1 -c relative 'exec cat' ; display -p -t %1 '#{pane_start_path}'
+run respawn-pane -k -t %99
+# kill-pane.
+run kill-pane -t %2 ; lsp -t s:0 -F '#{pane_id} #{pane_active}'
+run kill-pane -f '#{pane_active}' -t %1
+run kill-pane -a -f '#{==:#{pane_id},%3}' -t %1 ; lsp -t s:0 -F '#{pane_id}'
+run kill-pane -a -t %1 ; lsp -t s:0 -F '#{pane_id}'
+run kill-pane -t s:1.0 ; kill-pane -t s:1.0 ; lsw -t s -F '#{window_index}:#{window_name}'
+run kill-pane -t %1 ; has-session -t s
+run new-session -d -s c -x 40 -y 6 'printf "one\ntwo  \nthree four five six seven eight nine ten eleven twelve\n\033[31mred\033[0m\n"; exec cat'
+wait -t c '#{cursor_y}' == 5
+run capture-pane -p -t c ; capture-pane -p -J -t c ; capture-pane -p -N -t c ; capture-pane -p -e -t c
+run capture-pane -p -S 1 -E 2 -t c ; capture-pane -p -S - -E - -t c ; capture-pane -p -S -10 -t c ; capture-pane -p -S x -t c
+run capture-pane -p -S '#{e|+:1,1}' -t c ; capture-pane -p -C -t c
+run capture-pane -p -a -t c
+run capture-pane -p -a -q -t c
+run new-session -d -s h -x 30 -y 3 'seq 1 10; exec cat'
+wait -t h '#{history_size}' == 8
+run capture-pane -p -t h ; capture-pane -p -J -S -5 -t h ; capture-pane -p -S -3 -E -1 -t h ; display -p -t h '#{history_size}'
+run kill-server

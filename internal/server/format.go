@@ -1,6 +1,7 @@
 package server
 
 import (
+	"os"
 	"slices"
 	"sort"
 	"strings"
@@ -24,7 +25,7 @@ func (s *Server) formatClient(c *attachedClient) *format.Client {
 	term := c.tty.Term
 	return &format.Client{
 		Name: c.name, TTY: c.name, Session: c.session, Last: c.last,
-		Activity: c.activity, Created: c.created, Pid: c.pid,
+		Activity: c.activity, Created: c.created, Pid: c.pid, UID: os.Getuid(),
 		Flags: flags, UTF8: c.tty.UTF8,
 		Width: c.tty.Sx, Height: c.tty.Sy, Started: true,
 		TermName: c.termName, Features: c.features.String(),

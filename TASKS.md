@@ -891,7 +891,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   bar, every modifier and variable of the contract, and strftime. `FuzzExpand` fuzzes it.
   What waits for later tasks is listed in COMPATIBILITY.md §4.
 
-### [ ] C3.6 Session, window and pane commands
+### [x] C3.6 Session, window and pane commands
 - **Goal:** the commands i-mux uses to build its workspace work like tmux.
 - **Details:**
   - Implement every command in COMPATIBILITY.md §3 under "session", "window" and "pane":
@@ -906,6 +906,15 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** a difftest script per command, covering every flag i-mux uses and the error
   cases.
 - **Depends on:** C3.5, C2.5.
+- **Status:** done. New: `list-sessions`, `list-windows`, `list-panes`, `list-clients`,
+  `rename-window`, `kill-window`, `kill-pane`, `swap-pane`, `respawn-pane`, `resize-pane`,
+  `resize-window`, `select-layout` (layout strings) and `capture-pane -p`; `-P -F` on
+  `new-session`, `new-window` and `split-window`, `new-window -a -b`, formats in `-c -n -s`,
+  `default-command`. `testdata/diff/lists.txt`, `windows.txt` and `panes.txt` cover every flag
+  i-mux uses and the errors; `TestLayoutScenarios` runs the six layout scenarios through the
+  commands on both engines (the old layout format needs a control client and stays in the
+  model's golden test); `screen.txt` runs on imux-core with the status line off. What is
+  refused is listed in COMPATIBILITY.md §3.
 
 ### [ ] C3.7 Names, titles, current command and path
 - **Goal:** windows and borders show what tmux would show.

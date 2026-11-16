@@ -354,6 +354,31 @@ func (s *Server) paneExited(p *model.Pane, st *paneState, status pty.ExitStatus)
 	s.RemovePane(p)
 }
 
+// Respawn implements commands.Host: respawn-pane's new program in an existing pane. The old
+// one is killed; the screen starts again, keeping the pane's title (screen_reinit).
+func (s *Server) Respawn(p *model.Pane, spec pty.Spec) error {
+	if _, ok := s.panes[p]; ok {
+		_ = p.Proc.Kill()
+		_ = p.Proc.Close()
+		delete(s.panes, p)
+	}
+	title := ""
+	if p.Term != nil {
+		p.Mu.Lock()
+		title = p.Term.Screen.Title
+		p.Mu.Unlock()
+	}
+	p.Dead, p.Status = false, pty.ExitStatus{}
+	if err := s.Spawn(p, spec); err != nil {
+		return err
+	}
+	if title != "" {
+		p.Term.Screen.Title = title
+	}
+	s.paneChanged(p)
+	return nil
+}
+
 // RemovePane takes a pane out (in the loop), killing its program, and its window and session
 // when they are left empty. The server ends when no session is left.
 func (s *Server) RemovePane(p *model.Pane) {

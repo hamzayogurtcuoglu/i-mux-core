@@ -17,6 +17,8 @@
 package format
 
 import (
+	"os"
+	"os/user"
 	"strconv"
 	"strings"
 	"time"
@@ -516,6 +518,9 @@ func init() {
 		"history_size": screenVar(func(_ *model.Pane, s *vt.Screen) (string, bool) {
 			return itoa(s.Grid.HSize)
 		}),
+		"history_bytes": screenVar(func(_ *model.Pane, s *vt.Screen) (string, bool) {
+			return itoa(s.Grid.Bytes())
+		}),
 		"history_limit": screenVar(func(_ *model.Pane, s *vt.Screen) (string, bool) {
 			return itoa(s.Grid.HLimit)
 		}),
@@ -628,7 +633,15 @@ func init() {
 		"client_discarded":    cv(func(c *Client) (string, bool) { return itoa(c.Discarded) }),
 		"client_written":      cv(func(c *Client) (string, bool) { return itoa(c.Written) }),
 		"client_uid":          cv(func(c *Client) (string, bool) { return itoa(c.UID) }),
-		"client_user":         cv(func(c *Client) (string, bool) { return c.User, c.User != "" }),
+		"client_user": cv(func(c *Client) (string, bool) {
+			if c.User != "" {
+				return c.User, true
+			}
+			u := userName(c.UID)
+			return u, u != ""
+		}),
+		"uid":  func(*Context) (string, bool) { return itoa(os.Getuid()) },
+		"user": func(*Context) (string, bool) { u := userName(os.Getuid()); return u, u != "" },
 	}
 }
 
@@ -682,4 +695,13 @@ func styleColour(style string, bg bool) vt.Color {
 		}
 	}
 	return col
+}
+
+// userName is the name of the user with id uid (getpwuid), or "".
+func userName(uid int) string {
+	u, err := user.LookupId(strconv.Itoa(uid))
+	if err != nil {
+		return ""
+	}
+	return u.Username
 }

@@ -192,16 +192,16 @@ func TestSessionTargets(t *testing.T) {
 	if r := run(h, "kill-server"); r.Failed || !h.killed {
 		t.Errorf("kill-server %+v", r)
 	}
-	if r := run(h, "list-windows"); r.Stderr != "list-windows: not implemented by imux-core yet\n" {
+	if r := run(h, "list-keys"); r.Stderr != "list-keys: not implemented by imux-core yet\n" {
 		t.Errorf("%+v", r)
 	}
 }
 
 func TestRunConfig(t *testing.T) {
 	h := newFakeHost()
-	causes := RunConfig(h, "/c.conf", "new -s one\nhas -t zz ; new -s skipped\n\nls\nnew -s two\n", cmdlang.Options{})
+	causes := RunConfig(h, "/c.conf", "new -s one\nhas -t zz ; new -s skipped\n\nlsk\nnew -s two\n", cmdlang.Options{})
 	if len(causes) != 2 || causes[0] != "/c.conf:2: can't find session: zz" ||
-		causes[1] != "/c.conf:4: list-sessions: not implemented by imux-core yet" {
+		causes[1] != "/c.conf:4: list-keys: not implemented by imux-core yet" {
 		t.Errorf("causes %q", causes)
 	}
 	// A config file has no client: new-session is detached even without -d.
@@ -243,3 +243,5 @@ func TestWindowsAndPanesAndCurrentTarget(t *testing.T) {
 		t.Errorf("inside pane: sent %q (%+v)", h.sent, r)
 	}
 }
+
+func (h *fakeHost) Respawn(p *model.Pane, spec pty.Spec) error { return h.Spawn(p, spec) }

@@ -309,11 +309,16 @@ func (t *Tree) NewPane(w *Window, at *Pane, before bool, sx, sy int) *Pane {
 	if w.Active == nil {
 		w.Active = p
 	}
+	t.panes[p.ID] = p
 	if w.Layout == nil {
 		w.Layout = layout.New(p.ID, w.Sx, w.Sy)
 		p.Xoff, p.Yoff = 0, 0
+		// The window's pane-border-status takes its line from the start.
+		if st := w.BorderStatus(); st != layout.StatusOff {
+			w.Layout.Status = st
+			t.fixPanes(w)
+		}
 	}
-	t.panes[p.ID] = p
 	return p
 }
 
@@ -368,6 +373,49 @@ func (s *Session) SelectWindow(wl *Winlink) {
 	}
 	s.last = removeLink(s.last, wl)
 	s.Current = wl
+}
+
+// ShuffleUp is tmux's winlink_shuffle_up: room for a window after wl (before it with before),
+// moving the windows in the way up by one. It returns the index made free, or -1.
+func (s *Session) ShuffleUp(wl *Winlink, before bool) int {
+	if wl == nil || wl.Index == math.MaxInt32 {
+		return -1
+	}
+	idx := wl.Index + 1
+	if before {
+		idx = wl.Index
+	}
+	last := idx
+	for ; last < math.MaxInt32; last++ {
+		if s.links[last] == nil {
+			break
+		}
+	}
+	if last == math.MaxInt32 {
+		return -1
+	}
+	for ; last > idx; last-- {
+		l := s.links[last-1]
+		delete(s.links, last-1)
+		l.Index++
+		s.links[l.Index] = l
+	}
+	return idx
+}
+
+// Renumber is session_renumber_windows: the windows take indexes from base in order.
+func (s *Session) Renumber(base int) {
+	links := s.Links()
+	s.links = make(map[int]*Winlink, len(links))
+	for i, wl := range links {
+		wl.Index = base + i
+		s.links[wl.Index] = wl
+	}
+}
+
+// BorderStatus is the window's pane-border-status option.
+func (w *Window) BorderStatus() layout.Status {
+	return layout.Status(w.Options.GetNumber("pane-border-status"))
 }
 
 // LastWindows are the windows that were current before, most recent first (tmux's lastw).

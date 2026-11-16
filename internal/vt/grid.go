@@ -982,3 +982,15 @@ func (gd *Grid) Reflow(sx int) {
 	gd.lines = target.lines
 	gd.ScrollGeneration++
 }
+
+// Bytes is what tmux's #{history_bytes} reports for the grid: the memory its lines take in
+// tmux (8 bytes a cell, 24 an extended cell, 40 a line).
+func (gd *Grid) Bytes() int {
+	const cellSize, extdSize, lineSize = 8, 24, 40
+	n := gd.HSize + gd.Sy
+	size := 0
+	for i := 0; i < n && i < len(gd.lines); i++ {
+		size += len(gd.lines[i].cells)*cellSize + len(gd.lines[i].extd)*extdSize
+	}
+	return size + n*lineSize
+}

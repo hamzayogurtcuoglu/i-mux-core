@@ -154,7 +154,12 @@ const program = "sleep 100000"
 
 // FromTmux runs a scenario on the tmux at bin, in its own temporary HOME and socket, and
 // returns each step's state.
-func FromTmux(bin string, steps []Step) ([]State, error) {
+func FromTmux(bin string, steps []Step) ([]State, error) { return FromServer(bin, steps, nil) }
+
+// FromServer runs a scenario on a server program (tmux, or imux-core for the differential
+// test of TASKS.md C3.6). With ref, the layouts a step restores ($N, v1$N) are those ref's
+// steps showed, and the old layout format (which needs a control client) is not read.
+func FromServer(bin string, steps []Step, ref []State) ([]State, error) {
 	dir, err := os.MkdirTemp("/tmp", "imux-lf-")
 	if err != nil {
 		return nil, err
@@ -167,7 +172,11 @@ func FromTmux(bin string, steps []Step) ([]State, error) {
 
 	var states []State
 	for _, st := range steps {
-		args, err := tmuxArgs(st, states)
+		resolve := states
+		if ref != nil {
+			resolve = ref
+		}
+		args, err := tmuxArgs(st, resolve)
 		if err != nil {
 			return nil, fmt.Errorf("line %d: %w", st.Line, err)
 		}
@@ -190,8 +199,10 @@ func FromTmux(bin string, steps []Step) ([]State, error) {
 		s.Layout = strings.TrimSpace(out)
 		out, _, _ = t.run("display", "-p", "-t", "@0", "#{window_visible_layout}")
 		s.Visible = strings.TrimSpace(out)
-		if s.V1, err = t.v1(); err != nil {
-			return nil, fmt.Errorf("line %d: %w", st.Line, err)
+		if ref == nil {
+			if s.V1, err = t.v1(); err != nil {
+				return nil, fmt.Errorf("line %d: %w", st.Line, err)
+			}
 		}
 		states = append(states, s)
 	}

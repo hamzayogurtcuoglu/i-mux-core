@@ -44,6 +44,8 @@ type Host interface {
 	DefaultSize(s *model.Session) (sx, sy int)
 	// RemovePane takes a pane out, killing its program, and its window and session if empty.
 	RemovePane(p *model.Pane)
+	// Respawn starts a pane's program again, killing the one it has.
+	Respawn(p *model.Pane, spec pty.Spec) error
 	// ServerInfo is what the server's format variables give (pid, start_time, …).
 	ServerInfo() *format.Server
 	// ShowMessage shows a message on a client's status line (display-message without -p).
@@ -142,6 +144,19 @@ var implemented = map[string]execFunc{
 	"select-window":       selectWindow,
 	"select-pane":         selectPane,
 	"display-message":     displayMessage,
+	"list-sessions":       listSessions,
+	"list-windows":        listWindows,
+	"list-panes":          listPanes,
+	"list-clients":        listClients,
+	"rename-window":       renameWindow,
+	"kill-window":         killWindow,
+	"kill-pane":           killPane,
+	"swap-pane":           swapPane,
+	"respawn-pane":        respawnPane,
+	"resize-pane":         resizePane,
+	"resize-window":       resizeWindow,
+	"select-layout":       selectLayout,
+	"capture-pane":        capturePane,
 }
 
 // Result is what a command list gave: its output, its errors and whether it failed.

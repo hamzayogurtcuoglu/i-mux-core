@@ -85,3 +85,6 @@ All notable changes to i-mux-core are listed here. The format follows
 - Formats: tmux 3.8's format engine (variables, every modifier, loops, strftime) for
   `display-message`, `set-option -F`, `show-options -F` and `%if`; `show-options` prints
   through tmux's own template.
+- Commands: the lists, `rename-window`, `kill-window`, `kill-pane`, `swap-pane`,
+  `respawn-pane`, `resize-pane`, `resize-window`, `select-layout` and `capture-pane -p`, and
+  `-P -F` on the commands that make sessions, windows and panes.

@@ -48,7 +48,7 @@ func killServer(it *Item) error {
 
 func newSession(it *Item) error {
 	a := it.Cmd.Args
-	for _, f := range []byte("ADEPXFft") {
+	for _, f := range []byte("ADEXft") {
 		if a.Has(f) {
 			return fmt.Errorf("new-session -%c: not implemented by imux-core yet", f)
 		}
@@ -60,7 +60,22 @@ func newSession(it *Item) error {
 		}
 	}
 	t := it.Host.Tree()
+	wname, hasName := a.Get('n')
+	if hasName {
+		n, err := it.cleanName("window", wname, nil)
+		if err != nil {
+			return err
+		}
+		wname = n
+	}
 	sname, named := a.Get('s')
+	if named {
+		n, err := it.cleanName("session", sname, nil)
+		if err != nil {
+			return err
+		}
+		sname = n
+	}
 	if named && t.SessionByName(sname) != nil {
 		return fmt.Errorf("duplicate session: %s", sname)
 	}
@@ -80,10 +95,7 @@ func newSession(it *Item) error {
 		}
 		sx, sy = max(sx, 1), max(sy, 1)
 	}
-	cwd, ok := a.Get('c')
-	if !ok {
-		cwd = it.clientCwd()
-	}
+	cwd := it.paneCwd(nil)
 	// -x and -y give the session a default-size.
 	dsx, dsy := sx, sy
 	if v, err := size(a, 'x', "width", 80); err == nil && a.Has('x') {
@@ -107,19 +119,21 @@ func newSession(it *Item) error {
 	}
 	s.SelectWindow(wl)
 	w := wl.Window
-	if n, ok := a.Get('n'); ok {
+	argv := it.commandArgv(s)
+	if hasName {
 		// A window named when made is not renamed automatically (spawn.c).
-		w.Name = n
+		w.Name = wname
 		w.Options.SetNumber("automatic-rename", 0)
 	} else {
-		w.Name = defaultWindowName(a.Strings(), it.shell(s))
+		w.Name = defaultWindowName(argv, it.shell(s))
 	}
 	p := t.NewPane(w, nil, false, sx, sy)
-	spec := it.spawnSpec(s, p, a.Strings(), cwd, a.All('e'))
+	spec := it.spawnSpec(s, p, argv, cwd, a.All('e'))
 	if err := it.Host.Spawn(p, spec); err != nil {
 		t.RemoveSession(s)
 		return fmt.Errorf("create window failed: %v", err)
 	}
+	it.printNew("#{session_name}:", s, s.Current, nil)
 	if attach {
 		it.Client.AttachTo = s
 	}
@@ -277,14 +291,63 @@ func size(a *Args, f byte, what string, def int) (int, error) {
 	return int(n), nil
 }
 
-func (it *Item) clientCwd() string {
+// cwdFor is server_client_get_cwd: the command client's directory, else the session's, else
+// home.
+func (it *Item) cwdFor(s *model.Session) string {
 	if it.Client != nil && it.Client.Cwd != "" {
 		return it.Client.Cwd
+	}
+	if s != nil && s.Cwd != "" {
+		return s.Cwd
 	}
 	if h := it.getenv("HOME"); h != "" {
 		return h
 	}
 	return "/"
+}
+
+// spawnCwd is spawn.c's -c: a format, relative to the client's (or session's) directory.
+func (it *Item) spawnCwd(c string, s *model.Session) string {
+	cwd := it.formatContext(nil, s, nil, nil).Expand(c)
+	if !strings.HasPrefix(cwd, "/") {
+		base := it.cwdFor(s)
+		if cwd != "" {
+			return base + "/" + cwd
+		}
+		return base
+	}
+	return cwd
+}
+
+// paneCwd is the directory of a new pane: -c, else the client's or session's.
+func (it *Item) paneCwd(s *model.Session) string {
+	if c, ok := it.Cmd.Args.Get('c'); ok {
+		return it.spawnCwd(c, s)
+	}
+	return it.cwdFor(s)
+}
+
+// commandArgv is a new pane's command: the arguments, else default-command.
+func (it *Item) commandArgv(s *model.Session) []string {
+	argv := it.Cmd.Args.Strings()
+	if len(argv) == 0 {
+		if c := s.Options.GetString("default-command"); c != "" {
+			return []string{c}
+		}
+	}
+	return argv
+}
+
+// printNew is -P: the template (-F, else def) expanded for what was made.
+func (it *Item) printNew(def string, s *model.Session, wl *model.Winlink, p *model.Pane) {
+	if !it.Cmd.Args.Has('P') {
+		return
+	}
+	template, ok := it.Cmd.Args.Get('F')
+	if !ok {
+		template = def
+	}
+	it.Print(it.formatContext(it.clientInfoOf(it.targetClient()), s, wl, p).Expand(template))
 }
 
 func (it *Item) getenv(name string) string {

@@ -50,6 +50,14 @@ func (s *Server) OptionChanged(name string) {
 			}
 		}
 	}
+	// pane-border-status takes a line from each window's panes, or gives it back.
+	for _, sess := range s.tree.Sessions() {
+		for _, wl := range sess.Links() {
+			if w := wl.Window; w.Layout != nil && w.Layout.Status != w.BorderStatus() {
+				s.tree.SetBorderStatus(w, w.BorderStatus())
+			}
+		}
+	}
 	s.recalculateSizes()
 	for _, c := range s.attached {
 		s.invalidate(c)

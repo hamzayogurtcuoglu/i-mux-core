@@ -1,0 +1,33 @@
+# list-sessions, list-windows, list-panes and list-clients (C3.6): the default templates, -F,
+# -a, -s, -t, -f, -O and -r, and the errors.
+size 80x24
+normalize created\ [^)]* created\ DATE
+normalize /dev/pts/[0-9]+ PTS
+run list-sessions
+run new-session -d -s beta -n one 'exec cat'
+run new-session -d -s alpha -n first 'exec cat'
+run split-window -t alpha 'exec cat'
+run split-window -h -t alpha:0.1 'exec cat'
+run new-window -t alpha:3 -n third 'exec cat'
+run new-window -t beta -n two 'exec cat'
+run select-window -t alpha:0
+run list-sessions
+run ls -F '#{session_name} #{session_windows} #{line}'
+run ls -F '#{session_name}' -f '#{==:#{session_name},beta}'
+run ls -F '#{session_name}' -O name -r ; ls -F '#{session_name}' -O index ; ls -F '#{session_name}' -O creation
+run ls -O nonsense
+run list-windows -t alpha
+run lsw -t alpha -F '#{window_index}:#{window_name}:#{line}' ; lsw -a ; lsw -a -F '#{session_name}:#{window_index}'
+run lsw -t alpha -F '#{window_name}' -O name ; lsw -t alpha -F '#{window_name}' -r ; lsw -t alpha -F '#{window_index}' -f '#{window_active}'
+run lsw -t nope
+run list-panes -t alpha:0
+run lsp -t alpha -s ; lsp -a
+run lsp -t alpha:0 -F '#{pane_id} #{pane_index} #{line}' ; lsp -t alpha:0 -F '#{pane_id}' -r ; lsp -t alpha:0 -F '#{pane_id}' -O creation -r
+run lsp -a -F '#{session_name}:#{window_index}.#{pane_index} #{pane_id}' -f '#{pane_active}'
+run lsp -s -t =beta -F '#{session_path}|#{window_index}|#{pane_id}'
+run lsp -t alpha:9 ; lsp -O z -t alpha:0 -F '#{pane_id}' ; lsp -O bad
+run list-clients ; lsc -F '#{client_name}'
+client c1 90x30
+run list-clients ; lsc -F '#{client_name} #{client_session} #{client_width}x#{client_height} #{line}'
+run lsc -t alpha ; lsc -t beta -F '#{client_session}' ; lsc -t nope
+run kill-server

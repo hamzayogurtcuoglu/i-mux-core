@@ -1,0 +1,28 @@
+# new-session, new-window and split-window with -P -F, -n, -c, -a and -b; rename-window and
+# kill-window (C3.6).
+size 80x24
+# Windows are named: automatic-rename (C3.7) races with the program's start.
+run new-session -d -s main -n m0 -c / -P 'exec cat'
+run new-session -d -s '#{e|+:1,1}' -n 'w#{e|+:2,3}' -c /tmp -P -F '#{session_name}|#{window_name}|#{pane_id}|#{session_path}' 'exec cat'
+run new-window -t main -n w1 -P 'exec cat' ; new-window -t main -n w2 -d -P -F '#{window_index}.#{pane_index} #{pane_id} #{window_active}' 'exec cat'
+run new-window -a -t main:0 -n after -P -F '#{window_index}' 'exec cat' ; lsw -t main -F '#{window_index}:#{window_name}'
+run new-window -b -t main:0 -n before -P -F '#{window_index}' 'exec cat' ; lsw -t main -F '#{window_index}:#{window_name}'
+run new-window -a -t main: -n current 'exec cat' ; lsw -t main -F '#{window_index}:#{window_name}#{?window_active,*,}'
+run new-window -t main:1 -n taken 'exec cat'
+run new-window -c bin -n c1 -t main -P -F '#{pane_start_path}' 'exec cat' ; new-window -n c2 -c '#{session_path}x' -t main -P -F '#{pane_start_path}' 'exec cat'
+run split-window -t main:0 -P 'exec cat' ; split-window -d -h -t main:0 -P -F '#{pane_id} #{pane_active} #{pane_width}' 'exec cat'
+run split-window -h -b -f -d -l 30 -t main:0.0 -P -F '#{pane_id}:#{pane_left},#{pane_width}' 'exec cat'
+run split-window -t main:0 -l 200 'exec cat'
+run set -g default-command 'exec cat' ; new-window -t main -n dc -P -F '#{pane_start_command}|#{window_name}' ; set -gu default-command
+run rename-window -t main:0 renamed ; display -p -t main:0 '#{window_name} #{automatic-rename}'
+run rename-window -t main:0 '#{session_name}-#{window_index}' ; display -p -t main:0 '#{window_name}'
+run rename-window -t main:0 'tab	and"quote' ; display -p -t main:0 '#{q:window_name}'
+run rename-window -t main:42 x
+run rename-window
+run kill-window -t main:after ; lsw -t main -F '#{window_index}:#{window_name}'
+run kill-window -f '#{window_active}' -t main
+run kill-window -a -f '#{m:*e*,#{window_name}}' -t main:0 ; lsw -t main -F '#{window_index}:#{window_name}'
+run set -t main renumber-windows on ; kill-window -a -t main:0 ; lsw -t main -F '#{window_index}:#{window_name}'
+run kill-window -t main ; has-session -t main
+run kill-window -t 2 ; ls -F '#{session_name}'
+run kill-server

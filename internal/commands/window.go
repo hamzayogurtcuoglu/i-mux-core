@@ -12,9 +12,8 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 )
 
-// new-window, split-window, select-window and select-pane in their basic form (TASKS.md C3.3):
-// enough to build the windows and panes targets are found in. -P and -F need the format
-// engine; they and the flags i-mux does not use come with task C3.6.
+// new-window, split-window, select-window and select-pane (TASKS.md C3.3, C3.6). The flags
+// i-mux does not use are refused.
 
 func notImplemented(it *Item, flags string) error {
 	for _, f := range []byte(flags) {
@@ -27,7 +26,7 @@ func notImplemented(it *Item, flags string) error {
 
 // newWindow is new-window: a window at the target's index (-t), else the first free one.
 func newWindow(it *Item) error {
-	if err := notImplemented(it, "abEFkPS"); err != nil {
+	if err := notImplemented(it, "EkS"); err != nil {
 		return err
 	}
 	a := it.Cmd.Args
@@ -36,28 +35,41 @@ func newWindow(it *Item) error {
 		return err
 	}
 	s, t := st.S, it.Host.Tree()
+	wname, hasName := a.Get('n')
+	if hasName {
+		n, err := it.cleanName("window", wname, s)
+		if err != nil {
+			return err
+		}
+		wname = n
+	}
+	idx := st.Idx
+	if a.Has('a') || a.Has('b') {
+		// winlink_shuffle_up: room after (or before) the target window.
+		if i := s.ShuffleUp(st.WL, a.Has('b')); i != -1 {
+			idx = i
+		}
+	}
 	sx, sy := it.Host.DefaultSize(s)
-	wl, err := t.NewWindow(s, st.Idx, int(s.Options.GetNumber("base-index")), sx, sy)
+	wl, err := t.NewWindow(s, idx, int(s.Options.GetNumber("base-index")), sx, sy)
 	if err != nil {
 		if errors.Is(err, model.ErrIndexInUse) {
-			return fmt.Errorf("create window failed: index %d in use", st.Idx)
+			return fmt.Errorf("create window failed: index %d in use", idx)
 		}
 		return fmt.Errorf("create window failed: %v", err)
 	}
 	w := wl.Window
-	if n, ok := a.Get('n'); ok {
+	argv := it.commandArgv(s)
+	if hasName {
 		// A window named when made is not renamed automatically (spawn.c).
-		w.Name = n
+		w.Name = wname
 		w.Options.SetNumber("automatic-rename", 0)
 	} else {
-		w.Name = defaultWindowName(a.Strings(), it.shell(s))
+		w.Name = defaultWindowName(argv, it.shell(s))
 	}
-	cwd, ok := a.Get('c')
-	if !ok {
-		cwd = it.clientCwd()
-	}
+	cwd := it.paneCwd(s)
 	p := t.NewPane(w, nil, false, sx, sy)
-	if err := it.Host.Spawn(p, it.spawnSpec(s, p, a.Strings(), cwd, a.All('e'))); err != nil {
+	if err := it.Host.Spawn(p, it.spawnSpec(s, p, argv, cwd, a.All('e'))); err != nil {
 		if t.RemoveWindow(w) {
 			it.Host.RemoveSession(s)
 		}
@@ -66,6 +78,7 @@ func newWindow(it *Item) error {
 	if !a.Has('d') {
 		s.SelectWindow(wl)
 	}
+	it.printNew("#{session_name}:#{window_index}.#{pane_index}", s, wl, p)
 	if !a.Has('d') || s.Current == wl {
 		it.setCurrent(target.State{S: s, WL: wl, Idx: -1, W: w, P: p})
 	}
@@ -128,7 +141,7 @@ func strtonum(s string, lo, hi int) (int, string) {
 
 // splitWindow is split-window: a new pane beside (-h) or below the target pane.
 func splitWindow(it *Item) error {
-	if err := notImplemented(it, "BEFIkmPRsSTWZ"); err != nil {
+	if err := notImplemented(it, "BEIkmRsSTWZ"); err != nil {
 		return err
 	}
 	a := it.Cmd.Args
@@ -150,14 +163,12 @@ func splitWindow(it *Item) error {
 	if err != nil {
 		return err
 	}
-	cwd, ok := a.Get('c')
-	if !ok {
-		cwd = it.clientCwd()
-	}
-	if err := it.Host.Spawn(p, it.spawnSpec(st.S, p, a.Strings(), cwd, a.All('e'))); err != nil {
+	cwd := it.paneCwd(st.S)
+	if err := it.Host.Spawn(p, it.spawnSpec(st.S, p, it.commandArgv(st.S), cwd, a.All('e'))); err != nil {
 		it.Host.RemovePane(p)
 		return fmt.Errorf("create pane failed: %v", err)
 	}
+	it.printNew("#{session_name}:#{window_index}.#{pane_index}", st.S, st.WL, p)
 	if !a.Has('d') {
 		it.setCurrent(target.State{S: st.S, WL: st.WL, Idx: st.WL.Index, W: st.W, P: p})
 	}
