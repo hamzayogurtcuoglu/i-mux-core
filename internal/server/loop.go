@@ -28,6 +28,10 @@ type Options struct {
 	Now          func() time.Time // nil: time.Now
 	// PaneChanged is called in the loop when a pane's screen has changed (coalesced).
 	PaneChanged func(p *model.Pane)
+	// Event is called in the loop when a client or pane event happens that hooks can be set
+	// for (client-focus-in, client-dark-theme, pane-focus-in, …), with the client's name if
+	// any; task C3.9 runs the hooks.
+	Event func(name, client string)
 
 	SocketPath string   // the server's socket, for $TMUX
 	Environ    []string // the global environment panes start with; nil: os.Environ()
@@ -61,6 +65,12 @@ type Server struct {
 
 type paneState struct {
 	pending atomic.Bool // a change notice is waiting in the loop
+
+	// The loop's: whether the pane has the focus (PANE_FOCUSED), and the theme it was last
+	// told (PANE_THEMECHANGED, last_theme).
+	focused      bool
+	themeChanged bool
+	lastTheme    vt.Theme
 }
 
 // New returns a server; Run starts its loop.

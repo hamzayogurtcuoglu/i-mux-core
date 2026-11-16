@@ -675,7 +675,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   (`TestHarnessScreen` plants one). `testdata/diff/screen.txt` (one to three panes and a zoom)
   runs on tmux only until C3.6.
 
-### [ ] C2.10 Input from the client terminal
+### [x] C2.10 Input from the client terminal
 - **Goal:** keys, mouse, paste, focus and terminal reports are understood like tmux does.
 - **Details:**
   - Key parsing:
@@ -702,6 +702,16 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Theme reports fire the client events (and so the hooks, once C3.9 has them).
   - Paste and focus reach the fake TUI's echo correctly (engine test).
 - **Depends on:** C2.7.
+- **Status:** done. `internal/keys` has tmux's key codes and names (`key-string.c`),
+  `internal/input` reads a client terminal's input as `tty-keys.c` does (the key tree from
+  terminfo and xterm's modified keys, escape-time, CSI u and modifyOtherKeys, SGR and X10
+  mouse, and the replies to the server's queries). `TestKeyNamesAgainstTmux` (difftest) types
+  57 sequences into a tmux 3.8 client and checks that tmux and the engine read the same key.
+  The server uses the replies (features, colours, the theme colours of tmux's dark and light
+  themes), sends pastes and focus reports to the active pane, tells panes in mode 2031 their
+  theme, and fires the client and pane events (`TestPasteReachesPane`, `TestFocusReachesPane`,
+  `TestThemeReport`). OSC 4 and OSC 52 replies are read and dropped until something asks for
+  them; `focus-events`, `extended-keys` and `escape-time` are at tmux's defaults until C3.4.
 
 ### [ ] C2.11 Keys into panes
 - **Goal:** programs get keys encoded the way they asked for.

@@ -60,4 +60,5 @@ Go 1.27, on 2026-11-16: an 80×24 client with two panes side by side.
 `make fuzz` runs every fuzz target briefly; the nightly workflow (`.github/workflows/nightly.yml`)
 runs each for 10 minutes: `FuzzParser` and `FuzzTerminal` (internal/vt), `FuzzParse`
 (internal/cmdlang), `FuzzWalk` (internal/format), `FuzzReader` (internal/ipc),
-`FuzzLayoutParse` (internal/layout) and `FuzzParseTerminfo` (internal/termout).
+`FuzzLayoutParse` (internal/layout), `FuzzParseTerminfo` (internal/termout) and `FuzzInput`
+(internal/input).

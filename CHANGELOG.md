@@ -64,3 +64,7 @@ All notable changes to i-mux-core are listed here. The format follows
   compare.
 - The differential harness's `screen WxH` step: a client attached in a PTY, its terminal's
   screen compared with tmux's once it settles, and a difference shown side by side.
+- Input from attached clients, read as tmux 3.8 reads it: key names (`internal/keys`), the key
+  sequences of the client's terminal with escape-time, mouse reports, bracketed paste and focus
+  reports passed to the active pane, and the terminal's replies (features, colours, theme)
+  used; theme reports fire the client events.

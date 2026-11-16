@@ -85,3 +85,13 @@ func ttyName(f *os.File) string {
 	}
 	return ""
 }
+
+// eraseChar is the terminal's erase character (VERASE), which tmux reads as BSpace; none when
+// it is disabled.
+func eraseChar(f *os.File) (int, bool) {
+	tio, err := unix.IoctlGetTermios(int(f.Fd()), ioctlGetTermios)
+	if err != nil || tio.Cc[unix.VERASE] == posixVDisable {
+		return 0, false
+	}
+	return int(tio.Cc[unix.VERASE]), true
+}

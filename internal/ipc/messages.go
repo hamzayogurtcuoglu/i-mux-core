@@ -60,6 +60,7 @@ type Hello struct {
 	Pid           int               `json:"pid"`
 	TTYName       string            `json:"tty_name,omitempty"` // stdin's terminal (#{client_name})
 	Terminfo      []string          `json:"terminfo,omitempty"` // TERM's capabilities, name=value (E15)
+	Erase         *int              `json:"erase,omitempty"`    // the terminal's VERASE byte, if it has one
 }
 
 // Command is a command list from the client: each element is one command's words.

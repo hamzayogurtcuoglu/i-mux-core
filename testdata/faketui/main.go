@@ -6,6 +6,7 @@
 //	keys    echo every input chunk on line 2 as hex and decoded; ^D leaves
 //	mouse   turn on SGR mouse reporting (1000, 1002, 1006) and echo events; ^D leaves
 //	paste   turn on bracketed paste (2004) and echo what is pasted; ^D leaves
+//	focus   turn on focus reports (1004) and theme reports (2031) and echo them; ^D leaves
 //	resize  print the size, and again on every resize; ^D leaves
 //	stream  write -mb MB of mixed output, then exit
 //	title   set the title (OSC 2), the working directory (OSC 7) and copy (OSC 52), then exit
@@ -26,7 +27,7 @@ import (
 )
 
 func main() {
-	mode := flag.String("mode", "frame", "frame, keys, mouse, paste, resize, stream, title or exit")
+	mode := flag.String("mode", "frame", "frame, keys, mouse, paste, focus, resize, stream, title or exit")
 	mb := flag.Int("mb", 1, "stream: megabytes to write")
 	code := flag.Int("code", 0, "exit: the exit code")
 	sig := flag.String("signal", "", "exit: a signal to kill itself with (Unix)")
@@ -72,6 +73,9 @@ func main() {
 	case "paste":
 		echo("\x1b[?2004h", "paste", decodePaste)
 		os.Stdout.WriteString("\x1b[?2004l")
+	case "focus":
+		echo("\x1b[?1004h\x1b[?2031h", "focus", decodeFocus)
+		os.Stdout.WriteString("\x1b[?2031l\x1b[?1004l")
 	case "resize":
 		resize()
 	default:
@@ -119,9 +123,18 @@ func frame() {
 // echo turns on a mode, then writes each input chunk on line 2 until ^D.
 func echo(on, label string, decode func(string) string) {
 	os.Stdout.WriteString(on + "\x1b[H\x1b[2J" + label + " READY")
+	pending := ""
 	for in := range readInput() {
 		if strings.Contains(in, "\x04") {
 			return
+		}
+		// A paste may come in several reads: wait for its end.
+		if label == "paste" {
+			pending += in
+			if strings.Contains(pending, "\x1b[200~") && !strings.Contains(pending, "\x1b[201~") {
+				continue
+			}
+			in, pending = pending, ""
 		}
 		d := decodeKeys(in)
 		if decode != nil {
@@ -218,6 +231,28 @@ func decodePaste(in string) string {
 		return "not bracketed: " + fmt.Sprintf("%q", in)
 	}
 	return fmt.Sprintf("pasted %q", in[start+6:end])
+}
+
+// decodeFocus names focus and theme reports: "in", "out", "dark", "light".
+func decodeFocus(in string) string {
+	names := map[string]string{"\x1b[I": "in", "\x1b[O": "out", "\x1b[?997;1n": "dark", "\x1b[?997;2n": "light"}
+	var out []string
+	for in != "" {
+		found := false
+		for seq, name := range names {
+			if strings.HasPrefix(in, seq) {
+				out = append(out, name)
+				in = in[len(seq):]
+				found = true
+				break
+			}
+		}
+		if !found {
+			out = append(out, fmt.Sprintf("%q", in))
+			break
+		}
+	}
+	return strings.Join(out, " ")
 }
 
 // stream writes about mb megabytes of mixed output.

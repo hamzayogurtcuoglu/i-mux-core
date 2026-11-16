@@ -121,6 +121,9 @@ func hello(g globals) *ipc.Hello {
 		if ti, err := termout.Lookup(os.Getenv("TERM"), termout.SearchDirs(os.Getenv)); err == nil {
 			h.Terminfo = ti.Capabilities()
 		}
+		if e, ok := eraseChar(os.Stdin); ok {
+			h.Erase = &e
+		}
 	}
 	for _, kv := range os.Environ() {
 		if k, v, ok := strings.Cut(kv, "="); ok && helloEnv(k) {

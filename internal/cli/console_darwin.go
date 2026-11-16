@@ -4,6 +4,8 @@ import "golang.org/x/sys/unix"
 
 const (
 	ioctlGetTermios = unix.TIOCGETA
+	// posixVDisable is _POSIX_VDISABLE: a control character that is turned off.
+	posixVDisable   = 0xff
 	ioctlSetTermios = unix.TIOCSETA
 )
 

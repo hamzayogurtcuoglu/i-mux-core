@@ -42,6 +42,7 @@ type Term struct {
 	Flags    int
 	Features *Features // the client's features (shared with the client)
 	applied  int       // features applied so far
+	opts     Options
 	codes    []code
 	acs      [256]byte
 }
@@ -131,7 +132,7 @@ func fnmatch(pattern, name string) bool {
 // NewTerm builds the description of terminal name from its terminfo capabilities
 // ("name=value", as Terminfo.Capabilities gives them), with tmux's errors.
 func NewTerm(name string, caps []string, f *Features, o Options) (*Term, error) {
-	t := &Term{Name: name, Features: f, codes: make([]code, len(codes))}
+	t := &Term{Name: name, Features: f, codes: make([]code, len(codes)), opts: o}
 	for _, c := range caps {
 		k, v, _ := strings.Cut(c, "=")
 		if k == "" {
@@ -186,6 +187,33 @@ func NewTerm(name string, caps []string, f *Features, o Options) (*Term, error) 
 		t.applyOverrides(o)
 	}
 	return t, nil
+}
+
+// Update applies features the client has gained since, and then the overrides again (tmux's
+// tty_apply_features and tty_term_apply_overrides); it reports whether anything changed.
+func (t *Term) Update() bool {
+	if !t.ApplyFeatures() {
+		return false
+	}
+	t.applyOverrides(t.opts)
+	return true
+}
+
+// Colours is how many colours the terminal has, as #{client_colours} says.
+func (t *Term) Colours() int {
+	switch {
+	case t.Flags&TermRGBColours != 0:
+		return 16777216
+	case t.Flags&Term256Colours != 0:
+		return 256
+	}
+	switch n := t.Number("colors"); {
+	case n < 8:
+		return 2
+	case n < 16:
+		return 8
+	}
+	return 16
 }
 
 // ApplyFeatures applies the client's features not applied yet; it reports whether any were

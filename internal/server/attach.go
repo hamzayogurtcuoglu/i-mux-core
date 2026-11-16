@@ -25,6 +25,7 @@ type attachedClient struct {
 	activity time.Time
 	gone     bool // detached or exited: nothing more is sent
 	draw     drawState
+	in       inputState
 }
 
 // Clients implements commands.Host.
@@ -70,6 +71,11 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	s.attached = append(s.attached, c)
 	c.tty.Start()
 	c.tty.SendRequests()
+	erase := -1
+	if hello.Erase != nil {
+		erase = *hello.Erase
+	}
+	s.startInput(c, erase)
 	s.send(c)
 	s.drawClient(c)
 	return c, nil
@@ -99,6 +105,12 @@ func (s *Server) endClient(c *attachedClient, t ipc.Type, reason string, code in
 		_ = c.queue.Push(f)
 	}
 	c.queue.Close()
+	s.removeAttached(c)
+}
+
+// removeAttached takes a client that is done out of the attached ones; the panes it showed
+// may lose their focus and its colours.
+func (s *Server) removeAttached(c *attachedClient) {
 	c.session.Attached--
 	for i, x := range s.attached {
 		if x == c {
@@ -106,6 +118,8 @@ func (s *Server) endClient(c *attachedClient, t ipc.Type, reason string, code in
 			break
 		}
 	}
+	s.updateFocus(c.window())
+	s.updatePaneColours()
 }
 
 // sessionGone ends the clients of a session that has gone (tmux's "[exited]").
@@ -150,7 +164,8 @@ func (s *Server) serveAttached(conn net.Conn, r *ipc.Reader, c *attachedClient) 
 				})
 			}
 		case ipc.TypeInput:
-			s.post(func() { c.activity = s.opts.Now() }) // keys come with task C2.10
+			b := f.Payload
+			s.post(func() { s.clientInput(c, b) })
 		}
 	}
 	// The client went away (or its connection was closed after it was told to go).
@@ -158,13 +173,7 @@ func (s *Server) serveAttached(conn net.Conn, r *ipc.Reader, c *attachedClient) 
 		if !c.gone {
 			c.gone = true
 			c.queue.Close()
-			c.session.Attached--
-			for i, x := range s.attached {
-				if x == c {
-					s.attached = append(s.attached[:i], s.attached[i+1:]...)
-					break
-				}
-			}
+			s.removeAttached(c)
 		}
 	})
 	c.queue.Close()

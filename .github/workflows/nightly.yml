@@ -29,6 +29,8 @@ jobs:
             package: ./internal/layout/
           - target: FuzzParseTerminfo
             package: ./internal/termout/
+          - target: FuzzInput
+            package: ./internal/input/
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

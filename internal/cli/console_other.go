@@ -24,3 +24,5 @@ func ttyName(*os.File) string { return "" }
 func runAttached(net.Conn, *ipc.Reader, io.Writer) (int, error) {
 	return 1, errors.New("imux-core: attaching is not supported on this system yet")
 }
+
+func eraseChar(*os.File) (int, bool) { return 0, false }

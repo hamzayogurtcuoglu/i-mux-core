@@ -167,6 +167,31 @@ func (t *TTY) SendRequests() {
 	t.puts("\033]10;?\033\\\033]11;?\033\\")
 }
 
+// UpdateFeatures applies features the terminal was found to have (from its replies) and puts
+// it in the modes they allow, then forgets its state so that it is drawn again (tmux's
+// tty_update_features); extendedKeys and focusEvents are those options.
+func (t *TTY) UpdateFeatures(extendedKeys, focusEvents bool) {
+	t.Term.Update()
+	if t.useMargin() {
+		t.putcode("Enmg")
+	}
+	if extendedKeys {
+		t.puts(t.Term.String("Eneks"))
+	}
+	if focusEvents {
+		t.puts(t.Term.String("Enfcs"))
+	}
+	t.puts(t.Term.String("Enesc"))
+	t.Invalidate()
+}
+
+// RepeatRequests asks the terminal for its colours again (tmux's tty_repeat_requests, forced).
+func (t *TTY) RepeatRequests() {
+	if t.started && t.Term.Flags&TermVT100Like != 0 {
+		t.puts("\033]10;?\033\\\033]11;?\033\\")
+	}
+}
+
 // Stop gives the terminal back as tmux's tty_stop_tty does, for a terminal of rows lines.
 func (t *TTY) Stop(rows int) {
 	if !t.started {

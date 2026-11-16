@@ -30,6 +30,8 @@ func (s *Server) view(c *attachedClient) *render.View {
 		// tmux 3.8's mouse option is on by default; options come with task C3.4.
 		Mouse:    true,
 		NoBright: c.tty.Term.Has("Nobr"),
+		// The theme colours, once the terminal has told its colours or theme.
+		ThemeColours: c.in.themes,
 	}
 	if wl := c.session.Current; wl != nil {
 		v.Window = wl.Window
