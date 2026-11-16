@@ -750,6 +750,12 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - `kill-session` or the server ending makes every attached client exit cleanly with tmux's
     messages (`[exited]`, `[detached (from session …)]`).
   - `switch-client -t` moves a client to another session.
+  - The `client_*` formats come with the format engine (C3.5), which also brings
+    `display-message`, the only way to see them.
+  - `set-option` also sets `status` (the status line's height, which a window's size leaves
+    out; the line is drawn with C4.2) and `window-size` until C3.4 brings the option table.
+  - The difftest gets clients that stay attached: `client NAME WxH` attaches one in a PTY,
+    `resize NAME WxH` resizes it, and `screen NAME` compares what it shows.
 - **Acceptance:** difftest with two headless clients at different sizes matches tmux; detach
   and exit messages match.
 - **Depends on:** C2.9.
