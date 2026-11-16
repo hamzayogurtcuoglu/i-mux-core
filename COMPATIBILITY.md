@@ -207,18 +207,17 @@ Checked against tmux 3.8 in `testdata/diff/keys.txt`:
   A table that does not exist is `table <name> doesn't exist`; with no current client,
   `no current client`.
 - **`unbind-key`** removes a binding (`-n`: `root`, `-T`: that table, else `prefix`);
-  a table that has no bindings left and never had tmux defaults goes away entirely —
-  with `-q` the errors are silent but still fail. `bind-key key` with no command only
+  a table that has no bindings left and never had tmux defaults goes away entirely.
+  With `-q` an error has no message: it stops the rest of the command's group, but the
+  client exits 0 (tmux sets the exit status only with an error message, for any command). `bind-key key` with no command only
   sets the note and repeat flag of an existing binding.
 - **`list-keys`** prints with tmux's own template: `bind-key ` (`-r` or two spaces when
   any listed binding repeats) `-T <table padded> <key escaped and padded> <command>`;
   tables in name order, bindings by key code; `list-keys -T <table>` lists one table,
   `list-keys <key>` filters. The harness's `list-keys -T` (†) is what i-mux's e2e suite
-- **`list-keys`** prints with tmux's own template: `bind-key ` (`-r` or two spaces when
-  any listed binding repeats) `-T <table padded> <key escaped and padded> <command>`;
-  tables in name order, bindings by key code; `list-keys -T <table>` lists one table,
-  `list-keys <key>` filters. The harness's `list-keys -T` (†) is what i-mux's e2e suite
   uses.
+- **A binding's commands** run for the client that pressed the key: its formats
+  (`#{client_name}`) and `switch-client` without `-c` are that client's.
 
 ### Layout strings
 
