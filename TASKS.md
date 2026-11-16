@@ -719,6 +719,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Encode a key for a pane from its modes: application cursor and keypad, extended keys (what
     the pane enabled: `CSI > 4 ; 1/2 m` or nothing), bracketed paste wrapping.
   - `send-keys` with key names and literal strings, `-l` if used, and `-M` for mouse (C5.3).
+    Its `-t` takes `%N` and `session[:window][.pane]` by index until C3.3 brings every target
+    form.
+  - `set-option` sets `extended-keys` and `extended-keys-format` (server options) until C3.4
+    brings the option table; other options stay "not implemented".
+  - Keys typed in an attached client go to its active pane, encoded the same way; the prefix
+    and key bindings come with C3.8.
+  - The fake TUI's keys mode can also append what it reads to a file (`-out`), so the difftest
+    compares the bytes each key reaches the pane as without `capture-pane` (C3.6).
 - **Acceptance:** for every key in COMPATIBILITY.md §7, the fake TUI's echo under i-mux-core
   matches its echo under tmux (difftest), in normal and application modes and with extended
   keys on and off.
