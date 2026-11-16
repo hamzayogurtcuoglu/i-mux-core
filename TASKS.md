@@ -916,7 +916,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   model's golden test); `screen.txt` runs on imux-core with the status line off. What is
   refused is listed in COMPATIBILITY.md §3.
 
-### [ ] C3.7 Names, titles, current command and path
+### [x] C3.7 Names, titles, current command and path
 - **Goal:** windows and borders show what tmux would show.
 - **Details:**
   - `automatic-rename` with `automatic-rename-format`, refreshed as tmux does.
@@ -926,6 +926,13 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** difftest: a pane running `sleep` in a directory shows the same window name,
   border text and formats under both engines.
 - **Depends on:** C3.6.
+- **Status:** done. The server ports `check_window_name` (pane output, active pane changes and
+  `automatic-rename` mark a pane changed; names at most every 500 ms, with a timer for the
+  rest); default names follow `default_window_name`; `select-pane -T`, `allow-set-title` and
+  `allow-rename` (ESC k) work. `testdata/diff/names.txt` checks default names, a `sleep` pane
+  in a directory (its name, `pane_current_command`, `pane_current_path` and border format),
+  i-mux's `automatic-rename-format`, titles and renames against tmux 3.8. The difftest harness
+  now fails a script whose `wait` times out on tmux itself.
 
 ### [ ] C3.8 Key tables and bindings
 - **Goal:** the keys i-mux binds do what they do in tmux.

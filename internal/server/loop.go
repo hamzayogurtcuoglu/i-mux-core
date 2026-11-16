@@ -59,6 +59,8 @@ type Server struct {
 
 	latest map[*model.Window]*attachedClient // the client that used each window last
 
+	nameTimers map[*model.Window]bool // windows with an automatic-rename timer pending
+
 	started time.Time // when the server started (start_time)
 
 	clients  int               // connected clients (in the loop)
@@ -108,6 +110,8 @@ func New(o Options) *Server {
 		held:   o.HoldForClient,
 		conns:  map[net.Conn]struct{}{},
 		latest: map[*model.Window]*attachedClient{},
+
+		nameTimers: map[*model.Window]bool{},
 	}
 	s.started = o.Now()
 	s.tree.Resized = s.paneResized
@@ -175,6 +179,9 @@ func (s *Server) Run() {
 		select {
 		case f := <-s.events:
 			f()
+			if !s.exiting {
+				s.checkNames()
+			}
 			if s.exiting {
 				s.shutdown()
 				s.finish()
@@ -269,6 +276,11 @@ func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 	if h, err := os.Hostname(); err == nil {
 		p.Term.Screen.Title = h
 	}
+	p.Term.Rename = func(name string) {
+		// Called from the pane's reader with the pane locked: the loop applies it later.
+		go s.post(func() { s.renamePane(p, name) })
+	}
+	p.Term.Screen.DisallowSetTitle = p.Options.GetNumber("allow-set-title") == 0
 	p.Term.ExtendedKeys = s.extendedKeys()
 	if p.Term.ExtendedKeys == vt.ExtendedKeysAlways {
 		// As tmux's screen_init: the screen starts in extended keys mode 1.
@@ -313,6 +325,7 @@ func (s *Server) read(p *model.Pane, st *paneState) {
 					if s.panes[p] != st {
 						return
 					}
+					p.Changed = true
 					s.paneChanged(p)
 					if s.opts.PaneChanged != nil {
 						s.opts.PaneChanged(p)

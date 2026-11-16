@@ -234,7 +234,11 @@ func ParseWindowName(in string) string {
 	if strings.HasPrefix(name, "/") {
 		name = basename(name)
 	}
-	return name
+	clean, ok := vt.CleanName(name, false)
+	if !ok {
+		return ""
+	}
+	return clean
 }
 
 func isAlnum(c byte) bool {

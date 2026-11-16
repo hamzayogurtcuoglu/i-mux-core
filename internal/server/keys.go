@@ -43,6 +43,18 @@ func (s *Server) OptionChanged(name string) {
 				p.Mu.Unlock()
 			}
 		}
+	case "automatic-rename":
+		for _, sess := range s.tree.Sessions() {
+			for _, wl := range sess.Links() {
+				if w := wl.Window; w.Active != nil && w.Options.GetNumber("automatic-rename") != 0 {
+					w.Active.Changed = true
+				}
+			}
+		}
+	case "allow-set-title", "":
+		for _, p := range s.tree.Panes() {
+			s.applyPaneOptions(p)
+		}
 	case "escape-time":
 		for _, c := range s.attached {
 			if c.in.parser != nil {

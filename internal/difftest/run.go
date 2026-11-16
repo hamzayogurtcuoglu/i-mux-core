@@ -285,5 +285,12 @@ func RunPair(ctx context.Context, path string, ref, test Engine) (diffs []Differ
 	if err != nil {
 		return nil, "", err
 	}
+	// A wait the reference engine never got past is the script's mistake: both engines
+	// timing out alike would hide it.
+	for _, e := range ta.Entries {
+		if e.Step.Kind == "wait" && strings.Contains(e.Result.Stderr, "difftest: timed out") {
+			return nil, "", fmt.Errorf("%s:%d: %s: %s", path, e.Step.Line, ref.Name(), e.Result.Stderr)
+		}
+	}
 	return Compare(path, ta, tb), "", nil
 }

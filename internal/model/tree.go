@@ -73,6 +73,9 @@ type Window struct {
 
 	Layout *layout.Layout // made with the first pane
 
+	// NameTime is when automatic-rename last named the window (tmux's name_time).
+	NameTime time.Time
+
 	// ManualSx and ManualSy are the size resize-window set (window-size manual), or 0.
 	ManualSx, ManualSy int
 
@@ -101,6 +104,10 @@ type Pane struct {
 	Argv  []string
 	Cwd   string
 	Shell string
+
+	// Changed is tmux's PANE_CHANGED: the pane wrote, or became active, since its window's
+	// name was last worked out (automatic-rename).
+	Changed bool
 
 	// ActivePoint orders when panes were last made active (tmux's active_point): the pane in
 	// a direction is the most recently active of those there.
@@ -293,7 +300,7 @@ func (w *Window) Link() *Winlink { return w.link }
 // NewPane adds a pane to w, after the pane at, or before it when before is set, or last
 // when at is nil. The first pane of a window becomes its active pane.
 func (t *Tree) NewPane(w *Window, at *Pane, before bool, sx, sy int) *Pane {
-	p := &Pane{ID: t.nextPane, Window: w, Sx: sx, Sy: sy, Options: options.New(w.Options)}
+	p := &Pane{ID: t.nextPane, Window: w, Sx: sx, Sy: sy, Options: options.New(w.Options), Changed: true}
 	t.nextPane++
 	i := len(w.Panes)
 	if at != nil {
@@ -343,6 +350,7 @@ func (w *Window) SetActivePane(p *Pane) {
 	w.last = removePane(w.last, p)
 	w.Active = p
 	p.ActivePoint = nextActivePoint.Add(1)
+	p.Changed = true
 }
 
 // LastPane returns the previously active pane, or nil.
@@ -470,6 +478,9 @@ func (t *Tree) RemovePane(p *Pane) (windowEmpty bool) {
 			w.Active = w.Panes[i-1]
 		default:
 			w.Active = w.Panes[0]
+		}
+		if w.Active != nil {
+			w.Active.Changed = true
 		}
 	}
 	delete(t.panes, p.ID)

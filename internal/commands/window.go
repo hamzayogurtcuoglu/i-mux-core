@@ -10,6 +10,7 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
 
 // new-window, split-window, select-window and select-pane (TASKS.md C3.3, C3.6). The flags
@@ -232,12 +233,23 @@ func selectWindow(it *Item) error {
 // selectPane is select-pane: the target pane (-t) or the last (-l) becomes its window's
 // active pane.
 func selectPane(it *Item) error {
-	if err := notImplemented(it, "DdegLMmPRTUZ"); err != nil {
+	if err := notImplemented(it, "DdegLMmPRUZ"); err != nil {
 		return err
 	}
 	st, err := it.findFlag('t', target.Pane, 0)
 	if err != nil {
 		return err
+	}
+	if title, ok := it.Cmd.Args.Get('T'); ok && !it.Cmd.Args.Has('l') {
+		// screen_set_title: the title is a format, made safe to show.
+		clean, ok := vt.CleanName(it.formatSingle(st, title), false)
+		if ok && st.P.Term != nil {
+			st.P.Mu.Lock()
+			st.P.Term.Screen.Title = clean
+			st.P.Mu.Unlock()
+			it.Host.OptionChanged("")
+		}
+		return nil
 	}
 	w, t := st.W, it.Host.Tree()
 	p := st.P

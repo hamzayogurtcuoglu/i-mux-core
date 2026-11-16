@@ -88,3 +88,5 @@ All notable changes to i-mux-core are listed here. The format follows
 - Commands: the lists, `rename-window`, `kill-window`, `kill-pane`, `swap-pane`,
   `respawn-pane`, `resize-pane`, `resize-window`, `select-layout` and `capture-pane -p`, and
   `-P -F` on the commands that make sessions, windows and panes.
+- Names and titles: automatic-rename as tmux does it, default window names, `select-pane -T`,
+  `allow-set-title` and `allow-rename`.

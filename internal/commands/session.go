@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
@@ -422,22 +423,16 @@ func (it *Item) spawnSpec(s *model.Session, p *model.Pane, argv []string, cwd st
 	return spec
 }
 
-// defaultWindowName is tmux's name for a new window: the program's base name ("exec " and
-// arguments dropped from a shell command), or the shell's.
+// defaultWindowName is default_window_name: the command line made a name, or the shell's.
 func defaultWindowName(argv []string, shell string) string {
 	if len(argv) == 0 {
-		return filepath.Base(shell)
+		return format.ParseWindowName(shell)
 	}
-	cmd := argv[0]
-	if len(argv) == 1 {
-		cmd = strings.TrimSpace(cmd)
-		cmd = strings.TrimPrefix(cmd, "exec ")
-		cmd = strings.TrimLeft(cmd, " ")
-		if i := strings.IndexAny(cmd, " \t"); i >= 0 {
-			cmd = cmd[:i]
-		}
+	words := make([]string, len(argv))
+	for i, a := range argv {
+		words[i] = Escape(a)
 	}
-	return filepath.Base(cmd)
+	return format.ParseWindowName(strings.Join(words, " "))
 }
 
 // isExecutable is tmux's access(X_OK) check on the shell.

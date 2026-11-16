@@ -1,0 +1,47 @@
+# Window names, pane titles, current command and path (C3.7). A window's automatic name is
+# worked out when its pane writes or becomes active, at most every half second, so the
+# script waits for it rather than reading it at once.
+size 80x24
+# The default names, with automatic-rename off so that they stay.
+run set -g automatic-rename off
+run new-session -d -s d -c / 'exec cat' ; new-window -t d -c / 'exec   cat -u' ; new-window -t d -c / '/bin/sleep 100' ; new-window -t d -c / sleep 100 ; new-window -t d -c / '"quoted cmd" x' ; new-window -t d -c / -- '-dash'
+run lsw -t d -F '#{window_index}:#{window_name}:#{automatic-rename}'
+run new-window -t d -c / -n 'named' 'exec cat' ; lsw -t d -F '#{window_index}:#{window_name}:#{automatic-rename}'
+run set -gu automatic-rename ; kill-session -t d
+# A pane running sleep in a directory: the window takes its name from automatic-rename-format.
+run new-session -d -s n -c /usr 'exec sleep 1000'
+wait -t n '#{pane_current_command}' == sleep
+run set -w -t n automatic-rename on
+wait -t n '#{window_name}' == sleep
+run display -p -t n '#{window_name}|#{pane_current_command}|#{pane_current_path}|#{pane_start_command}|#{pane_start_path}|#{automatic-rename}'
+run set -g pane-border-status top ; set -g pane-border-format ' #{pane_index} #{pane_current_command} #{b:pane_current_path} #{pane_title} '
+run display -p -t n '#{T:pane-border-format}|#{E:pane-border-format}'
+# i-mux's automatic-rename-format.
+# Setting an option is not a change of the pane; automatic-rename on is.
+run set -g automatic-rename-format '#{?@imux_agent,#{@imux_agent},#{pane_current_command}}' ; set -p -t n @imux_agent claude ; set -w -t n automatic-rename on
+wait -t n '#{window_name}' == claude
+run set -pu -t n @imux_agent ; set -w -t n automatic-rename on
+wait -t n '#{window_name}' == sleep
+run set -g automatic-rename-format '#(echo x)#{pane_current_command}' ; set -w -t n automatic-rename on
+wait -t n '#{window_name}' == sleep
+run display -p -t n '#{window_name}'
+# rename-window turns automatic-rename off; setting it on again names the window.
+run rename-window -t n mine ; display -p -t n '#{window_name}:#{automatic-rename}'
+run set -gu automatic-rename-format ; set -w -t n automatic-rename on
+wait -t n '#{window_name}' == sleep
+# Pane titles: OSC 2 (with allow-set-title on and off) and select-pane -T.
+run new-session -d -s t 'printf "\033]2;from osc\033\\\\"; exec cat'
+wait -t t '#{pane_title}' == 'from osc'
+run select-pane -t t -T '#{session_name} title' ; display -p -t t '#{pane_title}'
+run select-pane -t t -T 'tab	here' ; display -p -t t '#{q:pane_title}'
+run set -g allow-set-title off ; new-session -d -s u 'printf "\033]2;ignored\033\\\\x"; exec cat'
+wait -t u '#{cursor_x}' == 1
+run display -p -t u '#{pane_title}' ; set -gu allow-set-title
+# ESC k: a window name from the program, only with allow-rename on.
+run new-session -d -s k 'sleep 0.2; printf "\033kfromprog\033\\\\x"; exec cat'
+wait -t k '#{cursor_x}' == 1
+run display -p -t k '#{window_name}|#{automatic-rename}'
+run set -g allow-rename on ; new-session -d -s r 'sleep 0.2; printf "\033kfromprog\033\\\\x"; exec cat'
+wait -t r '#{window_name}' == fromprog
+run display -p -t r '#{window_name}|#{automatic-rename}'
+run kill-server

@@ -194,6 +194,8 @@ func TestWidthAndTrim(t *testing.T) {
 func TestParseWindowName(t *testing.T) {
 	for in, want := range map[string]string{
 		"-bash": "bash", "exec cat": "cat", "/usr/bin/vim file": "vim", `"a b"`: "a", "top  ": "top",
+		// Control characters are not valid in a name (utf8_isvalid), which is then empty.
+		"a\tb": "", `"exec cat" -u`: "cat",
 	} {
 		if got := ParseWindowName(in); got != want {
 			t.Errorf("ParseWindowName(%q) = %q, want %q", in, got, want)
