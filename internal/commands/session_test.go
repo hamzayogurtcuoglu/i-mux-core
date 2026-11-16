@@ -87,6 +87,7 @@ func (h *fakeHost) Overlay(string) (bool, bool)            { return false, false
 func (h *fakeHost) ClearOverlay(string)                    {}
 func (h *fakeHost) DisplayPopup(PopupSpec, func(int)) bool { return false }
 func (h *fakeHost) ModifyPopup(string, PopupChange)        {}
+func (h *fakeHost) DisplayMenu(MenuSpec)                   {}
 func (h *fakeHost) ClientGeometry(string) ClientGeometry   { return ClientGeometry{StatusAt: -1} }
 
 func (h *fakeHost) ShowMessage(client, msg string, _ MessageOptions) {
@@ -304,5 +305,37 @@ func TestPopupFormats(t *testing.T) {
 	}
 	if strtol(" 12x") != 12 || strtol("-3") != -3 || strtol("x") != 0 {
 		t.Error("strtol")
+	}
+}
+
+// addMenuItem: a separator only between items, the key on the right, an item that is empty
+// once expanded left out, and a name too long cut to its end with a >.
+func TestAddMenuItem(t *testing.T) {
+	tr := model.NewTree()
+	ctx := &format.Context{Tree: tr}
+	str := func(s string) *string { return &s }
+	width := 0
+	var items []MenuItem
+	items = addMenuItem(items, &width, nil, keys.None, "", ctx, 36)
+	items = addMenuItem(items, &width, str("Split"), keys.Parse("s"), "split-window", ctx, 36)
+	items = addMenuItem(items, &width, nil, keys.None, "", ctx, 36)
+	items = addMenuItem(items, &width, str(""), keys.None, "", ctx, 36)
+	items = addMenuItem(items, &width, str("#{?0,x,}"), keys.Parse("y"), "", ctx, 36)
+	items = addMenuItem(items, &width, str("-Off"), keys.Parse("o"), "", ctx, 36)
+	items = addMenuItem(items, &width, str("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN"), keys.Parse("z"), "", ctx, 36)
+	if len(items) != 4 || items[1].Name != nil {
+		t.Fatalf("items %+v", items)
+	}
+	if *items[0].Name != "Split#[default] #[align=right](s)" || items[0].Command != "split-window" {
+		t.Errorf("item 0 %q %q", *items[0].Name, items[0].Command)
+	}
+	if *items[2].Name != "-Off" {
+		t.Errorf("item 2 %q", *items[2].Name)
+	}
+	if *items[3].Name != "jklmnopqrstuvwxyzABCDEFGHIJKLMN>#[default] #[align=right](z)" {
+		t.Errorf("item 3 %q", *items[3].Name)
+	}
+	if width != 36 {
+		t.Errorf("width %d", width)
 	}
 }

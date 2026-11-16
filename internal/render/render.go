@@ -181,11 +181,15 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 			x += n
 		}
 	}
+	r.menu(f, v, sc, areaY)
 	r.status(f, v, lines)
 	r.popup(f, v)
-	if v.Popup != nil {
+	switch {
+	case v.Popup != nil:
 		r.popupCursor(f, v)
-	} else {
+	case v.Menu != nil:
+		r.menuCursor(f, v, sc, areaY)
+	default:
 		r.cursor(f, v, sc, areaY)
 	}
 	if r.links.full {

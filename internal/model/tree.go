@@ -89,6 +89,10 @@ type Window struct {
 	// ManualSx and ManualSy are the size resize-window set (window-size manual), or 0.
 	ManualSx, ManualSy int
 
+	// MenuLastX and MenuLastY are where the window's last menu went (menu_last_px and
+	// menu_last_py, for display-menu -x L and -y L).
+	MenuLastX, MenuLastY int
+
 	link *Winlink // windows are in one session: link-window is a non-goal
 	tree *Tree
 }

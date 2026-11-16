@@ -500,7 +500,13 @@ modifyOtherKeys).
   detaches. `testdata/diff/popups.txt` checks these against tmux with the fake TUI.
 - **Menus:** keyboard (keys, arrows, Enter, Escape) and mouse (`-M`, `-O` stay open on release),
   disabled items, separators, title (`-T`), position (`-x -y` with formats such as
-  `#{e|+:#{popup_pane_left},N}`).
+  `#{e|+:#{popup_pane_left},N}`). As in tmux 3.8 a menu is the window's: every client showing
+  the window draws it over the panes, and their keys go to it; its active pane loses the
+  focus while it is open. The chosen command runs in the menu's target for the client that
+  chose it. `-C` starting choice, `-b` lines, `-s -H -S` styles over `menu-style`,
+  `menu-selected-style` and `menu-border-style`; a long name keeps its end, cut with `>`.
+  `testdata/diff/menus.txt` checks i-mux's menus against tmux. Not yet: the mouse event that
+  opened a menu (`-x M -y M`, and `-M` implied by a mouse binding) comes with the mouse (C5.1).
 - **Command prompt:** `-I` initial text, `-p` prompt, `-t` client; the template's `%%` is
   replaced.
 - **Copy mode:** entering it (`copy-mode -H`); the mouse selection a double or triple click

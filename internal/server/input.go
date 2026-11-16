@@ -161,10 +161,17 @@ func (s *Server) inputKey(c *attachedClient, ev *input.Event) {
 	if !s.messageKey(c) {
 		return
 	}
-	// An overlay takes the keys while it is open.
+	// An overlay takes the keys while it is open, then the window's menu
+	// (server_client_handle_menu_key).
 	if c.popup != nil {
 		if s.popupKey(c, ev) {
 			s.clearOverlay(c)
+		}
+		return
+	}
+	if md := s.windowMenu(c); md != nil {
+		if s.menuKey(c, md, ev) {
+			s.closeMenu(md.w)
 		}
 		return
 	}
@@ -245,13 +252,15 @@ func (s *Server) updateFocus(w *model.Window) {
 	if w == nil || w.Active == nil {
 		return
 	}
+	// A window showing a menu has no focused pane.
+	_, hasMenu := s.menus[w]
 	for _, p := range w.Panes {
 		st := s.panes[p]
 		if st == nil || p.Dead || p.Term == nil {
 			continue
 		}
 		focused := false
-		if p == w.Active {
+		if p == w.Active && !hasMenu {
 			for _, c := range s.attached {
 				// A client showing an overlay does not give the pane its focus.
 				if !c.gone && c.in.focused && c.window() == w && c.popup == nil {

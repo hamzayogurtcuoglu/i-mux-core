@@ -68,6 +68,8 @@ type Host interface {
 	ModifyPopup(client string, c PopupChange)
 	// ClientGeometry is what places a popup or menu on a client.
 	ClientGeometry(client string) ClientGeometry
+	// DisplayMenu shows a menu on a window (menu_display), replacing its menu.
+	DisplayMenu(spec MenuSpec)
 }
 
 // MessageOptions are how a message is shown (status_message_set's arguments).
@@ -226,6 +228,7 @@ func init() {
 		"select-pane":         selectPane,
 		"display-message":     displayMessage,
 		"display-popup":       displayPopup,
+		"display-menu":        displayMenu,
 		"list-sessions":       listSessions,
 		"list-windows":        listWindows,
 		"list-panes":          listPanes,

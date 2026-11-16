@@ -55,6 +55,7 @@ type Server struct {
 
 	readers sync.WaitGroup
 	panes   map[*model.Pane]*paneState
+	menus   map[*model.Window]*menu // each window's menu (task C4.7)
 	exiting bool
 
 	latest map[*model.Window]*attachedClient // the client that used each window last
@@ -110,6 +111,7 @@ func New(o Options) *Server {
 		stop:   make(chan struct{}),
 		done:   make(chan struct{}),
 		panes:  map[*model.Pane]*paneState{},
+		menus:  map[*model.Window]*menu{},
 		held:   o.HoldForClient,
 		conns:  map[net.Conn]struct{}{},
 		latest: map[*model.Window]*attachedClient{},

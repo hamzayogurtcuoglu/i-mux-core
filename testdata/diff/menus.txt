@@ -1,0 +1,55 @@
+# Menus (C4.7): display-menu as i-mux opens its menus (pane menu, agent menu, sessions), with
+# and without -M -O, chosen with keys and with the mouse.
+conf messages.conf
+size 80x24
+run new-session -d -s a -n w 'exec cat' ; split-window -h -t a 'exec cat'
+client c 80x24
+# A pane menu, centred, opened from a key: no mouse; Down moves the choice, Enter runs it.
+run display-menu -T '#[align=centre] Pane #{pane_index} ' -x C -y C -- 'Rename window' n 'rename-window renamed' 'Mark' m 'set -g @hit mark' '' '-Limited (no key)' l '' 'Close' x 'set -g @hit close'
+screen c
+type c '\x1b[B'
+screen c
+type c '\x1b[B'
+screen c
+type c '\r'
+screen c
+run display-message -p '#{@hit}'
+# An item's key runs it at once.
+run display-menu -x C -y C -- 'Rename window' n 'rename-window renamed' 'Mark' m 'set -g @hit key'
+type c n
+screen c
+run display-message -p '#{window_name}'
+# q closes; -C chooses the first item; a long name is cut and keeps its key.
+run display-menu -C 1 -x P -y P -- 'One' 1 'set -g @hit one' 'Two' 2 'set -g @hit two' 'A very long name that goes on and on and on and on and on and on and on and on' 3 ''
+screen c
+type c q
+screen c
+# Styles, double lines, positions from the window's status line and the last menu.
+run set -g menu-style 'bg=blue,fg=white' ; set -g menu-selected-style 'bg=red' ; set -g menu-border-style 'fg=yellow'
+run display-menu -C 0 -b double -T 'Agents' -x W -y W -- 'Claude' c '' 'Codex' x ''
+screen c
+type c '\x1b'
+run display-menu -C 0 -H 'bg=green' -s 'fg=black' -S 'fg=cyan' -x L -y L -- 'Again' a ''
+screen c
+type c '\x1b'
+run set -gu menu-style ; set -gu menu-selected-style ; set -gu menu-border-style
+# -M -O, as i-mux opens its menus: a click on an item chooses it.
+run display-menu -M -O -T 'Sessions' -x C -y C -- 'alpha' a 'set -g @hit alpha' 'beta' b 'set -g @hit beta'
+screen c
+type c '\x1b[<35;40;12M'
+screen c
+type c '\x1b[<0;40;13M'
+screen c
+run display-message -p '#{@hit}'
+# -M without -O: the release chooses; a click outside closes.
+run display-menu -M -x C -y C -- 'alpha' a 'set -g @hit alpha2' 'beta' b 'set -g @hit beta2'
+type c '\x1b[<0;40;12M'
+screen c
+type c '\x1b[<0;40;12m'
+screen c
+run display-message -p '#{@hit}'
+run display-menu -M -O -x C -y C -- 'alpha' a 'set -g @hit alpha3'
+type c '\x1b[<0;2;2M'
+screen c
+run display-message -p '#{@hit}'
+run kill-server

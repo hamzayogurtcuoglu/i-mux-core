@@ -206,19 +206,26 @@ func (s *Server) runBinding(c *attachedClient, bd *keys.Binding) {
 	sess := c.session
 	st := target.State{S: sess, WL: sess.Current, Idx: -1, W: sess.Current.Window, P: sess.Current.Window.Active}
 	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, func(res commands.Result) {
-		show := func(out string, capital bool) {
-			for _, line := range strings.Split(strings.TrimSuffix(out, "\n"), "\n") {
-				if line == "" {
-					continue
-				}
-				if capital {
-					line = strings.ToUpper(line[:1]) + line[1:]
-				}
-				s.ShowMessage(c.name, line, commands.MessageOptions{Delay: -1, IgnoreStyles: true})
-			}
-		}
-		show(res.Stdout, false)
-		show(res.Stderr, true)
+		s.showResult(c, res)
 		s.redrawAll()
 	})
+}
+
+// showResult shows what commands run for an attached client printed on its message line:
+// errors capitalised, as cmdq_error does; output there too until view mode comes (tmux shows
+// it in a view mode, task C4.8).
+func (s *Server) showResult(c *attachedClient, res commands.Result) {
+	show := func(out string, capital bool) {
+		for _, line := range strings.Split(strings.TrimSuffix(out, "\n"), "\n") {
+			if line == "" {
+				continue
+			}
+			if capital {
+				line = strings.ToUpper(line[:1]) + line[1:]
+			}
+			s.ShowMessage(c.name, line, commands.MessageOptions{Delay: -1, IgnoreStyles: true})
+		}
+	}
+	show(res.Stdout, false)
+	show(res.Stderr, true)
 }

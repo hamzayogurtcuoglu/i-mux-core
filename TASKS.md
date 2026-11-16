@@ -1165,7 +1165,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Keys and mouse reach the fake TUI the same way under both engines.
 - **Depends on:** C4.4, C2.11.
 
-### [ ] C4.7 Menus
+### [x] C4.7 Menus
 - **Goal:** `display-menu` looks and behaves like tmux's.
 - **Details:**
   - Item parsing: name, key and command; `""` separators; `-` disabled items.

@@ -120,6 +120,8 @@ type View struct {
 	Freeze, NoCursor bool
 	// Popup is the popup the client shows over everything, if any.
 	Popup *Popup
+	// Menu is the window's menu, drawn over its panes and borders, if any.
+	Menu *Menu
 
 	Styles Styles
 	Mouse  bool // the session's mouse option (on by default in tmux 3.8)
