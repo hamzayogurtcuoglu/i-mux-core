@@ -102,8 +102,7 @@ internal/
   options/                option tables, scopes (server/session/window/pane), user options, arrays
   format/                 the format engine: #{var}, #{?c,a,b}, modifiers, #[style]
   style/                  style parsing, ranges, colours
-  status/                 status lines: status-format[N], alignment, ranges, click mapping
-  overlay/                popups, menus, messages, the command prompt
+  status/                 status lines: status-format[N] drawn with format_draw, ranges, messages
   copymode/               the copy-mode subset
   buffers/                paste buffers, OSC 52 clipboard
   hooks/                  hook tables and firing
@@ -180,6 +179,13 @@ A per-client ticker (at most every 16 ms, and right away after input) then:
    - every visible pane's screen, at its offset;
    - the pane borders and their `pane-border-status` lines;
    - the overlays: popup, menu, message and prompt, on top.
+
+   There is no overlay package. An overlay's state and program live with its client in
+   `server` (a popup's PTY and screen, its keys, its timer), which hands `render` what to draw
+   (`render.Popup`, the message lines). The drawing goes where tmux's does: `render` draws a
+   popup's box and screen (`popup.c`'s draw, `screen_write_box`), `status` draws messages over
+   the status line with `format_draw`, as `status_message_redraw` does. Menus and the command
+   prompt follow the same split.
 2. **Diffs** it against the last frame sent, cell by cell.
 3. **Writes** the changes with the fewest escape sequences the terminal supports (`termout`).
 4. **Wraps** the update in synchronized output (DEC mode 2026) when the terminal supports it, and
