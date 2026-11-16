@@ -308,6 +308,17 @@ position.
 `#{@imux_c_bg}`), `bold nobold dim nodim reverse noreverse default`, `align=left align=right`,
 `range=window|N range=user|X norange`.
 
+### Styles (C4.1)
+
+`internal/style` ports tmux 3.8's `style_parse` and `style_tostring`: colours (names,
+`colourN`, `#rrggbb`, `default`, `terminal`, theme colours), attributes and their `no` forms,
+`none`, `noattr`, `align=`, `range=` (`left`, `right`, `pane|%N`, `window|N`, `session|$N`,
+`user|X`, `control|N`) and `norange`, `list=` and `nolist`, `fill=`, `dim=`, `us=`, `width=`,
+`pad=`, `link=`, `push-default`, `pop-default`, `set-default`, `ignore`. A user range keeps 15
+bytes, as tmux's `range_string`. A style option is checked when set (`invalid style: …`)
+unless it holds a format, as tmux does (`testdata/diff/styles.txt`); the border styles draw
+as tmux's (`testdata/diff/screen.txt`).
+
 ### Time
 
 Status formats and `display-message` go through strftime: i-mux uses `%H:%M` in `status-right`,
