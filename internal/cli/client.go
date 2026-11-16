@@ -93,15 +93,6 @@ func utf8Locale(getenv func(string) string) bool {
 // lostServer is the error when the server goes away mid-command.
 func lostServer(error) error { return fmt.Errorf("server exited unexpectedly") }
 
-// helloEnv says which variables a client passes to the server (ARCHITECTURE.md §5).
-func helloEnv(name string) bool {
-	switch name {
-	case "TERM", "COLORTERM", "LANG", "TERM_PROGRAM", "PATH", "HOME", "TMUX", "TMUX_PANE":
-		return true
-	}
-	return strings.HasPrefix(name, "LC_") || strings.HasPrefix(name, "IMUX_")
-}
-
 func hello(g globals) *ipc.Hello {
 	h := &ipc.Hello{
 		Protocol:      ipc.ProtocolVersion,
@@ -126,7 +117,8 @@ func hello(g globals) *ipc.Hello {
 		}
 	}
 	for _, kv := range os.Environ() {
-		if k, v, ok := strings.Cut(kv, "="); ok && helloEnv(k) {
+		// The whole environment, as tmux's client sends it (C3.13).
+		if k, v, ok := strings.Cut(kv, "="); ok {
 			h.Env[k] = v
 		}
 	}

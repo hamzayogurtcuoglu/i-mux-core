@@ -30,7 +30,6 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
-	"github.com/hamzayogurtcuoglu/i-mux-core/internal/version"
 )
 
 // shellPath is _PATH_BSHELL: run-shell and if-shell run their commands with it.
@@ -57,41 +56,14 @@ func argvForm(s string) (argv []string, quiet, ok bool) {
 	return nil, false, false
 }
 
-// jobEnv is environ_for_session: the global environment, TERM and its friends (not while the
-// config loads, so if-shell can look at the outside TERM), and TMUX.
+// jobEnv is a job's environment (job_run): environ_for_session, without TERM and its friends
+// while the config loads, so if-shell can look at the outside TERM, and PWD.
 func (it *Item) jobEnv(s *model.Session, dir string) []string {
-	set := map[string]string{}
-	var order []string
-	add := func(k, v string) {
-		if _, ok := set[k]; !ok {
-			order = append(order, k)
-		}
-		set[k] = v
-	}
-	for _, kv := range it.Host.Environ() {
-		if k, v, ok := strings.Cut(kv, "="); ok {
-			add(k, v)
-		}
-	}
-	if !it.configLoading() {
-		add("TERM", it.Host.Tree().Options.Server.GetString("default-terminal"))
-		add("TERM_PROGRAM", "tmux")
-		add("TERM_PROGRAM_VERSION", version.Tmux)
-		add("COLORTERM", "truecolor")
-	}
-	id := -1
-	if s != nil {
-		id = s.ID
-	}
-	add("TMUX", fmt.Sprintf("%s,%d,%d", it.Host.SocketPath(), it.Host.Pid(), id))
+	env := it.forSession(s, it.configLoading())
 	if dir != "" {
-		add("PWD", dir)
+		env.set("PWD", dir)
 	}
-	env := make([]string, 0, len(order))
-	for _, k := range order {
-		env = append(env, k+"="+set[k])
-	}
-	return env
+	return env.list()
 }
 
 // configLoading is !cfg_finished: the run is a config file's.

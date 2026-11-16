@@ -204,7 +204,7 @@ func (s *Server) runBinding(c *attachedClient, bd *keys.Binding) {
 	}
 	sess := c.session
 	st := target.State{S: sess, WL: sess.Current, Idx: -1, W: sess.Current.Window, P: sess.Current.Window.Active}
-	commands.RunList(s, &commands.Client{Name: c.name, Session: sess}, list, &st, func(res commands.Result) {
+	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, func(res commands.Result) {
 		for _, line := range strings.Split(strings.TrimSuffix(res.Stdout+res.Stderr, "\n"), "\n") {
 			if line != "" {
 				s.ShowMessage(c.name, line, -1)

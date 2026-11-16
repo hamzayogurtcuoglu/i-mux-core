@@ -25,8 +25,9 @@ type attachedClient struct {
 	created  time.Time
 	pid      int
 	termName string
-	last     *model.Session // the session shown before (client_last_session)
-	gone     bool           // detached or exited: nothing more is sent
+	env      map[string]string // the client's environment (tmux's c->environ)
+	last     *model.Session    // the session shown before (client_last_session)
+	gone     bool              // detached or exited: nothing more is sent
 	draw     drawState
 	in       inputState
 
@@ -58,7 +59,7 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	now := s.opts.Now()
 	c := &attachedClient{
 		name: hello.TTYName, session: sess, queue: queue, activity: now, created: now,
-		pid: hello.Pid, termName: termName,
+		pid: hello.Pid, termName: termName, env: hello.Env,
 	}
 	c.draw.r = render.New()
 	o := termout.DefaultOptions

@@ -21,7 +21,16 @@ func (it *Item) formatContext(c *ClientInfo, s *model.Session, wl *model.Winlink
 		Server:  it.Host.ServerInfo(),
 		Clients: it.Host.Clients(),
 		Now:     it.Host.Now,
-		Environ: func(_ *model.Session, name string) (string, bool) {
+		Environ: func(s *model.Session, name string) (string, bool) {
+			// The session's environment, then the global one (environ_find twice).
+			if s != nil {
+				if v, ok := s.Env[name]; ok {
+					if v == nil {
+						return "", false
+					}
+					return *v, true
+				}
+			}
 			prefix := name + "="
 			for _, kv := range it.Host.Environ() {
 				if v, ok := strings.CutPrefix(kv, prefix); ok {

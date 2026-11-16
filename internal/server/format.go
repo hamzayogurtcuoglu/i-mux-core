@@ -34,6 +34,7 @@ func (s *Server) formatClient(c *attachedClient) *format.Client {
 		Width: c.tty.Sx, Height: c.tty.Sy, Started: true,
 		TermName: c.termName, Features: c.features.String(),
 		KeyTable: table, Prefix: table != s.defaultKeyTable(c.session), Colours: term.Colours(),
+		Env:           c.env,
 		HasCapability: term.Has,
 		HasFeature: func(name string) bool {
 			return slices.Contains(strings.Split(c.features.String(), ","), name)

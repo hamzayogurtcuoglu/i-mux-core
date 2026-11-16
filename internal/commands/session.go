@@ -49,7 +49,7 @@ func killServer(it *Item) error {
 
 func newSession(it *Item) error {
 	a := it.Cmd.Args
-	for _, f := range []byte("ADEXft") {
+	for _, f := range []byte("ADXft") {
 		if a.Has(f) {
 			return fmt.Errorf("new-session -%c: not implemented by imux-core yet", f)
 		}
@@ -116,6 +116,15 @@ func newSession(it *Item) error {
 	if a.Has('x') || a.Has('y') {
 		s.Options.SetString("default-size", false, fmt.Sprintf("%dx%d", dsx, dsy))
 	}
+	// The session's environment: update-environment from the client (not with -E), then -e.
+	if env := it.clientEnv(); env != nil && !a.Has('E') {
+		environUpdate(t.Options.Session, env, s.Env)
+	}
+	for _, kv := range a.All('e') {
+		if k, v, ok := strings.Cut(kv, "="); ok {
+			s.Env[k] = &v
+		}
+	}
 	wl, err := t.NewWindow(s, -1, int(s.Options.GetNumber("base-index")), sx, sy)
 	if err != nil {
 		t.RemoveSession(s)
@@ -132,7 +141,7 @@ func newSession(it *Item) error {
 		w.Name = defaultWindowName(argv, it.shell(s))
 	}
 	p := t.NewPane(w, nil, false, sx, sy)
-	spec := it.spawnSpec(s, p, argv, cwd, a.All('e'))
+	spec := it.spawnSpec(s, p, argv, cwd, nil)
 	if err := it.Host.Spawn(p, spec); err != nil {
 		t.RemoveSession(s)
 		return fmt.Errorf("create window failed: %v", err)
@@ -173,7 +182,7 @@ func (it *Item) checkAttach() error {
 // the best one), and with -d the session's other clients are detached.
 func attachSession(it *Item) error {
 	a := it.Cmd.Args
-	for _, f := range []byte("cErxf") {
+	for _, f := range []byte("crxf") {
 		if a.Has(f) {
 			return fmt.Errorf("attach-session -%c: not implemented by imux-core yet", f)
 		}
@@ -207,6 +216,10 @@ func attachSession(it *Item) error {
 	}
 	if it.Client.Session == nil && !it.Client.TTY {
 		return errors.New("open terminal failed: not a terminal")
+	}
+	// The session's environment takes the client's update-environment variables (not -E).
+	if env := it.clientEnv(); env != nil && !a.Has('E') {
+		environUpdate(s.Options, env, s.Env)
 	}
 	if a.Has('d') {
 		for _, c := range it.Host.Clients() {
@@ -394,8 +407,7 @@ func CheckShell(sh string) bool {
 }
 
 // spawnSpec is how tmux's spawn.c runs a pane's program: several words with execvp, one word
-// with the shell's -c, none as a login shell. The environment is the server's, with TERM,
-// TMUX and TMUX_PANE set.
+// with the shell's -c, none as a login shell, with the environment paneEnv builds.
 func (it *Item) spawnSpec(s *model.Session, p *model.Pane, argv []string, cwd string, extra []string) pty.Spec {
 	sh := it.shell(s)
 	p.Argv, p.Cwd, p.Shell = append([]string(nil), argv...), cwd, sh
@@ -415,25 +427,7 @@ func (it *Item) spawnSpec(s *model.Session, p *model.Pane, argv []string, cwd st
 	default:
 		spec.Argv = append([]string(nil), argv...)
 	}
-	set := map[string]string{
-		"TERM":      it.Host.Tree().Options.Server.GetString("default-terminal"),
-		"TMUX":      fmt.Sprintf("%s,%d,%d", it.Host.SocketPath(), it.Host.Pid(), s.ID),
-		"TMUX_PANE": fmt.Sprintf("%%%d", p.ID),
-	}
-	for _, kv := range extra {
-		if k, v, ok := strings.Cut(kv, "="); ok {
-			set[k] = v
-		}
-	}
-	for _, kv := range it.Host.Environ() {
-		k, _, _ := strings.Cut(kv, "=")
-		if _, ok := set[k]; !ok {
-			spec.Env = append(spec.Env, kv)
-		}
-	}
-	for k, v := range set {
-		spec.Env = append(spec.Env, k+"="+v)
-	}
+	spec.Env = it.paneEnv(s, p, extra, sh, cwd)
 	return spec
 }
 

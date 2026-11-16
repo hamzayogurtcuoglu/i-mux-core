@@ -1051,7 +1051,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   respawning, `failed`, and the last pane ending its session and the server, against tmux
   3.8. The line's `#[…]` styles come with C4.1.
 
-### [ ] C3.13 Environment of panes and jobs
+### [x] C3.13 Environment of panes and jobs
 - **Goal:** programs in panes see the environment they see under tmux.
 - **Details:**
   - `TMUX` (`<socket>,<server pid>,<session id>`), `TMUX_PANE`, `TERM` from `default-terminal`.
@@ -1061,6 +1061,15 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** difftest: `env | sort` in a new pane (normalized for pids and paths) is the
   same under both engines.
 - **Depends on:** C3.6.
+- **Status:** done. The client sends its whole environment; sessions have their own
+  (`update-environment` from the client at `new-session`, `attach-session` and
+  `switch-client`, unless `-E`; `new-session -e`), and panes and jobs get tmux's
+  `environ_for_session` plus, for panes, `-e`, `TMUX_PANE`, the client's `PATH`, `SHELL` and
+  `PWD`; formats look a name up in the session's environment, then the global one.
+  `testdata/diff/env.txt` compares `env | sort` in new panes (with `-e`, `-E` and
+  `update-environment`), a pane's `TERM`, `TMUX_PANE`, `SHELL` and `PWD`, the format lookups
+  and a job's environment with tmux 3.8. `set-environment` and `show-environment` are not in
+  i-mux's contract.
 
 **Gate 3:**
 - Every command, flag, format, option, hook and key in COMPATIBILITY.md has a passing difftest.

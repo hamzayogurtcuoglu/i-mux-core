@@ -100,3 +100,5 @@ All notable changes to i-mux-core are listed here. The format follows
 - Config loading: `source-file` with nesting, globs and tmux's error reporting; i-mux's
   config and reload give tmux's options and key tables.
 - Dead panes: `remain-on-exit`'s "Pane is dead" line, `#{pane_dead_time}`, respawning.
+- Environment: sessions' own environments with `update-environment`, and panes' and jobs'
+  environments built as tmux builds them; the client sends its whole environment.

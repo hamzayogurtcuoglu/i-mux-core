@@ -87,7 +87,7 @@ func textKeys(s string) []keys.Key {
 // session, selecting a target window and pane when given; -T only puts it in a key table.
 func switchClient(it *Item) error {
 	a := it.Cmd.Args
-	for _, f := range []byte("EFlnOprZ") {
+	for _, f := range []byte("FlnOprZ") {
 		if a.Has(f) {
 			return fmt.Errorf("switch-client -%c: not implemented by imux-core yet", f)
 		}
@@ -120,6 +120,10 @@ func switchClient(it *Item) error {
 		}
 		st.S.SelectWindow(st.WL)
 		it.setCurrent(sessionState(st.S))
+	}
+	// The session takes the client's update-environment variables (not with -E).
+	if ci := it.clientInfo(c.Name); ci != nil && ci.Env != nil && !it.Cmd.Args.Has('E') {
+		environUpdate(st.S.Options, ci.Env, st.S.Env)
 	}
 	return it.Host.SwitchClient(c.Name, st.S)
 }

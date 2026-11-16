@@ -50,6 +50,9 @@ type Session struct {
 	Activity time.Time
 	Attached int
 	Options  *options.Options
+	// Env is the session's environment (tmux's s->environ): a nil value removes the variable
+	// from the global environment for the session's panes and jobs.
+	Env map[string]*string
 
 	links   map[int]*Winlink // by index
 	Current *Winlink
@@ -185,7 +188,10 @@ func (t *Tree) SessionByName(name string) *Session {
 // NewSession creates a session. An empty name gives it its id as name, as tmux does. The name
 // is used as given: the commands check and clean it (tmux's check_name and clean_name).
 func (t *Tree) NewSession(name, cwd string, now time.Time) (*Session, error) {
-	s := &Session{Cwd: cwd, Created: now, Activity: now, links: map[int]*Winlink{}, Options: options.New(t.Options.Session)}
+	s := &Session{
+		Cwd: cwd, Created: now, Activity: now, links: map[int]*Winlink{}, Options: options.New(t.Options.Session),
+		Env: map[string]*string{},
+	}
 	if name != "" {
 		if t.SessionByName(name) != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDuplicateSession, name)
