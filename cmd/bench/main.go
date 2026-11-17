@@ -212,6 +212,9 @@ type measure struct {
 	run    func(e engine) result
 	// meets says whether core's result meets the target against tmux's.
 	meets func(tmux, core result) bool
+	// inTurns, when set, measures both engines with their samples taken in turns, in place of
+	// run (ARCHITECTURE.md §10).
+	inTurns func(tmux, core engine) (result, result)
 }
 
 var quick bool
@@ -253,46 +256,76 @@ func idleCPU(e engine) result {
 }
 
 // latency: keys typed into an attached client, echoed by cat in raw mode, 50 ms apart; p99.
-func latency(e engine) result {
+// latencyRun is one engine's latency world: a pane of cat in raw mode, an attached client.
+type latencyRun struct {
+	e engine
+	w *world
+	c *client
+	n int // keys typed
+}
+
+func newLatencyRun(e engine) *latencyRun {
 	w, err := newWorld(e)
 	if err != nil {
 		fail(err)
 	}
-	defer w.close()
 	w.must("new-session", "-d", "-s", "a", "-x", "80", "-y", "24", "stty raw -echo; echo READY; exec cat")
 	w.must("set", "-g", "status", "off")
 	waitFor("the pane's program", 10*time.Second, func() bool {
 		out, _ := w.cmd("capture-pane", "-p", "-t", "a")
 		return strings.Contains(out, "READY")
 	})
-	c := w.attach(80, 24, "a")
-	defer c.close()
+	return &latencyRun{e: e, w: w, c: w.attach(80, 24, "a")}
+}
+
+func (r *latencyRun) close() {
+	r.c.close()
+	r.w.close()
+}
+
+// key types one key and returns the ms until its echo reached the terminal.
+func (r *latencyRun) key() float64 {
+	ch := byte('a' + r.n%26)
+	off := r.c.mark()
+	t0 := time.Now()
+	if _, err := r.c.p.Write([]byte{ch}); err != nil {
+		fail(err)
+	}
+	t1, ok := r.c.waitByte(off, ch, 5*time.Second)
+	if !ok {
+		fail(fmt.Errorf("%s: no echo of %q", r.e.name, ch))
+	}
+	r.n++
+	if r.n%80 == 0 {
+		// A new line keeps the echo on the screen, not scrolling sideways.
+		_, _ = r.c.p.Write([]byte{'\r'})
+	}
+	return float64(t1.Sub(t0).Microseconds()) / 1000
+}
+
+// latency: a key every 50 ms to each engine in turn, the first of each pair alternating; the
+// p99 of 300 keys each.
+func latency(te, ce engine) (result, result) {
+	runs := []*latencyRun{newLatencyRun(te), newLatencyRun(ce)}
+	defer func() {
+		for _, r := range runs {
+			r.close()
+		}
+	}()
 	time.Sleep(time.Second)
 	n := 300
 	if quick {
 		n = 60
 	}
-	var ms []float64
+	ms := make([][]float64, 2)
 	for i := range n {
-		ch := byte('a' + i%26)
-		off := c.mark()
-		t0 := time.Now()
-		if _, err := c.p.Write([]byte{ch}); err != nil {
-			fail(err)
+		for k := range 2 {
+			at := (i + k) % 2
+			ms[at] = append(ms[at], runs[at].key())
+			time.Sleep(25 * time.Millisecond)
 		}
-		t1, ok := c.waitByte(off, ch, 5*time.Second)
-		if !ok {
-			fail(fmt.Errorf("%s: no echo of %q", e.name, ch))
-		}
-		ms = append(ms, float64(t1.Sub(t0).Microseconds())/1000)
-		if (i+1)%80 == 0 {
-			// A new line keeps the echo on the screen, not scrolling sideways.
-			_, _ = c.p.Write([]byte{'\r'})
-			time.Sleep(50 * time.Millisecond)
-		}
-		time.Sleep(50 * time.Millisecond)
 	}
-	return result{percentile(ms, 0.99), "ms"}
+	return result{percentile(ms[0], 0.99), "ms"}, result{percentile(ms[1], 0.99), "ms"}
 }
 
 // writeText writes size bytes of 80-column lines, a third of them in colour, to path.
@@ -501,20 +534,27 @@ func printTrace(name, logPath string, start, shown time.Time) {
 }
 
 // imuxStartup: imux claude in a project in a 160×40 terminal, with i-mux's fake agents, until
-// the sidebar shows; the median of 5.
-func imuxStartup(e engine) result {
-	var secs []float64
+// the sidebar shows, on each engine in turn, the first of each pair alternating; the median of
+// 5 each.
+func imuxStartup(te, ce engine) (result, result) {
+	engines := []engine{te, ce}
+	secs := make([][]float64, 2)
 	n := 5
 	if quick {
 		n = 2
 	}
-	for range n {
-		secs = append(secs, imuxOnce(e, false))
+	for i := range n {
+		for k := range 2 {
+			at := (i + k) % 2
+			secs[at] = append(secs[at], imuxOnce(engines[at], false))
+		}
 	}
 	if traceStartup {
-		imuxOnce(e, true)
+		for _, e := range engines {
+			imuxOnce(e, true)
+		}
 	}
-	return result{percentile(secs, 0.5), "s"}
+	return result{percentile(secs[0], 0.5), "s"}, result{percentile(secs[1], 0.5), "s"}
 }
 
 // imuxOnce runs i-mux once and returns the seconds until the sidebar shows; traced, every
@@ -635,6 +675,17 @@ func main() {
 	if *tmuxPath == "" || *corePath == "" {
 		fail(errors.New("usage: bench -tmux PATH -core PATH [-imux PATH -fakes DIR] [-only NAME,…] [-quick]"))
 	}
+	// i-mux runs in its project directory: the paths must not be relative.
+	for _, p := range []*string{tmuxPath, corePath, &imuxBin, &fakesDir} {
+		if *p == "" {
+			continue
+		}
+		abs, err := filepath.Abs(*p)
+		if err != nil {
+			fail(err)
+		}
+		*p = abs
+	}
 	tmux, core := engine{"tmux", *tmuxPath}, engine{"imux-core", *corePath}
 
 	within := func(add float64) func(t, c result) bool {
@@ -645,22 +696,34 @@ func main() {
 	}
 	measures := []measure{
 		{
-			"idle-cpu", "Idle CPU (10 sessions × 4 panes, one client, 10 s)", "≤ 0.5% of a core", idleCPU,
-			func(_, c result) bool { return c.value <= 0.5 },
+			name: "idle-cpu", what: "Idle CPU (10 sessions × 4 panes, one client, 10 s)", target: "≤ 0.5% of a core",
+			run: idleCPU, meets: func(_, c result) bool { return c.value <= 0.5 },
 		},
-		{"latency", "Key to screen latency (p99 of 300 keys)", "≤ tmux + 2 ms", latency, within(2)},
-		{"throughput", "Throughput (100 MB into a 200×50 pane)", "≤ 1.5× tmux", throughput, times(1.5)},
-		{"round-trip", "Command round trip (p50 of 200)", "≤ tmux + 1 ms", roundTrip, within(1)},
 		{
-			"start", "Program start alone (-V, p50 of 200)", "none (shows the round trip's share)", processStart,
-			func(_, _ result) bool { return true },
+			name: "latency", what: "Key to screen latency (p99 of 300 keys, in turns)", target: "≤ tmux + 2 ms",
+			inTurns: latency, meets: within(2),
 		},
-		{"memory", "Memory per pane (history-limit 50000, filled)", "≤ 2× tmux", memoryPerPane, times(2)},
+		{
+			name: "throughput", what: "Throughput (100 MB into a 200×50 pane)", target: "≤ 1.5× tmux",
+			run: throughput, meets: times(1.5),
+		},
+		{
+			name: "round-trip", what: "Command round trip (p50 of 200)", target: "≤ tmux + 1 ms",
+			run: roundTrip, meets: within(1),
+		},
+		{
+			name: "start", what: "Program start alone (-V, p50 of 200)", target: "none (shows the round trip's share)",
+			run: processStart, meets: func(_, _ result) bool { return true },
+		},
+		{
+			name: "memory", what: "Memory per pane (history-limit 50000, filled)", target: "≤ 2× tmux",
+			run: memoryPerPane, meets: times(2),
+		},
 	}
 	if imuxBin != "" {
 		measures = append(measures, measure{
-			"startup", "i-mux startup to the sidebar (median of 5)",
-			"≤ tmux + 10%", imuxStartup, times(1.1),
+			name: "startup", what: "i-mux startup to the sidebar (median of 5, in turns)",
+			target: "≤ tmux + 10%", inTurns: imuxStartup, meets: times(1.1),
 		})
 	}
 	want := map[string]bool{}
@@ -678,8 +741,12 @@ func main() {
 			continue
 		}
 		fmt.Fprintf(os.Stderr, "bench: %s…\n", m.name)
-		t := m.run(tmux)
-		c := m.run(core)
+		var t, c result
+		if m.inTurns != nil {
+			t, c = m.inTurns(tmux, core)
+		} else {
+			t, c = m.run(tmux), m.run(core)
+		}
 		met := "yes"
 		if strings.HasPrefix(m.target, "none") {
 			met = "—"
