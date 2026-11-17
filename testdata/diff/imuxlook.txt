@@ -1,0 +1,36 @@
+# i-mux's look end to end (C4.11): i-mux's generated config (imux.conf, from i-mux's golden
+# file), and the panes, sidebars and tabs i-mux makes with its own commands
+# (internal/workspace: split-window -h -b -f -d -l 30 for a sidebar, then its pane options),
+# compared frame by frame with tmux at 100x30. Panes run fixed programs; the status line's
+# clock is replaced (status-right) so the frames do not depend on the time.
+conf imux.conf
+file imuxlook/light.conf imuxlook/light.conf
+size 100x30
+run new-session -d -s w -n main 'printf "agent ready\n> "; exec cat' ; set -g status-right '#{?@imux_status,#{@imux_status} · ,}R '
+run set -p -t %0 @imux_label claude ; set -w -t w:main @imux_tab main
+client c 100x30
+run list-clients -F '#{client_colours}|#{client_termname}|#{client_termfeatures}'
+# The sidebar with one agent.
+run split-window -h -b -f -d -l 30 -t %0 -P -F '#{pane_id}' 'printf " i-mux\n\n > claude  working\n"; exec cat'
+run set-option -p -t %1 @imux_role sidebar ; set-option -p -t %1 remain-on-exit off ; set-option -p -t %1 @imux_label i-mux ; set-option -w -t %0 @imux_sidebar_last %0
+waittext %1 'claude  working'
+screen c
+# Two splits, as i-mux's file command opens them.
+run split-window -h -t %0 'printf "right\n"; exec cat' ; set -p @imux_label editor
+run split-window -v -l 30% -t %2 'printf "bottom\n"; exec cat' ; set -p @imux_label shell
+waittext %3 'bottom'
+screen c
+# Tabs on with three tabs, one of them busy, and the agent bar's status.
+run new-window -d -t w -n second 'printf "second\n"; exec cat' ; set -w -t w:second @imux_tab docs ; set -p -t w:second @imux_label notes
+run new-window -d -t w -n third 'printf "third\n"; exec cat' ; set -w -t w:third @imux_tab_auto build ; set -w -t w:third @imux_tab_state '●' ; set -p -t w:third @imux_label make
+run set -g @imux_status '2 agents'
+screen c
+run select-window -t w:second
+screen c
+run select-window -t w:main ; resize-pane -Z -t %0
+screen c
+run resize-pane -Z -t %0
+# The light theme.
+run source-file imuxlook/light.conf
+screen c
+run kill-server

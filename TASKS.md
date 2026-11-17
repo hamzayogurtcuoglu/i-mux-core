@@ -1231,7 +1231,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   tmux for names with spaces and quotes.
 - **Depends on:** C4.5.
 
-### [ ] C4.11 i-mux's configuration end to end
+### [x] C4.11 i-mux's configuration end to end
 - **Goal:** the whole i-mux look renders identically.
 - **Details:**
   - Load each generated config captured in C0.3.
@@ -1241,6 +1241,15 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** frame difftests of at least: the sidebar with one agent; two splits; tabs on
   with three tabs; the agent bar; light and dark themes. All match tmux.
 - **Depends on:** C4.2–C4.10.
+- **Status:** done. `testdata/diff/imuxlook.txt` loads i-mux's generated config (`imux.conf`,
+  from i-mux's golden file; the configs C0.3 captured were not kept, only `recorded.json`), makes
+  a sidebar with i-mux's own commands (`split-window -h -b -f -d -l 30` and its pane options),
+  two splits as i-mux's file command opens them, three tabs (one with a state), the agent bar's
+  status, a zoom, and a light theme over the dark one (`imuxlook/light.conf`), and matches tmux
+  frame for frame at 100x30. The light theme's colours are representative, not i-mux's
+  generated ones (that needs i-mux's generator). Two engine bugs it found are fixed: a client's
+  terminal now takes the server's `terminal-features` and `terminal-overrides`, and its theme
+  colours are worked out as it opens (`testdata/diff/terminal.txt`).
 
 **Gate 4:**
 - i-mux's configuration loads.
