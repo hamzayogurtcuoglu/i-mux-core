@@ -491,3 +491,17 @@ func TestStatusLineShowsTheWindows(t *testing.T) {
 	c := w.attach(80, 24)
 	c.waitText("[work] 0:edit* 1:logs")
 }
+
+// A terminal that never answers the device attributes query gets its features when the
+// query times out, with focus events on (tty_start_timer_callback, tty_update_features): an
+// Enfcs override reaches it, as i-mux's terminal background does (C6.3).
+func TestFocusEventsWhenTheQueriesTimeOut(t *testing.T) {
+	w := newWorld(t)
+	w.config(
+		"set -g focus-events on",
+		`set -g terminal-overrides[90] '*:Enfcs=\E[?1004h\E]11;rgb::27/2c/36\007'`,
+	)
+	w.ok("new-session", "-d", "-s", "a", "exec cat")
+	c := w.attach(80, 24)
+	c.waitOutput("\x1b[?1004h\x1b]11;rgb:27/2c/36\x07", 10*time.Second)
+}

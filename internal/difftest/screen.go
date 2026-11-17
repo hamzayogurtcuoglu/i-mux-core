@@ -107,6 +107,13 @@ func (b *Binary) Attach(ctx context.Context, env *Env, _ string, cols, rows int)
 	return h, nil
 }
 
+// Output is everything the client's terminal was sent so far, escape sequences and all.
+func (h *headless) Output() []byte {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return append([]byte(nil), h.out...)
+}
+
 // feed gives the emulator what the client wrote since.
 func (h *headless) feed() {
 	_, _ = h.term.Write(h.out[h.fed:])

@@ -35,6 +35,7 @@ type inputState struct {
 	theme    vt.Theme
 	fg, bg   int // the terminal's colours, or -1
 	termType string
+	haveDA   bool       // a device attributes reply came (TTY_HAVEDA, TTY_HAVEDA2, TTY_HAVEXDA)
 	themes   []vt.Color // the client's theme colours, nil for the terminal's
 	last     time.Time  // the input before the last (last_activity_time)
 }
@@ -46,9 +47,15 @@ func (s *Server) startInput(c *attachedClient, erase int) {
 	c.in.parser.Requested()
 	time.AfterFunc(queryTimeout, func() {
 		s.post(func() {
-			if !c.gone {
-				c.in.parser.StopWaiting()
+			if c.gone {
+				return
 			}
+			// tty_start_timer_callback: a terminal that never said what it is gets its
+			// features (and the modes they allow) now.
+			if !c.in.haveDA {
+				s.updateFeatures(c)
+			}
+			c.in.parser.StopWaiting()
 		})
 	})
 	s.updateFocus(c.window())
@@ -96,6 +103,9 @@ func (s *Server) handleInput(c *attachedClient, events []input.Event) {
 func (s *Server) inputEvent(c *attachedClient, ev *input.Event) {
 	switch ev.Kind {
 	case input.EventDA, input.EventSync:
+		if ev.Kind == input.EventDA {
+			c.in.haveDA = true
+		}
 		if ev.Features != "" {
 			c.features.Parse(ev.Features, ",")
 		}
@@ -103,6 +113,7 @@ func (s *Server) inputEvent(c *attachedClient, ev *input.Event) {
 			s.updateFeatures(c)
 		}
 	case input.EventDA2, input.EventXDA:
+		c.in.haveDA = true
 		if ev.Name != "" {
 			c.features.Default(ev.Name)
 		}
@@ -125,9 +136,11 @@ func (s *Server) inputEvent(c *attachedClient, ev *input.Event) {
 	}
 }
 
-// updateFeatures is tty_update_features: the terminal is described again and drawn again.
+// updateFeatures is tty_update_features: the terminal is described again, put in the modes the
+// extended-keys and focus-events options ask for, and drawn again.
 func (s *Server) updateFeatures(c *attachedClient) {
-	c.tty.UpdateFeatures(false, false)
+	o := s.tree.Options.Server
+	c.tty.UpdateFeatures(o.GetNumber("extended-keys") != 0, o.GetNumber("focus-events") != 0)
 	c.draw.r.Invalidate()
 	s.markDirty(c)
 }

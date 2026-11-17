@@ -268,3 +268,21 @@ func (c *client) click(b, x, y int) {
 
 // clickWait waits out the click timeout, so the next press starts a new click sequence.
 func clickWait() { time.Sleep(400 * time.Millisecond) }
+
+// output is everything the client's terminal was sent, escape sequences and all.
+func (c *client) output() string {
+	return string(c.Client.(interface{ Output() []byte }).Output())
+}
+
+// waitOutput waits until what the client's terminal was sent holds sub.
+func (c *client) waitOutput(sub string, timeout time.Duration) {
+	c.w.t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if strings.Contains(c.output(), sub) {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	c.w.t.Fatalf("client: timed out waiting for %q in its output", sub)
+}
