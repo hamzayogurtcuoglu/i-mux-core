@@ -2,7 +2,7 @@
 # the whole client; with no client to refresh, it fails.
 conf status.conf
 size 60x10
-run new-session -d -s a 'exec cat'
+run new-session -d -s a -n w 'exec cat'
 run refresh-client -S
 run refresh-client
 client c 60x10
