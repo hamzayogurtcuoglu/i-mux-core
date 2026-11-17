@@ -234,7 +234,7 @@ run display -p -t main:1 '#{pane_fg}' ; display -p -t main:1 '#{pane_bg}' ; disp
 run set -w -t main:0 -u window-style ; set -p -t main:0.1 -u window-active-style ; set -p -t main:0.2 -u window-active-style
 # A client attached: the client variables (its terminal's name normalized).
 client c1 100x30
-normalize /dev/pts/[0-9]+ PTS
+normalize /dev/(pts/[0-9]+|ttys[0-9]+) PTS
 run display -p -t main:0.1 '#{client_name}'
 run display -p -t main:0.1 '#{client_tty}'
 run display -p -t main:0.1 '#{client_width}x#{client_height}'

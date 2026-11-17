@@ -2,7 +2,7 @@
 # -a, -s, -t, -f, -O and -r, and the errors.
 size 80x24
 normalize created\ [^)]* created\ DATE
-normalize /dev/pts/[0-9]+ PTS
+normalize /dev/(pts/[0-9]+|ttys[0-9]+) PTS
 run list-sessions
 run new-session -d -s beta -n one 'exec cat'
 run new-session -d -s alpha -n first 'exec cat'
