@@ -98,6 +98,7 @@ func (s *Server) promptLines(c *attachedClient) ([][]vt.Cell, int) {
 		Tree: s.tree, Server: s.ServerInfo(), Clients: s.clientFormats(), Now: s.opts.Now,
 	}
 	ctx.Defaults(nil, c.session, c.session.Current, nil)
+	ctx.Buffer = s.buffers.Top() // format_defaults' top paste buffer
 	var lines []status.Line
 	if s.statusLineSize(c) > 0 {
 		lines = s.statusLines(c)

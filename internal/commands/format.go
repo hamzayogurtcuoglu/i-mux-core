@@ -45,6 +45,8 @@ func (it *Item) formatContext(c *ClientInfo, s *model.Session, wl *model.Winlink
 		ctx.Values[k] = v
 	}
 	ctx.Defaults(c, s, wl, p)
+	// format_defaults gives every format the top paste buffer.
+	ctx.Buffer = it.Host.Buffers().Top()
 	ctx.Mouse = it.formatMouse(c)
 	return ctx
 }

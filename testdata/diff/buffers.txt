@@ -17,6 +17,8 @@ run list-buffers -O name -F '#{buffer_name}' ; list-buffers -O size -r -F '#{buf
 run list-buffers -O creation -F '#{buffer_name}' ; list-buffers -O order -r -F '#{buffer_name}'
 run list-buffers -r -F '#{buffer_name}' ; list-buffers -O nope
 run list-buffers -f '#{==:#{buffer_name},fresh}'
+# Any format gives the top automatic buffer's buffer_* (format_defaults), here the newest.
+run display-message -p '#{buffer_name}|#{buffer_size}|#{buffer_sample}' ; display-message -p -t a '#{?buffer_size,has,none}'
 # Errors.
 run show-buffer -b nope ; delete-buffer -b nope ; set-buffer -n x -b nope ; paste-buffer -b nope
 run set-buffer -b '' x ; set-buffer -b empty ''

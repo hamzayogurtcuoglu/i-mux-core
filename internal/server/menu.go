@@ -154,6 +154,7 @@ func (s *Server) menuView(md *menu) *render.Menu {
 	st := md.spec.State
 	ctx := &format.Context{Tree: s.tree, Server: s.ServerInfo(), Clients: s.clientFormats(), Now: s.opts.Now}
 	ctx.Defaults(nil, st.S, st.WL, st.P)
+	ctx.Buffer = s.buffers.Top() // format_defaults' top paste buffer
 	apply := func(name string, over *string) vt.Cell {
 		gc := vt.DefaultCell
 		sy := style.Default()

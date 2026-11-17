@@ -166,6 +166,7 @@ func (s *Server) borderStyles(c *attachedClient) render.Styles {
 		return gc
 	}
 	ctx.Defaults(c.format, c.session, wl, nil)
+	ctx.Buffer = s.buffers.Top() // format_defaults' top paste buffer
 	st.Border = apply(w.Options, "pane-border-style")
 	st.Lines = int(w.Options.GetNumber("pane-border-lines"))
 	ind := w.Options.GetNumber("pane-border-indicators")
@@ -176,6 +177,7 @@ func (s *Server) borderStyles(c *attachedClient) render.Styles {
 	st.Panes = make(map[*model.Pane]render.PaneBorder, len(w.Panes))
 	for i, p := range w.Panes {
 		ctx.Defaults(c.format, c.session, wl, p)
+		ctx.Buffer = s.buffers.Top() // format_defaults' top paste buffer
 		name := "pane-border-style"
 		if p == w.Active {
 			name = "pane-active-border-style"
@@ -213,6 +215,7 @@ func (s *Server) statusLines(c *attachedClient) []status.Line {
 		ItemClient: c.format,
 	}
 	ctx.Defaults(c.format, c.session, c.session.Current, nil)
+	ctx.Buffer = s.buffers.Top() // format_defaults' top paste buffer
 	c.statusLines = status.Draw(ctx, c.session.Options, c.tty.Sx)
 	c.statusAt = s.opts.Now()
 	s.scheduleStatusRefresh(c)

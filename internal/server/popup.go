@@ -325,6 +325,7 @@ func (s *Server) popupView(c *attachedClient) *render.Popup {
 		ItemClient: c.format,
 	}
 	ctx.Defaults(c.format, c.session, c.session.Current, nil)
+	ctx.Buffer = s.buffers.Top() // format_defaults' top paste buffer
 	apply := func(name string, over *string) vt.Cell {
 		gc := vt.DefaultCell
 		sy := style.Default()

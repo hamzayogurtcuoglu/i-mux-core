@@ -117,6 +117,7 @@ func (s *Server) paneDied(p *model.Pane, status pty.ExitStatus) {
 	if f := p.Options.GetString("remain-on-exit-format"); f != "" {
 		ctx := &format.Context{Tree: s.tree, Server: s.ServerInfo(), Clients: s.Clients(), Now: s.opts.Now}
 		ctx.Defaults(nil, nil, nil, p)
+		ctx.Buffer = s.buffers.Top() // format_defaults' top paste buffer
 		text = ctx.Expand(f)
 	}
 	p.Mu.Lock()

@@ -88,6 +88,7 @@ func (s *Server) messageLines(c *attachedClient) [][]vt.Cell {
 		ItemClient: c.format,
 	}
 	ctx.Defaults(c.format, c.session, c.session.Current, nil)
+	ctx.Buffer = s.buffers.Top() // format_defaults' top paste buffer
 	var lines []status.Line
 	if s.statusLineSize(c) > 0 {
 		lines = s.statusLines(c)
