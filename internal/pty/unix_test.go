@@ -171,8 +171,14 @@ func TestKill(t *testing.T) {
 		t.Fatalf("status %+v, want SIGKILL", st)
 	}
 	gone(t, p.Pid(), 5*time.Second)
-	if syscall.Kill(kid, 0) == nil {
-		t.Fatalf("background child %d survived", kid)
+	// Killed, the child is reaped by init (launchd) once its shell is gone, a moment later on
+	// macOS: until then it still answers kill(pid, 0).
+	deadline := time.Now().Add(5 * time.Second)
+	for syscall.Kill(kid, 0) == nil {
+		if time.Now().After(deadline) {
+			t.Fatalf("background child %d survived", kid)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
