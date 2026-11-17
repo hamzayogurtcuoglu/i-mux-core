@@ -79,6 +79,8 @@ func (s *Server) OptionChanged(name string) {
 		}
 	}
 	switch name {
+	case "status", "status-interval":
+		s.restartStatusTimers()
 	case "extended-keys":
 		for _, p := range s.tree.Panes() {
 			if p.Term != nil {

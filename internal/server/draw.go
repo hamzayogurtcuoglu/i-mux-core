@@ -202,8 +202,11 @@ func (s *Server) statusCells(c *attachedClient) [][]vt.Cell {
 	return out
 }
 
-// statusLines renders and caches the status lines for c.
+// statusLines renders and caches the status lines for c; none while the status option is off.
 func (s *Server) statusLines(c *attachedClient) []status.Line {
+	if c.session.Options.GetNumber("status") == 0 {
+		return nil
+	}
 	if c.statusLines != nil && c.statusAt.Equal(s.opts.Now()) {
 		return c.statusLines
 	}
@@ -222,22 +225,40 @@ func (s *Server) statusLines(c *attachedClient) []status.Line {
 	return c.statusLines
 }
 
-// scheduleStatusRefresh starts a timer for status-interval if one is not already pending.
+// scheduleStatusRefresh starts a timer for status-interval if one is not already pending, and
+// only while the status line is on: tmux's status_timer_start. Each frame would otherwise
+// make a key's echo just after it wait for the next one.
 func (s *Server) scheduleStatusRefresh(c *attachedClient) {
-	if c.statusTimer != nil {
+	if c.statusTimer != nil || c.session.Options.GetNumber("status") == 0 {
 		return
 	}
 	interval := time.Duration(c.session.Options.GetNumber("status-interval")) * time.Second
 	if interval <= 0 {
 		return
 	}
-	c.statusTimer = time.AfterFunc(interval, func() {
+	var t *time.Timer
+	t = time.AfterFunc(interval, func() {
 		s.post(func() {
+			if c.statusTimer != t {
+				return // stopped, and maybe started again, since
+			}
 			c.statusTimer = nil
 			c.statusLines = nil
 			s.markDirty(c)
 		})
 	})
+	c.statusTimer = t
+}
+
+// restartStatusTimers is status_timer_start_all, when status or status-interval changes: each
+// client's timer is stopped, and started again by its next frame if the status line is on.
+func (s *Server) restartStatusTimers() {
+	for _, c := range s.attached {
+		if c.statusTimer != nil {
+			c.statusTimer.Stop()
+			c.statusTimer = nil
+		}
+	}
 }
 
 // clientFormats returns the attached clients as format.Client values.

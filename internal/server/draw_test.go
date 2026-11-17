@@ -117,3 +117,42 @@ func TestAttachedClientDrawn(t *testing.T) {
 	}
 	waitFor("resize", "hello\n world")
 }
+
+// The status-interval timer runs only while the status line is on (tmux's status_timer_start
+// and status_timer_start_all): with it off, nothing draws the client every status-interval,
+// which made a key echoed just after such a frame wait for the next one.
+func TestStatusTimerOnlyWithStatus(t *testing.T) {
+	w := newKeyWorld(t)
+	armed := func() bool {
+		var on bool
+		if err := w.s.Do(func(*model.Tree) {
+			for _, c := range w.s.attached {
+				on = on || c.statusTimer != nil
+			}
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return on
+	}
+	waitArmed := func(want bool) {
+		t.Helper()
+		deadline := time.Now().Add(5 * time.Second)
+		for armed() != want {
+			if time.Now().After(deadline) {
+				t.Fatalf("the status timer armed: %v, want %v", !want, want)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	waitArmed(true)
+	w.run(t, "set", "-g", "status", "off")
+	waitArmed(false)
+	// It stays off through the frames that follow.
+	w.run(t, "refresh-client")
+	time.Sleep(3 * FrameInterval)
+	if armed() {
+		t.Fatal("a frame with the status line off started the status timer")
+	}
+	w.run(t, "set", "-g", "status", "on")
+	waitArmed(true)
+}
