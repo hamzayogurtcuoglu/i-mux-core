@@ -26,6 +26,32 @@ func (w *keyWorld) messageText(t *testing.T) string {
 	return <-ch
 }
 
+// keysHandled waits until the server has handled what the client typed so far: a focus report
+// sent after it, which a message ignoring keys leaves alone, fires client-focus-in once it is.
+func (w *keyWorld) keysHandled(t *testing.T) {
+	t.Helper()
+	count := func() int {
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		n := 0
+		for _, e := range w.events {
+			if e == "client-focus-in" {
+				n++
+			}
+		}
+		return n
+	}
+	before := count()
+	w.typed("\x1b[I")
+	deadline := time.Now().Add(10 * time.Second)
+	for count() == before {
+		if time.Now().After(deadline) {
+			t.Fatal("the focus report after the keys was never handled")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
 func (w *keyWorld) waitMessage(t *testing.T, want string) {
 	t.Helper()
 	deadline := time.Now().Add(10 * time.Second)
@@ -59,6 +85,9 @@ func TestMessages(t *testing.T) {
 	w.run(t, "display-message", "-N", "-d", "60000", "sticky")
 	w.waitMessage(t, "sticky")
 	w.typed("b")
+	// The key comes on the client's connection and the next command on another: wait until
+	// the key is handled, or the command may replace the message first.
+	w.keysHandled(t)
 	w.run(t, "display-message", "-d", "1", "short")
 	w.waitMessage(t, "")
 	w.typed("c")
