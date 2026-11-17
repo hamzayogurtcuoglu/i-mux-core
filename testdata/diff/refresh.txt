@@ -1,0 +1,15 @@
+# refresh-client (C6.3, from i-mux's agent bar): -S redraws a client's status line and no flag
+# the whole client; with no client to refresh, it fails.
+conf status.conf
+size 60x10
+run new-session -d -s a 'exec cat'
+run refresh-client -S
+run refresh-client
+client c 60x10
+run set -g status-right '[#{@mark}]' ; set -g @mark one
+run refresh-client -S
+screen c
+run set -g @mark two ; refresh-client
+screen c
+run refresh-client -S -t nosuch
+run kill-server

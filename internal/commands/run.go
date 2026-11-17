@@ -54,6 +54,9 @@ type Host interface {
 	OptionChanged(name string)
 	// SwitchClient makes an attached client show another session.
 	SwitchClient(name string, s *model.Session) error
+	// RefreshClient redraws an attached client: its status line only, or all of it
+	// (refresh-client -S, server_status_client, or server_redraw_client).
+	RefreshClient(client string, statusOnly bool)
 	// SetKeyTable puts the client named (an attached one) in a key table.
 	SetKeyTable(client, table string) error
 	// DefaultSize is the size of a new window of s (tmux's default_window_size).
@@ -250,6 +253,7 @@ func init() {
 		"start-server":        func(*Item) error { return nil },
 		"attach-session":      attachSession,
 		"detach-client":       detachClient,
+		"refresh-client":      refreshClient,
 		"send-keys":           sendKeys,
 		"send-prefix":         sendPrefix,
 		"bind-key":            bindKey,

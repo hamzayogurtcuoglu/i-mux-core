@@ -57,6 +57,21 @@ func (s *Server) setKeyTable(c *attachedClient, name string) {
 
 // SetKeyTable implements commands.Host: switch-client -T puts the client named in a key
 // table.
+// RefreshClient implements commands.Host: refresh-client. The status line is expanded again
+// on every frame, so -S (CLIENT_STATUSFORCE) needs only a frame; without it the whole
+// terminal is drawn again.
+func (s *Server) RefreshClient(name string, statusOnly bool) {
+	c := s.clientByName(name)
+	if c == nil || c.gone {
+		return
+	}
+	if statusOnly {
+		s.markDirty(c)
+		return
+	}
+	s.invalidate(c)
+}
+
 func (s *Server) SetKeyTable(name, table string) error {
 	for _, c := range s.attached {
 		if c.name == name && !c.gone {

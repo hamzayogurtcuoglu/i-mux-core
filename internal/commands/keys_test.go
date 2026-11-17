@@ -88,3 +88,25 @@ func TestSwitchClient(t *testing.T) {
 		}
 	}
 }
+
+func TestRefreshClient(t *testing.T) {
+	h := newFakeHost()
+	if r := run(h, "new-session", "-d", "-s", "a", "cat"); r.Failed {
+		t.Fatalf("new-session: %+v", r)
+	}
+	if r := run(h, "refresh-client", "-S"); !r.Failed || r.Stderr != "no current client\n" {
+		t.Errorf("no client: %+v", r)
+	}
+	h.clients = []*ClientInfo{{Name: "/dev/pts/1", Session: h.tree.SessionByName("a")}}
+	for _, args := range [][]string{{"-S"}, {}, {"-S", "-t", "/dev/pts/1"}} {
+		if r := run(h, append([]string{"refresh-client"}, args...)...); r.Failed {
+			t.Errorf("%q: %+v", args, r)
+		}
+	}
+	if want := []string{"/dev/pts/1 true", "/dev/pts/1 false", "/dev/pts/1 true"}; !slices.Equal(h.refreshed, want) {
+		t.Errorf("refreshed %q, want %q", h.refreshed, want)
+	}
+	if r := run(h, "refresh-client", "-l"); !r.Failed || r.Stderr != "refresh-client -l: not implemented by imux-core yet\n" {
+		t.Errorf("-l: %+v", r)
+	}
+}

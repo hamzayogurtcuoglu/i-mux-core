@@ -237,6 +237,23 @@ func attachSession(it *Item) error {
 	return nil
 }
 
+// refreshClient is refresh-client: -S redraws the target client's status line, no flag all of
+// it. The other flags (panning, control clients, reports, flags) are not in the contract.
+func refreshClient(it *Item) error {
+	a := it.Cmd.Args
+	for _, f := range []byte("ABcCDflLrFRU") {
+		if a.Has(f) {
+			return fmt.Errorf("refresh-client -%c: not implemented by imux-core yet", f)
+		}
+	}
+	tc, err := it.findClient('t')
+	if err != nil {
+		return err
+	}
+	it.Host.RefreshClient(tc.Name, a.Has('S'))
+	return nil
+}
+
 // detachClient is detach-client: -t a client (by default the most recently active), -s every
 // client of a session, -a every client but the target.
 func detachClient(it *Item) error {

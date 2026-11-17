@@ -25,18 +25,19 @@ import (
 
 // fakeHost runs the commands on a tree without programs.
 type fakeHost struct {
-	buffers  *buffers.Store
-	tree     *model.Tree
-	specs    []pty.Spec
-	spawnErr error
-	killed   bool
-	clients  []*ClientInfo
-	messages []string
-	detached []string
-	sent     []string // PaneKey: "%id key"
-	options  []string // SetServerOption: "name=choice"
-	switched []string // SwitchClient: "client session"
-	tables   []string // SetKeyTable: "client table"
+	buffers   *buffers.Store
+	tree      *model.Tree
+	specs     []pty.Spec
+	spawnErr  error
+	killed    bool
+	clients   []*ClientInfo
+	messages  []string
+	detached  []string
+	sent      []string // PaneKey: "%id key"
+	options   []string // SetServerOption: "name=choice"
+	switched  []string // SwitchClient: "client session"
+	tables    []string // SetKeyTable: "client table"
+	refreshed []string // RefreshClient: "client statusOnly"
 }
 
 func newFakeHost() *fakeHost { return &fakeHost{tree: model.NewTree()} }
@@ -84,6 +85,10 @@ func (h *fakeHost) RemovePane(p *model.Pane) {
 func (h *fakeHost) SwitchClient(name string, s *model.Session) error {
 	h.switched = append(h.switched, name+" "+s.Name)
 	return nil
+}
+
+func (h *fakeHost) RefreshClient(client string, statusOnly bool) {
+	h.refreshed = append(h.refreshed, fmt.Sprintf("%s %v", client, statusOnly))
 }
 
 func (h *fakeHost) SetKeyTable(client, table string) error {
