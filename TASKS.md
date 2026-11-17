@@ -1418,11 +1418,26 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Profile and fix whatever misses its target.
 - **Acceptance:** every target met on the macOS and Linux CI runners, with the numbers recorded.
 - **Depends on:** C6.3.
-- **Status:** measured, not yet accepted. `scripts/bench.sh` (`cmd/bench`, `make bench-vs-tmux`)
-  measures the six targets and writes BENCHMARKS.md; CI's `bench` job runs it on the Linux and
-  macOS runners and keeps BENCHMARKS.md as an artifact. On the owner's Mac (2026-11-17) every
-  target is met (memory per pane is the closest: 1.77× tmux's). The task is done once the CI
-  runners' numbers, after the next push, meet them too.
+- **Status:** measured, not yet accepted: one target, i-mux's startup, waits for the owner.
+  `scripts/bench.sh` (`cmd/bench`, `make bench-vs-tmux`) measures the six targets and writes
+  BENCHMARKS.md; CI's `bench` job runs it on the Linux and macOS runners and keeps BENCHMARKS.md
+  as an artifact, and prints a traced startup (`-trace`: every engine call i-mux makes, with
+  its time). On the owner's Mac every target is met. On the CI runners (2026-11-18) idle CPU,
+  throughput, the command round trip and memory per pane (1.2–1.5× tmux's, since cells are
+  packed as tmux packs them) are met on both; key latency, now sampled in turns with tmux, is
+  met once the status timer stopped drawing with the status line off. i-mux's startup is not
+  met on Linux: 64 ms on tmux, 80 ms on imux-core (macOS: within the runner's noise). Why:
+  - i-mux runs about 20 engine commands, each a new process, before its first frame. An
+    imux-core process starts 0.35–0.45 ms later than tmux's on the Linux runner: that is Go's
+    runtime (the package start-up is now lazy; `-V` is within 0.13 ms of a Go program that
+    prints a line).
+  - The sidebar's first frame races the attach: when the attached client has already grown the
+    window, the sidebar first takes its width back (`resize-pane` and a few more commands,
+    15–20 ms), on either engine. Slower process starts make imux-core lose the race more often.
+
+  The engine alone cannot close this. The owner's choice: i-mux makes fewer engine calls while
+  it starts (Phase 7, behind the engine switch), or the target becomes absolute (for example,
+  ≤ tmux + 25 ms).
 
 ### [ ] C6.5 Soak and leak tests
 - **Goal:** it runs for days.
