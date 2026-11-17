@@ -103,6 +103,21 @@ func newInputWorld(t *testing.T, mode string) *inputWorld {
 			}
 		}
 	}()
+	// The attach is handled after this returns: wait for the client to be there, so that a
+	// command needing a current client finds it.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		c, r := dial(t, path, ipc.ProtocolVersion)
+		res := command(t, c, r, "list-clients", "-F", "#{client_name}")
+		c.Close()
+		if strings.TrimSpace(res.Stdout) != "" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the client never attached")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 	return w
 }
 
