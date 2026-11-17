@@ -176,3 +176,40 @@ func TestServeProgramNotFound(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// A client that has connected keeps the server up, even when its first event is queued behind
+// the one that ends the last session (tmux's server_loop waits for its clients): it was told
+// "server exited unexpectedly".
+func TestConnectedClientKeepsServer(t *testing.T) {
+	l, path := listen(t)
+	s := startServer(t, Options{SocketPath: path, Environ: env})
+	go s.Serve(l)
+	c, r := dial(t, path, ipc.ProtocolVersion)
+	if res := command(t, c, r, "new-session", "-d", "-s", "a", "exec cat"); res.Code != 0 {
+		t.Fatalf("new-session: %+v", res)
+	}
+	c.Close()
+
+	// Hold the loop; behind it, the event that ends the last session, then the new client's.
+	hold := make(chan struct{})
+	s.post(func() { <-hold })
+	s.post(func() {
+		for _, sess := range s.tree.Sessions() {
+			s.RemoveSession(sess)
+		}
+		s.checkExit()
+	})
+	c2, r2 := dial(t, path, ipc.ProtocolVersion)
+	defer c2.Close()
+	deadline := time.Now().Add(5 * time.Second)
+	for s.accepted.Load() == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("the connection was not accepted")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	close(hold)
+	if res := command(t, c2, r2, "new-session", "-d", "-s", "b", "exec cat"); res.Code != 0 {
+		t.Fatalf("new-session on a server whose last session went: %+v", res)
+	}
+}

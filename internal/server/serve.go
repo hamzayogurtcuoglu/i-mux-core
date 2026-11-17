@@ -49,6 +49,7 @@ func (s *Server) Serve(l net.Listener) {
 		}
 		s.conns[c] = struct{}{}
 		s.connWG.Add(1)
+		s.accepted.Add(1)
 		s.connMu.Unlock()
 		go s.handle(c)
 	}
@@ -77,6 +78,7 @@ func (s *Server) handle(c net.Conn) {
 		s.connWG.Done()
 	}()
 	if !s.post(func() {
+		s.accepted.Add(-1)
 		s.clients++
 		s.held = false
 	}) {

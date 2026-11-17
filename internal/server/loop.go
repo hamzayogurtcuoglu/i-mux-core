@@ -75,7 +75,10 @@ type Server struct {
 
 	started time.Time // when the server started (start_time)
 
-	clients  int               // connected clients (in the loop)
+	clients int // connected clients (in the loop)
+	// accepted counts connections accepted but not yet counted in clients: their first event
+	// may be queued behind the one that would end the server.
+	accepted atomic.Int32
 	attached []*attachedClient // the attached ones, in the order they attached
 	held     bool              // HoldForClient, until the first client
 	killed   bool              // kill-server
@@ -472,7 +475,8 @@ func (s *Server) RemovePane(p *model.Pane) {
 // checkExit ends the server when it has no session and no client, as tmux's exit-empty does,
 // or once kill-server has run.
 func (s *Server) checkExit() {
-	if s.killed || (s.tree.Empty() && s.clients == 0 && !s.held) {
+	// A connected client keeps the server up (tmux's server_loop), counted from its accept.
+	if s.killed || (s.tree.Empty() && s.clients == 0 && s.accepted.Load() == 0 && !s.held) {
 		s.exiting = true
 	}
 }
