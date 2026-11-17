@@ -171,13 +171,13 @@ jobs:
         run: |
           .cache/bench/bench -tmux "$(./scripts/build-tmux.sh)" -core .cache/bench/imux-core \
             -imux .cache/bench/imux -fakes "$PWD/i-mux/e2e/fakeagents" -only startup -quick -trace || true
-      - name: Round trip and startup with GOMAXPROCS=1 (informational)
+      - name: Latency, round trip and startup with GOMAXPROCS=1 (informational)
         if: always()
         env:
           GOMAXPROCS: "1"
         run: |
           .cache/bench/bench -tmux "$(./scripts/build-tmux.sh)" -core .cache/bench/imux-core \
-            -imux .cache/bench/imux -fakes "$PWD/i-mux/e2e/fakeagents" -only round-trip,start,startup || true
+            -imux .cache/bench/imux -fakes "$PWD/i-mux/e2e/fakeagents" -only latency,round-trip,start,startup || true
       - name: Upload BENCHMARKS.md
         if: always()
         uses: actions/upload-artifact@v4
