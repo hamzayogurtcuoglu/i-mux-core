@@ -497,23 +497,17 @@ faster than either, which leaves the screen code room to stay within the ≤ 1.5
 
 ## 10. Performance targets
 
-Measured by benchmarks in Phase 6, each against tmux on the same machine:
+Measured by `scripts/bench.sh` (`cmd/bench`, C6.4), each against tmux 3.8 on the same machine,
+one engine after the other, and recorded in `BENCHMARKS.md`:
 
-| What | Target |
-| --- | --- |
-| Idle CPU, 10 sessions × 4 panes, nothing happening | ~0%: no wakeups beyond the status clock and timers |
-| Latency added from a key to the pane | ≤ tmux + 2 ms (p99) |
-| Throughput: `cat` of a 100 MB file into a pane | ≤ 1.5× tmux's time |
-| One command round trip (`display-message -p '#{pane_id}'`) | ≤ tmux + 1 ms (p50) |
-| Memory per pane with `history-limit 50000`, full | ≤ 2× tmux's |
-| i-mux startup to first frame (`imux` in a project) | no slower than on tmux |
-
-**Measured so far** (on the owner's Apple M-series Mac, 2026-11-15; Phase 6 measures them all
-properly):
-
-| What | i-mux-core | tmux 3.8 |
+| What | How it is measured | Target |
 | --- | --- | --- |
-| A full 50000-line history of 80-column text, a third of it coloured (C1.10) | 23.4 MiB Go heap for 50024 lines, 527 bytes a line (`BenchmarkHistoryMemory`) | 16.0 MiB more server RSS for the same output (46643 lines kept, as tmux collects a tenth at the limit) |
+| Idle CPU | 10 sessions × 4 panes of `cat` and one attached client, nothing happening, for 10 s; the server's CPU time | ≤ 0.5% of a core: no wakeups beyond the status clock and timers |
+| Latency from a key to the screen | A key typed into an attached client's terminal, echoed by the pane's program (`cat` in raw mode), until the echo reaches that terminal, at 50 ms between keys, 300 keys (p99) | ≤ tmux + 2 ms |
+| Throughput | `cat` of a 100 MB file of 80-column lines, a third coloured, into a 200×50 pane an attached client shows, until `cat` ends | ≤ 1.5× tmux's time |
+| One command round trip | `display-message -p '#{pane_id}'` from a new client process, 200 times (p50) | ≤ tmux + 1 ms |
+| Memory per pane | The server's resident memory growth for each of 4 panes filled past `history-limit 50000` with that text | ≤ 2× tmux's |
+| i-mux startup to its first frame | `imux claude` in a project in a 160×40 terminal, with i-mux's fake agents, until the sidebar shows (median of 5) | no slower than on tmux (within 10%, the measurement's noise) |
 
 ---
 

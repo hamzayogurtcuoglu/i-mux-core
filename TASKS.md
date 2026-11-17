@@ -1413,7 +1413,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Goal:** meet ARCHITECTURE.md §10.
 - **Details:**
   - `scripts/bench.sh` measures each target under tmux and i-mux-core on the same machine and
-    writes `BENCHMARKS.md`.
+    writes `BENCHMARKS.md`; ARCHITECTURE.md §10 says how each is measured. CI runs it on the
+    Linux and macOS runners and keeps `BENCHMARKS.md` as an artifact.
   - Profile and fix whatever misses its target.
 - **Acceptance:** every target met on the macOS and Linux CI runners, with the numbers recorded.
 - **Depends on:** C6.3.
