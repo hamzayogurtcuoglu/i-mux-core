@@ -19,6 +19,8 @@ run list-buffers -r -F '#{buffer_name}' ; list-buffers -O nope
 run list-buffers -f '#{==:#{buffer_name},fresh}'
 # Any format gives the top automatic buffer's buffer_* (format_defaults), here the newest.
 run display-message -p '#{buffer_name}|#{buffer_size}|#{buffer_sample}' ; display-message -p -t a '#{?buffer_size,has,none}'
+# show-buffer closes a command-line client's stdout: what is printed after it is lost.
+run show-buffer ; display-message -p after
 # Errors.
 run show-buffer -b nope ; delete-buffer -b nope ; set-buffer -n x -b nope ; paste-buffer -b nope
 run set-buffer -b '' x ; set-buffer -b empty ''

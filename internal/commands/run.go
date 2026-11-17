@@ -218,7 +218,15 @@ func (it *Item) setCurrent(st target.State) {
 }
 
 // Print writes a line of the command's output.
-func (it *Item) Print(s string) { it.Out.WriteString(s + "\n") }
+//
+// Once a file write to "-" has closed a command-line client's stdout (show-buffer), what is
+// printed after it is lost, as the tmux client drops writes to a closed stream.
+func (it *Item) Print(s string) {
+	if it.Client != nil && it.Client.Session == nil && it.Client.stdoutClosed {
+		return
+	}
+	it.Out.WriteString(s + "\n")
+}
 
 type execFunc func(*Item) error
 
