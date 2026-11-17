@@ -902,20 +902,6 @@ func (es *state) expression(m *modifier, copy string) (string, bool) {
 	return printfFloat(result, prec), true
 }
 
-// cLongLong is C's (long long) conversion of a double, as amd64 and arm64 do it for values
-// out of range.
-func cLongLong(f float64) int64 {
-	switch {
-	case math.IsNaN(f):
-		return math.MinInt64
-	case f >= math.MaxInt64:
-		return math.MinInt64
-	case f < math.MinInt64:
-		return math.MinInt64
-	}
-	return int64(f)
-}
-
 // printfFloat is printf("%.*f", prec, f); a negative precision is the default, 6.
 func printfFloat(f float64, prec int) string {
 	if prec < 0 {

@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-// Strftime is strftime(3) in the C locale, as glibc gives it: the conversions, the flags
+// strftimeGNU is strftime(3) in the C locale, as glibc gives it: the conversions, the flags
 // _ - 0 ^ # and a field width. An unknown conversion is copied as written.
-func Strftime(f string, t time.Time) string {
+func strftimeGNU(f string, t time.Time) string {
 	var b strings.Builder
 	for i := 0; i < len(f); i++ {
 		if f[i] != '%' {
@@ -88,7 +88,7 @@ func conversion(c byte, t time.Time, pad byte, width int, upper, swap bool) (str
 		return s, true
 	}
 	sub := func(f string) (string, bool) {
-		s := Strftime(f, t)
+		s := strftimeGNU(f, t)
 		if upper {
 			s = strings.ToUpper(s)
 		}

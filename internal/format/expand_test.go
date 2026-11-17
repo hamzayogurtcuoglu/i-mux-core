@@ -113,8 +113,8 @@ func TestStrftime(t *testing.T) {
 		"%z %Z":                "+0000 UTC",
 		"%":                    "%",
 	} {
-		if got := Strftime(f, tm); got != want {
-			t.Errorf("Strftime(%q) = %q, want %q", f, got, want)
+		if got := strftimeGNU(f, tm); got != want {
+			t.Errorf("strftimeGNU(%q) = %q, want %q", f, got, want)
 		}
 	}
 }
@@ -221,4 +221,26 @@ func FuzzExpand(f *testing.F) {
 			t.Errorf("%q took %v", s, d)
 		}
 	})
+}
+
+// strftimeBSD is macOS's strftime: glibc's flags and %P are the characters themselves, E and O
+// are skipped, - _ 0 pad numbers (what tmux 3.8 on macOS gives, testdata/diff/formats.txt).
+func TestStrftimeBSD(t *testing.T) {
+	tm := time.Date(2026, 11, 17, 18, 5, 9, 0, time.UTC)
+	for f, want := range map[string]string{
+		"%p %P %I %l %k":                "PM P 06  6 18",
+		"%Q %E %O":                      "Q  O",
+		"%-d %_m %05Y %^a %#b":          "17 11 5Y ^a #b",
+		"%H:%M %d-%b-%y":                "18:05 17-Nov-26",
+		"%e|%-e|%0e|%_d|%j|%-j|%u|%w|%": "17|17|17|17|321|321|2|2|%",
+		"%-":                            "-",
+		"%e:":                           "17:",
+		"#{e|%:17,5}":                   "#{e|:17,5}",
+		"%c":                            "Tue Nov 17 18:05:09 2026",
+		"%z %Z %s":                      "+0000 UTC 1794938709",
+	} {
+		if got := strftimeBSD(f, tm); got != want {
+			t.Errorf("strftimeBSD(%q) = %q, want %q", f, got, want)
+		}
+	}
 }

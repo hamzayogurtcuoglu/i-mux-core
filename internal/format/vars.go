@@ -148,9 +148,6 @@ func windowFlags(wl *model.Winlink, escape bool) string {
 	return b.String()
 }
 
-// sig2name is tmux's sig2name on a system without sys_signame: the number.
-func sig2name(sig int) string { return strconv.Itoa(sig) }
-
 var stringVars map[string]stringVar
 
 var timeVars = map[string]timeVar{

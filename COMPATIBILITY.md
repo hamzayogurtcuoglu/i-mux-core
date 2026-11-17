@@ -331,7 +331,10 @@ as tmux's (`testdata/diff/screen.txt`).
 ### Time
 
 Status formats and `display-message` go through strftime: i-mux uses `%H:%M` in `status-right`,
-and doubles `%` in literal messages.
+and doubles `%` in literal messages. tmux calls the system's strftime, so the engine follows
+each system's: glibc's on Linux (the flags `_ - 0 ^ #`, `%P`, field widths), FreeBSD's on macOS
+(only `- _ 0`; `%P`, `%^a` and the like are the characters themselves, and so is `%:`, which
+makes `#{e|%:17,5}` an expression with no operator there).
 
 ### The engine (C3.5)
 
@@ -350,11 +353,13 @@ source and generated config among them):
 - `show-options` prints through tmux's own template (`option_name`, `option_value`, …), and `-F`
   takes another; `set-option -F` expands the value for the target.
 - Quirks kept: `#{s/x*/-/:ab}` is `a-b-` (no empty match before the first character); a key
-  that does not end (`#{session_name`) ends the expansion; `#{e|/:1,0}` is
-  `-9223372036854775808`, as C's conversion of infinity.
+  that does not end (`#{session_name`) ends the expansion; `#{e|/:1,0}` is C's conversion
+  of infinity, which depends on the processor: `-9223372036854775808` on amd64,
+  `9223372036854775808` on arm64 (which saturates).
 - `#{version}` is `3.8`, the tmux the engine follows (`imux-core -V` names both).
 - A window named with `-n` has `automatic-rename` off, as tmux's `spawn.c` does.
-- `pane_dead_signal` is the signal's number, as tmux on a system without `sys_signame` (Linux).
+- `pane_dead_signal` is the signal's number on Linux, which has no `sys_signame`, and its name
+  (`kill`, `term`, …) on macOS, as tmux's `sig2name`.
 
 Not yet, with the task that brings each: `#(…)` gives nothing (C4.2's status jobs); `#{A:…}`
 moves only in status formats (C4.2); `#{C:…}` gives `0` (copy mode's search, not in the subset); `pane_fg` and
