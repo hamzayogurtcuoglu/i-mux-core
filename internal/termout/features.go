@@ -16,7 +16,10 @@
 
 package termout
 
-import "strings"
+import (
+	"strings"
+	"sync"
+)
 
 // Terminal flags, as tmux's TERM_*.
 const (
@@ -39,46 +42,48 @@ type feature struct {
 }
 
 // features are tmux's, in its order: a feature's bit is its index.
-var features = []feature{
-	{"256", []string{
-		"AX",
-		`setab=\E[%?%p1%{8}%<%t4%p1%d%e%p1%{16}%<%t10%p1%{8}%-%d%e48;5;%p1%d%;m`,
-		`setaf=\E[%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m`,
-	}, Term256Colours},
-	{"appesc", []string{`Enesc=\E[?7727h`, `Dsesc=\E[?7727l`}, 0},
-	{"bpaste", []string{`Enbp=\E[?2004h`, `Dsbp=\E[?2004l`}, 0},
-	{"ccolour", []string{`Cs=\E]12;%p1%s\a`, `Cr=\E]112\a`}, 0},
-	{"clipboard", []string{`Ms=\E]52;%p1%s;%p2%s\a`}, 0},
-	{"hyperlinks", []string{`Hls=\E]8;%?%p1%l%tid=%p1%s%;;%p2%s\E\\`}, 0},
-	{"cstyle", []string{`Ss=\E[%p1%d q`, `Se=\E[2 q`}, termNoReplace},
-	{"extkeys", []string{`Eneks=\E[>4;2m`, `Dseks=\E[>4m`}, 0},
-	{"focus", []string{`Enfcs=\E[?1004h`, `Dsfcs=\E[?1004l`}, 0},
-	{"ignorefkeys", ignoreFKeys(), 0},
-	{"margins", []string{`Enmg=\E[?69h`, `Dsmg=\E[?69l`, `Clmg=\E[s`, `Cmg=\E[%i%p1%d;%p2%ds`}, TermDECSLRM},
-	{"mouse", []string{`kmous=\E[M`}, 0},
-	{"osc7", []string{`Swd=\E]7;`, `fsl=\a`}, 0},
-	{"overline", []string{`Smol=\E[53m`}, 0},
-	{"progressbar", []string{`Spb=\E]9;4;%p1%d;%p2%d\E\\`}, 0},
-	{"rectfill", []string{"Rect"}, TermDECFRA},
-	{"RGB", []string{
-		"AX",
-		`setrgbf=\E[38;2;%p1%d;%p2%d;%p3%dm`,
-		`setrgbb=\E[48;2;%p1%d;%p2%d;%p3%dm`,
-		`setab=\E[%?%p1%{8}%<%t4%p1%d%e%p1%{16}%<%t10%p1%{8}%-%d%e48;5;%p1%d%;m`,
-		`setaf=\E[%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m`,
-	}, Term256Colours | TermRGBColours},
-	{"sixel", []string{"Sxl"}, TermSixel},
-	{"strikethrough", []string{`smxx=\E[9m`}, 0},
-	{"sync", []string{`Sync=\E[?2026%?%p1%{1}%-%tl%eh%;`}, 0},
-	{"title", []string{`tsl=\E]0;`, `fsl=\a`}, 0},
-	{"usstyle", []string{
-		`Smulx=\E[4::%p1%dm`,
-		`Setulc=\E[58::2::%p1%{65536}%/%d::%p1%{256}%/%{255}%&%d::%p1%{255}%&%d%;m`,
-		`Setulc1=\E[58::5::%p1%dm`,
-		`ol=\E[59m`,
-	}, 0},
-	{"utf8", nil, 0},
-}
+var features = sync.OnceValue(func() []feature {
+	return []feature{
+		{"256", []string{
+			"AX",
+			`setab=\E[%?%p1%{8}%<%t4%p1%d%e%p1%{16}%<%t10%p1%{8}%-%d%e48;5;%p1%d%;m`,
+			`setaf=\E[%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m`,
+		}, Term256Colours},
+		{"appesc", []string{`Enesc=\E[?7727h`, `Dsesc=\E[?7727l`}, 0},
+		{"bpaste", []string{`Enbp=\E[?2004h`, `Dsbp=\E[?2004l`}, 0},
+		{"ccolour", []string{`Cs=\E]12;%p1%s\a`, `Cr=\E]112\a`}, 0},
+		{"clipboard", []string{`Ms=\E]52;%p1%s;%p2%s\a`}, 0},
+		{"hyperlinks", []string{`Hls=\E]8;%?%p1%l%tid=%p1%s%;;%p2%s\E\\`}, 0},
+		{"cstyle", []string{`Ss=\E[%p1%d q`, `Se=\E[2 q`}, termNoReplace},
+		{"extkeys", []string{`Eneks=\E[>4;2m`, `Dseks=\E[>4m`}, 0},
+		{"focus", []string{`Enfcs=\E[?1004h`, `Dsfcs=\E[?1004l`}, 0},
+		{"ignorefkeys", ignoreFKeys(), 0},
+		{"margins", []string{`Enmg=\E[?69h`, `Dsmg=\E[?69l`, `Clmg=\E[s`, `Cmg=\E[%i%p1%d;%p2%ds`}, TermDECSLRM},
+		{"mouse", []string{`kmous=\E[M`}, 0},
+		{"osc7", []string{`Swd=\E]7;`, `fsl=\a`}, 0},
+		{"overline", []string{`Smol=\E[53m`}, 0},
+		{"progressbar", []string{`Spb=\E]9;4;%p1%d;%p2%d\E\\`}, 0},
+		{"rectfill", []string{"Rect"}, TermDECFRA},
+		{"RGB", []string{
+			"AX",
+			`setrgbf=\E[38;2;%p1%d;%p2%d;%p3%dm`,
+			`setrgbb=\E[48;2;%p1%d;%p2%d;%p3%dm`,
+			`setab=\E[%?%p1%{8}%<%t4%p1%d%e%p1%{16}%<%t10%p1%{8}%-%d%e48;5;%p1%d%;m`,
+			`setaf=\E[%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m`,
+		}, Term256Colours | TermRGBColours},
+		{"sixel", []string{"Sxl"}, TermSixel},
+		{"strikethrough", []string{`smxx=\E[9m`}, 0},
+		{"sync", []string{`Sync=\E[?2026%?%p1%{1}%-%tl%eh%;`}, 0},
+		{"title", []string{`tsl=\E]0;`, `fsl=\a`}, 0},
+		{"usstyle", []string{
+			`Smulx=\E[4::%p1%dm`,
+			`Setulc=\E[58::2::%p1%{65536}%/%d::%p1%{256}%/%{255}%&%d::%p1%{255}%&%d%;m`,
+			`Setulc1=\E[58::5::%p1%dm`,
+			`ol=\E[59m`,
+		}, 0},
+		{"utf8", nil, 0},
+	}
+})
 
 func ignoreFKeys() []string {
 	out := make([]string, 0, 64)
@@ -110,7 +115,7 @@ func (f *Features) Parse(s, sep string) {
 			next = next[:len(next)-1]
 		}
 		i := -1
-		for j, tf := range features {
+		for j, tf := range features() {
 			if strings.EqualFold(tf.name, next) {
 				i = j
 				break
@@ -147,7 +152,7 @@ func splitAny(s, sep string) []string {
 // FeatureNames lists features as tmux's tty_get_features ("256,bpaste,…").
 func FeatureNames(set int) string {
 	var names []string
-	for i, tf := range features {
+	for i, tf := range features() {
 		if set&(1<<i) != 0 {
 			names = append(names, tf.name)
 		}
@@ -178,7 +183,7 @@ func (f *Features) Default(name string) {
 // String is tmux's tty_get_features: the enabled features' names, separated by commas.
 func (f Features) String() string {
 	var names []string
-	for i, tf := range features {
+	for i, tf := range features() {
 		if f.Enabled&(1<<i) != 0 {
 			names = append(names, tf.name)
 		}

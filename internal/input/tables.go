@@ -16,7 +16,11 @@
 
 package input
 
-import k "github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
+import (
+	"sync"
+
+	k "github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
+)
 
 // The keys a client terminal sends, as tmux knows them: fixed sequences, xterm's modified
 // keys, and those named by the terminal's terminfo entry.
@@ -202,7 +206,7 @@ type codeKey struct {
 }
 
 // codeKeys is tmux's tty_default_code_keys: keys named by terminfo capabilities.
-var codeKeys = func() []codeKey {
+var codeKeys = sync.OnceValue(func() []codeKey {
 	m := k.Meta | k.ImpliedMeta
 	var out []codeKey
 	fn := []k.Key{k.F1, k.F2, k.F3, k.F4, k.F5, k.F6, k.F7, k.F8, k.F9, k.F10, k.F11, k.F12}
@@ -255,7 +259,7 @@ var codeKeys = func() []codeKey {
 		}
 	}
 	return out
-}()
+})
 
 func itoa(n int) string {
 	if n < 10 {

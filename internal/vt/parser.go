@@ -14,7 +14,10 @@
 
 package vt
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // The parser is ported from tmux 3.8's input.c: the same states, the same transition tables,
 // the same limits and the same UTF-8 handling, so that malformed input is taken apart the way
@@ -271,10 +274,13 @@ var tables = [numStates][]transition{
 	},
 }
 
-// lookup is tables flattened: lookup[state][byte].
-var lookup [numStates][256]transition
+// lookup is tables flattened: lookup[state][byte], built by the first NewParser.
+var (
+	lookup     [numStates][256]transition
+	lookupOnce sync.Once
+)
 
-func init() {
+func buildLookup() {
 	for s := range numStates {
 		t := tables[s]
 		if s != stDcsHandler && s != stDcsEscape {
@@ -330,6 +336,7 @@ type Parser struct {
 
 // NewParser returns a parser in the ground state.
 func NewParser(h Handler) *Parser {
+	lookupOnce.Do(buildLookup)
 	return &Parser{h: h, input: make([]byte, 0, 32)}
 }
 

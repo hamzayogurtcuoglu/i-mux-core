@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
@@ -241,10 +242,20 @@ type execFunc func(*Item) error
 
 // implemented are the commands the engine runs so far; the rest of tmux's table is known (for
 // lookup and argument errors) but not run yet. The command table grows in task C3.2.
-var implemented map[string]execFunc
+var (
+	implemented     map[string]execFunc
+	implementedOnce sync.Once
+)
 
-// The table is filled in init: its commands run command lists themselves (hooks).
-func init() {
+// implementedCommand is the function that runs a command, or nil. The table is built the first
+// time, not at program start (which every client pays for), and by a function rather than a
+// variable's initializer: its commands run command lists themselves (hooks).
+func implementedCommand(name string) execFunc {
+	implementedOnce.Do(buildImplemented)
+	return implemented[name]
+}
+
+func buildImplemented() {
 	implemented = map[string]execFunc{
 		"new-session":         newSession,
 		"has-session":         hasSession,

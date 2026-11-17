@@ -112,7 +112,7 @@ func New(term *termout.Term, erase int) *Parser {
 		p.add(r.s, r.key)
 	}
 	if term != nil {
-		for _, c := range codeKeys {
+		for _, c := range codeKeys() {
 			if s := term.String(c.cap); s != "" {
 				p.add(s, c.key)
 			}

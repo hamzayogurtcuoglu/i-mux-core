@@ -223,7 +223,7 @@ func (t *Term) ApplyFeatures() bool {
 	if feat == 0 {
 		return false
 	}
-	for i, tf := range features {
+	for i, tf := range features() {
 		if t.applied&(1<<i) != 0 || feat&(1<<i) == 0 {
 			continue
 		}

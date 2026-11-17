@@ -107,7 +107,7 @@ func (rs *runState) next() {
 
 // exec runs one command, then what it inserted after itself, then k.
 func (rs *runState) exec(cmd *Command, k func()) {
-	f := implemented[cmd.Spec.Name]
+	f := implementedCommand(cmd.Spec.Name)
 	if f == nil {
 		if rs.warned != nil && rs.warned[cmd.Spec.Name] {
 			// A config warns once for each command it uses that is not implemented.

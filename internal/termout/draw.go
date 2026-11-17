@@ -476,7 +476,7 @@ func (t *TTY) checkCodeset(gc *vt.Cell) *vt.Cell {
 		return gc
 	}
 	n := *gc
-	if c, ok := acsReverse[gc.Data]; ok {
+	if c, ok := acsReverse()[gc.Data]; ok {
 		n.Data = string(c)
 		n.Attr |= vt.AttrCharset
 		return &n
