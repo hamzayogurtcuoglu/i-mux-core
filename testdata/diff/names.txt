@@ -40,6 +40,8 @@ run display -p -t u '#{pane_title}' ; set -gu allow-set-title
 # ESC k: a window name from the program, only with allow-rename on.
 run new-session -d -s k 'sleep 0.2; printf "\033kfromprog\033\\\\x"; exec cat'
 wait -t k '#{cursor_x}' == 1
+# The name follows the program (sleep, sh, then cat): wait for it to settle.
+wait -t k '#{window_name}' == cat
 run display -p -t k '#{window_name}|#{automatic-rename}'
 run set -g allow-rename on ; new-session -d -s r 'sleep 0.2; printf "\033kfromprog\033\\\\x"; exec cat'
 wait -t r '#{window_name}' == fromprog
