@@ -567,7 +567,8 @@ func imuxStartup(te, ce engine) (result, result) {
 			imuxOnce(e, true)
 		}
 	}
-	return result{percentile(secs[0], 0.5), "s"}, result{percentile(secs[1], 0.5), "s"}
+	// In ms: at a tenth of a second, 10% is below the seconds' second decimal.
+	return result{percentile(secs[0], 0.5) * 1000, "ms"}, result{percentile(secs[1], 0.5) * 1000, "ms"}
 }
 
 // imuxOnce runs i-mux once and returns the seconds until the sidebar shows; traced, every
