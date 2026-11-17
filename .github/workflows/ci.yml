@@ -166,6 +166,11 @@ jobs:
           key: tmux-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build-tmux.sh') }}
       - name: Measure
         run: ./scripts/bench.sh i-mux
+      - name: Startup timeline (informational)
+        if: always()
+        run: |
+          .cache/bench/bench -tmux "$(./scripts/build-tmux.sh)" -core .cache/bench/imux-core \
+            -imux .cache/bench/imux -fakes "$PWD/i-mux/e2e/fakeagents" -only startup -quick -trace || true
       - name: Upload BENCHMARKS.md
         if: always()
         uses: actions/upload-artifact@v4

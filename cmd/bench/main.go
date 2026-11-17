@@ -2,7 +2,7 @@
 // the same machine, one engine after the other, and prints them as BENCHMARKS.md's table
 // (TASKS.md C6.4). scripts/bench.sh runs it.
 //
-//	bench -tmux PATH -core PATH [-imux PATH -fakes DIR] [-only NAME,…] [-quick]
+//	bench -tmux PATH -core PATH [-imux PATH -fakes DIR] [-only NAME,…] [-quick] [-trace]
 //
 // Every run has its own socket, HOME and TMUX_TMPDIR under a temporary directory, and an empty
 // config: the owner's servers and files are never touched.
@@ -426,6 +426,80 @@ func memoryPerPane(e engine) result {
 // startup is set by -imux and -fakes: i-mux's startup to its first frame is measured.
 var imuxBin, fakesDir string
 
+// traceStartup is -trace: after the startup measure, one more run of each engine, with every
+// call i-mux makes to it printed with its start and duration, to see where the time goes.
+var traceStartup bool
+
+// The trace's shim: the bench binary stands in for tmux in i-mux's PATH, runs the engine named
+// by traceReal and appends each call's start and end to traceLog.
+const (
+	traceReal = "IMUX_BENCH_TRACE_REAL"
+	traceLog  = "IMUX_BENCH_TRACE_LOG"
+)
+
+// traceShim runs the engine with this process's arguments and logs the call; it returns the
+// engine's exit code.
+func traceShim(real string) int {
+	// The command, without the socket, config and -u that i-mux puts before every one.
+	words := os.Args[1:]
+	for len(words) > 0 {
+		switch {
+		case (words[0] == "-L" || words[0] == "-f") && len(words) > 1:
+			words = words[2:]
+			continue
+		case words[0] == "-u":
+			words = words[1:]
+			continue
+		}
+		break
+	}
+	args := strings.Join(words, " ")
+	logLine := func(s string) {
+		f, err := os.OpenFile(os.Getenv(traceLog), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+		if err != nil {
+			return
+		}
+		_, _ = f.WriteString(s)
+		_ = f.Close()
+	}
+	logLine(fmt.Sprintf("%d S %s\n", time.Now().UnixNano(), args))
+	cmd := exec.Command(real, os.Args[1:]...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	err := cmd.Run()
+	code := 0
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		code = ee.ExitCode()
+	} else if err != nil {
+		code = 127
+	}
+	logLine(fmt.Sprintf("%d E%d %s\n", time.Now().UnixNano(), code, args))
+	return code
+}
+
+// printTrace prints a traced run's calls, in ms from i-mux's start, then when the sidebar showed.
+func printTrace(name, logPath string, start, shown time.Time) {
+	b, err := os.ReadFile(logPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "bench: trace:", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "bench: %s startup, traced (each call runs through a shim, which adds its own start):\n", name)
+	for _, line := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+		ns, rest, _ := strings.Cut(line, " ")
+		t, err := strconv.ParseInt(ns, 10, 64)
+		if err != nil {
+			continue
+		}
+		rest = strings.ReplaceAll(rest, "\t", " ")
+		if len(rest) > 110 {
+			rest = rest[:110] + "…"
+		}
+		fmt.Fprintf(os.Stderr, "  %7.1f ms  %s\n", float64(t-start.UnixNano())/1e6, rest)
+	}
+	fmt.Fprintf(os.Stderr, "  %7.1f ms  the sidebar shows\n", float64(shown.Sub(start).Microseconds())/1e3)
+}
+
 // imuxStartup: imux claude in a project in a 160×40 terminal, with i-mux's fake agents, until
 // the sidebar shows; the median of 5.
 func imuxStartup(e engine) result {
@@ -435,12 +509,17 @@ func imuxStartup(e engine) result {
 		n = 2
 	}
 	for range n {
-		secs = append(secs, imuxOnce(e))
+		secs = append(secs, imuxOnce(e, false))
+	}
+	if traceStartup {
+		imuxOnce(e, true)
 	}
 	return result{percentile(secs, 0.5), "s"}
 }
 
-func imuxOnce(e engine) float64 {
+// imuxOnce runs i-mux once and returns the seconds until the sidebar shows; traced, every
+// engine call goes through the bench's shim and the calls are printed.
+func imuxOnce(e engine, traced bool) float64 {
 	dir, err := os.MkdirTemp(tempBase, "ib-")
 	if err != nil {
 		fail(err)
@@ -459,7 +538,17 @@ func imuxOnce(e engine) float64 {
 			fail(err)
 		}
 	}
-	if err := os.Symlink(e.path, filepath.Join(bin, "tmux")); err != nil {
+	target := e.path
+	var trace []string
+	if traced {
+		self, err := os.Executable()
+		if err != nil {
+			fail(err)
+		}
+		target = self
+		trace = []string{traceReal + "=" + e.path, traceLog + "=" + filepath.Join(dir, "calls")}
+	}
+	if err := os.Symlink(target, filepath.Join(bin, "tmux")); err != nil {
 		fail(err)
 	}
 	var cfg strings.Builder
@@ -479,6 +568,7 @@ func imuxOnce(e engine) float64 {
 		"IMUX_TMUX_SOCKET=" + socket, "IMUX_FAKE_LOG=" + log, "TERM=xterm-256color", "SHELL=/bin/sh",
 		"PATH=" + bin + ":/usr/bin:/bin", "TMUX_TMPDIR=" + filepath.Join(dir, "tmp"), "LANG=C.UTF-8",
 	}
+	env = append(env, trace...)
 	if err := os.Mkdir(filepath.Join(dir, "tmp"), 0o700); err != nil {
 		fail(err)
 	}
@@ -517,7 +607,11 @@ func imuxOnce(e engine) float64 {
 		tail := out[max(len(out)-2000, 0):]
 		mu.Unlock()
 		if shown {
-			return time.Since(start).Seconds()
+			end := time.Now()
+			if traced {
+				printTrace(e.name, filepath.Join(dir, "calls"), start, end)
+			}
+			return end.Sub(start).Seconds()
 		}
 		if time.Now().After(deadline) {
 			fail(fmt.Errorf("%s: the sidebar did not show; imux wrote last: %q", e.name, tail))
@@ -527,12 +621,16 @@ func imuxOnce(e engine) float64 {
 }
 
 func main() {
+	if real := os.Getenv(traceReal); real != "" {
+		os.Exit(traceShim(real))
+	}
 	tmuxPath := flag.String("tmux", "", "the pinned tmux")
 	corePath := flag.String("core", "", "imux-core")
 	flag.StringVar(&imuxBin, "imux", "", "i-mux's binary, for its startup (optional)")
 	flag.StringVar(&fakesDir, "fakes", "", "i-mux's e2e/fakeagents, with -imux")
 	only := flag.String("only", "", "the measures to run, by name, separated by commas")
 	flag.BoolVar(&quick, "quick", false, "shorter runs, for a check rather than a record")
+	flag.BoolVar(&traceStartup, "trace", false, "with startup: one more run of each engine, its calls printed")
 	flag.Parse()
 	if *tmuxPath == "" || *corePath == "" {
 		fail(errors.New("usage: bench -tmux PATH -core PATH [-imux PATH -fakes DIR] [-only NAME,…] [-quick]"))
