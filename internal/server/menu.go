@@ -214,7 +214,7 @@ func (s *Server) menuMouse(c *attachedClient, m input.Mouse) (x, y int) {
 }
 
 // menuKey is menu_key: what a key does to the window's menu. It reports whether the menu
-// closes.
+// is to be closed (a chosen item closes it itself, before its command runs).
 func (s *Server) menuKey(c *attachedClient, md *menu, ev *input.Event) bool {
 	items := md.spec.Items
 	n := len(items)
@@ -232,8 +232,12 @@ func (s *Server) menuKey(c *attachedClient, md *menu, ev *input.Event) bool {
 		if !enabled(md.choice) {
 			return md.spec.Flags&commands.MenuStayOpen == 0
 		}
+		// menu_key_cb returns and the menu is gone before the item's command, queued with
+		// cmdq_append, runs: the menu is never drawn with the choice, and a menu the command
+		// opens is not the one closed.
+		s.closeMenu(md.w)
 		s.runMenuCommand(c, md, item.Command)
-		return true
+		return false
 	}
 
 	key := ev.Key

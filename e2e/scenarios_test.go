@@ -224,6 +224,25 @@ func TestMenuKeyRunsItsItem(t *testing.T) {
 	c.waitText("Pick me", true)
 }
 
+// A menu item chosen by its key closes the menu before its command runs, as tmux's menu_key_cb
+// does: the menu is not drawn again (with the choice), and a menu the command opens stays open
+// (C6.3, from i-mux's pin list).
+func TestMenuClosesBeforeItsItemRuns(t *testing.T) {
+	w := newWorld(t)
+	w.ok("new-session", "-d", "-s", "a", "exec cat")
+	c := w.attach(80, 24)
+	w.waitFormat("a", "#{session_attached}", "1")
+	w.ok("display-menu", "-c", w.clientName(), "-x", "C", "-y", "C", "-T", "Old", "First row", "1", "display-menu -x C -y C -T New 'Next row' n ''")
+	c.waitText("First row")
+	time.Sleep(100 * time.Millisecond) // the menu's frame is out
+	mark := len(c.output())
+	c.typ("1")
+	c.waitText("Next row")
+	if out := plain(c.output()[mark:]); strings.Contains(out, "First row") {
+		t.Fatalf("the menu was drawn again after its choice: %q", out)
+	}
+}
+
 func TestMenuEscapeCloses(t *testing.T) {
 	w := newWorld(t)
 	w.ok("new-session", "-d", "-s", "a", "exec cat")
