@@ -63,10 +63,10 @@ func newWorld(e engine) (*world, error) {
 	if err := os.WriteFile(w.conf, nil, 0o600); err != nil {
 		return nil, err
 	}
-	w.env = []string{
+	w.env = append([]string{
 		"HOME=" + home, "TMUX_TMPDIR=" + tmp, "TERM=xterm-256color", "LANG=C.UTF-8",
 		"PATH=/usr/bin:/bin", "SHELL=/bin/sh",
-	}
+	}, goRuntimeEnv()...)
 	return w, nil
 }
 
@@ -456,6 +456,19 @@ func memoryPerPane(e engine) result {
 	return result{float64(rss(pid)-before) / 4 / (1 << 20), "MiB"}
 }
 
+// goRuntimeEnv is the Go runtime's settings in the bench's environment (GOMAXPROCS, GOGC,
+// GOMEMLIMIT, GODEBUG), passed on to the engines so that an experiment can tune imux-core's;
+// tmux ignores them. Nothing else of the bench's environment reaches a run.
+func goRuntimeEnv() []string {
+	var env []string
+	for _, k := range []string{"GOMAXPROCS", "GOGC", "GOMEMLIMIT", "GODEBUG"} {
+		if v, ok := os.LookupEnv(k); ok {
+			env = append(env, k+"="+v)
+		}
+	}
+	return env
+}
+
 // startup is set by -imux and -fakes: i-mux's startup to its first frame is measured.
 var imuxBin, fakesDir string
 
@@ -609,6 +622,7 @@ func imuxOnce(e engine, traced bool) float64 {
 		"PATH=" + bin + ":/usr/bin:/bin", "TMUX_TMPDIR=" + filepath.Join(dir, "tmp"), "LANG=C.UTF-8",
 	}
 	env = append(env, trace...)
+	env = append(env, goRuntimeEnv()...)
 	if err := os.Mkdir(filepath.Join(dir, "tmp"), 0o700); err != nil {
 		fail(err)
 	}
