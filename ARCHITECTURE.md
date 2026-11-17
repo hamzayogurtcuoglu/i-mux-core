@@ -498,16 +498,19 @@ faster than either, which leaves the screen code room to stay within the ≤ 1.5
 ## 10. Performance targets
 
 Measured by `scripts/bench.sh` (`cmd/bench`, C6.4), each against tmux 3.8 on the same machine,
-one engine after the other, and recorded in `BENCHMARKS.md`:
+and recorded in `BENCHMARKS.md`. Most measures run one engine after the other; latency and
+startup, whose outliers on a shared CI runner come from the machine rather than the engine,
+take their samples in turns (one under tmux, then one under i-mux-core), so that a noisy
+moment falls on both:
 
 | What | How it is measured | Target |
 | --- | --- | --- |
 | Idle CPU | 10 sessions × 4 panes of `cat` and one attached client, nothing happening, for 10 s; the server's CPU time | ≤ 0.5% of a core: no wakeups beyond the status clock and timers |
-| Latency from a key to the screen | A key typed into an attached client's terminal, echoed by the pane's program (`cat` in raw mode), until the echo reaches that terminal, at 50 ms between keys, 300 keys (p99) | ≤ tmux + 2 ms |
+| Latency from a key to the screen | A key typed into an attached client's terminal, echoed by the pane's program (`cat` in raw mode), until the echo reaches that terminal, at 50 ms between keys, 300 keys, in turns with tmux (p99) | ≤ tmux + 2 ms |
 | Throughput | `cat` of a 100 MB file of 80-column lines, a third coloured, into a 200×50 pane an attached client shows, until `cat` ends | ≤ 1.5× tmux's time |
 | One command round trip | `display-message -p '#{pane_id}'` from a new client process, 200 times (p50) | ≤ tmux + 1 ms |
 | Memory per pane | The server's resident memory growth for each of 4 panes filled past `history-limit 50000` with that text | ≤ 2× tmux's |
-| i-mux startup to its first frame | `imux claude` in a project in a 160×40 terminal, with i-mux's fake agents, until the sidebar shows (median of 5) | no slower than on tmux (within 10%, the measurement's noise) |
+| i-mux startup to its first frame | `imux claude` in a project in a 160×40 terminal, with i-mux's fake agents, until the sidebar shows, in turns with tmux (median of 5) | no slower than on tmux (within 10%, the measurement's noise) |
 
 ---
 
