@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 )
 
 // The soak test (TASKS.md C6.5), run by the nightly job with the race detector:
@@ -36,6 +38,8 @@ type soakSample struct {
 	HeapMiB    float64
 	Commands   int64
 	Attaches   int64
+	Attached   int // the server's attached clients
+	Queued     int // events waiting for the loop
 }
 
 // openFDs counts the process's open files (/dev/fd on macOS and Linux).
@@ -197,15 +201,43 @@ func TestSoak(t *testing.T) {
 	// Samples every few seconds.
 	var samples []soakSample
 	every := max(duration/60, time.Second)
+	// The server's own state, from its loop; a loop that does not answer in a minute has
+	// stopped: the goroutines are written out and the test ends there, rather than at its
+	// timeout.
+	server := func() (attached, queued int) {
+		done := make(chan struct{})
+		go func() {
+			_ = s.Do(func(*model.Tree) { attached, queued = len(s.attached), len(s.events) })
+			close(done)
+		}()
+		select {
+		case <-done:
+			return attached, queued
+		case <-time.After(time.Minute):
+			_ = pprof.Lookup("goroutine").WriteTo(os.Stderr, 1)
+			t.Fatalf("at %s the server's loop has not answered for a minute", time.Since(start).Round(time.Second))
+			return 0, 0
+		}
+	}
+	logSamples := func() {
+		if p := os.Getenv("IMUX_SOAK_LOG"); p != "" {
+			if err := os.WriteFile(p, []byte(soakTable(samples)), 0o644); err != nil {
+				t.Error(err)
+			}
+		}
+	}
 	sample := func() {
 		runtime.GC()
 		var ms runtime.MemStats
 		runtime.ReadMemStats(&ms)
+		attached, queued := server()
 		samples = append(samples, soakSample{
 			At: time.Since(start).Round(time.Second), Goroutines: runtime.NumGoroutine(),
 			FDs: openFDs(t), HeapMiB: float64(ms.HeapInuse) / (1 << 20),
-			Commands: commands.Load(), Attaches: attaches.Load(),
+			Commands: commands.Load(), Attaches: attaches.Load(), Attached: attached, Queued: queued,
 		})
+		// Written as it goes, so that a run that fails or is stopped still leaves its samples.
+		logSamples()
 	}
 	tick := time.NewTicker(every)
 	deadline := time.After(duration)
@@ -222,18 +254,21 @@ loop:
 	close(stop)
 	wg.Wait()
 
-	var log strings.Builder
-	log.WriteString("| at | goroutines | fds | heap MiB | commands | attaches |\n| --- | --- | --- | --- | --- | --- |\n")
-	for _, x := range samples {
-		fmt.Fprintf(&log, "| %s | %d | %d | %.1f | %d | %d |\n", x.At, x.Goroutines, x.FDs, x.HeapMiB, x.Commands, x.Attaches)
-	}
-	if p := os.Getenv("IMUX_SOAK_LOG"); p != "" {
-		if err := os.WriteFile(p, []byte(log.String()), 0o644); err != nil {
-			t.Error(err)
-		}
-	}
-	t.Log("\n" + log.String())
+	logSamples()
+	t.Log("\n" + soakTable(samples))
 	soakCheck(t, samples)
+}
+
+// soakTable is the samples as a Markdown table.
+func soakTable(samples []soakSample) string {
+	var b strings.Builder
+	b.WriteString("| at | goroutines | fds | heap MiB | commands | attaches | attached | queued |\n")
+	b.WriteString("| --- | --- | --- | --- | --- | --- | --- | --- |\n")
+	for _, x := range samples {
+		fmt.Fprintf(&b, "| %s | %d | %d | %.1f | %d | %d | %d | %d |\n",
+			x.At, x.Goroutines, x.FDs, x.HeapMiB, x.Commands, x.Attaches, x.Attached, x.Queued)
+	}
+	return b.String()
 }
 
 // soakCheck fails when goroutines, open files or memory grew between the first and the last
@@ -262,6 +297,8 @@ func soakCheck(t *testing.T, samples []soakSample) {
 		{"goroutines", func(x soakSample) float64 { return float64(x.Goroutines) }, 20, 0.10},
 		{"open files", func(x soakSample) float64 { return float64(x.FDs) }, 10, 0.10},
 		{"heap", func(x soakSample) float64 { return x.HeapMiB }, 16, 0.25},
+		{"attached clients", func(x soakSample) float64 { return float64(x.Attached) }, 2, 0},
+		{"queued events", func(x soakSample) float64 { return float64(x.Queued) }, 50, 0},
 	} {
 		a, b := median(first, c.f), median(last, c.f)
 		if b > a*(1+c.ratio)+c.slack {
