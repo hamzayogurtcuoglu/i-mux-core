@@ -1,15 +1,18 @@
 # Window names, pane titles, current command and path (C3.7). A window's automatic name is
 # worked out when its pane writes or becomes active, at most every half second, so the
 # script waits for it rather than reading it at once.
+conf names.conf
 size 80x24
-# The default names, with automatic-rename off so that they stay.
-run set -g automatic-rename off
+# The default names, with automatic-rename off (names.conf, read as the server starts: a set
+# before any server exists does nothing) so that they stay.
 run new-session -d -s d -c / 'exec cat' ; new-window -t d -c / 'exec   cat -u' ; new-window -t d -c / '/bin/sleep 100' ; new-window -t d -c / sleep 100 ; new-window -t d -c / '"quoted cmd" x' ; new-window -t d -c / -- '-dash'
 run lsw -t d -F '#{window_index}:#{window_name}:#{automatic-rename}'
 run new-window -t d -c / -n 'named' 'exec cat' ; lsw -t d -F '#{window_index}:#{window_name}:#{automatic-rename}'
 run set -gu automatic-rename ; kill-session -t d
 # A pane running sleep in a directory: the window takes its name from automatic-rename-format.
-run new-session -d -s n -c /usr 'exec sleep 1000'
+# (Killing d ended the server, and this one read names.conf again: automatic-rename goes back to
+# its default.)
+run new-session -d -s n -c /usr 'exec sleep 1000' ; set -gu automatic-rename
 wait -t n '#{pane_current_command}' == sleep
 run set -w -t n automatic-rename on
 wait -t n '#{window_name}' == sleep

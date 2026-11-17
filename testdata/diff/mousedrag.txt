@@ -1,6 +1,8 @@
 # Border drag resizing (C5.4): tmux 3.8's MouseDrag1Border (resize-pane -M) moves the borders
 # under the drag as on tmux; pane sizes and frames after each drag are compared. "run run-shell
-# -d 0.4" waits out the click timeout between drags.
+# -d 0.4" waits out the click timeout between drags. messages.conf keeps the clock off the
+# status line, so a minute turning over between the engines' runs is no difference.
+conf messages.conf
 size 80x24
 run new-session -d -s a 'exec cat' ; split-window -h -l 40 -t a 'exec cat' ; split-window -v -t a:0.1 'exec cat'
 client c 80x24
