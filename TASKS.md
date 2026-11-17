@@ -1380,7 +1380,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   commit (`imux-e2e`, non-blocking) and keeps `PARITY.md` as an artifact; the engine's own
   scenarios run in CI too (`e2e`, Linux and macOS).
 
-### [ ] C6.3 Fix until every i-mux e2e test passes
+### [x] C6.3 Fix until every i-mux e2e test passes
 - **Goal:** full parity.
 - **Details:**
   - Work through `PARITY.md`.
@@ -1388,12 +1388,26 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Do **not** change i-mux's tests to make them pass. If a test depends on tmux behaviour that
     COMPATIBILITY.md missed, add that behaviour to the contract first.
 - **Acceptance:**
-  - All i-mux e2e tests pass on i-mux-core (108 at the pinned commit 397a70a; whatever the
-    pinned commit has).
+  - All i-mux e2e tests pass on i-mux-core (whatever the pinned commit has).
   - First, `-V` prints the E9 line i-mux reads as tmux 3.8, so the suite gets past its version
     check.
   - The CI job from C6.2 becomes blocking.
 - **Depends on:** C6.2.
+- **Status:** done. At i-mux 88903cc, 109 tests: 108 pass and one skips, as on tmux 3.8 (its
+  click on a menu runs before tmux 3.5 only). The causes, each with a test here:
+  - `-V` (E9): i-mux stopped at the version check in 97 tests; `version_test`.
+  - `refresh-client` was missing (`-S` is in the contract); `testdata/diff/refresh.txt`.
+  - The renderer wrote only the changed cells of a popup or the status line, so text i-mux's
+    harness looks for in the output after a mark was cut up (ARCHITECTURE.md §4.4);
+    `render`'s `TestWholeParts`.
+  - Focus events (`Enfcs`, which i-mux overrides to set the terminal's background) were never
+    sent: `tty_update_features` had the options off, and its start timer was missing;
+    `e2e`'s `TestFocusEventsWhenTheQueriesTimeOut`.
+  - A menu item chosen by key ran before the menu closed, so the menu was drawn again with the
+    choice, and a menu its command opened was closed; `e2e`'s `TestMenuClosesBeforeItsItemRuns`.
+  Under the full suite's load, two i-mux tests with timing limits of their own
+  (`TestHandoffPrintLargeSession`, `TestSessionPicker`'s p95) each failed once and passed alone
+  and in later runs; CI runs the suite at commit 88903cc, blocking.
 
 ### [ ] C6.4 Performance
 - **Goal:** meet ARCHITECTURE.md §10.

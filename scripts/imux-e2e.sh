@@ -6,7 +6,8 @@
 #   scripts/imux-e2e.sh [path to i-mux]      (default: ../i-mux)
 #
 # The suite runs on its own sockets and temporary homes, as it always does; nothing is
-# written to the i-mux repository. A failing suite still produces PARITY.md.
+# written to the i-mux repository. A failing suite still produces PARITY.md, and the script
+# then exits with the suite's status.
 set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -29,3 +30,4 @@ echo "imux-e2e: the suite exited with $status"
 commit=$(git -C "$imux" rev-parse --short HEAD 2>/dev/null || echo unknown)
 (cd "$root" && go run ./cmd/parity -commit "$commit" -notes parity/notes.txt "$cache/e2e.json" >PARITY.md)
 echo "imux-e2e: PARITY.md written"
+exit "$status"

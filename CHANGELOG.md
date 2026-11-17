@@ -111,3 +111,8 @@ All notable changes to i-mux-core are listed here. The format follows
 - i-mux's look end to end: sidebar, splits, tabs, agent bar and themes render as on tmux.
 - The engine's end-to-end scenarios (`make e2e`): 36 scenarios against imux-core alone.
 - i-mux's e2e suite on imux-core (`scripts/imux-e2e.sh`), reported in `PARITY.md`.
+- Parity: every test of i-mux's e2e suite passes on imux-core, and CI runs it blocking.
+  `imux-core -V` prints `tmux 3.8 (imux-core X.Y.Z)`, which i-mux reads as tmux 3.8;
+  `refresh-client` and `-S`; a changed status line, popup or menu is written whole, as tmux
+  draws them; focus events and extended keys turn on when the terminal's queries time out;
+  a menu closes before its chosen item runs.

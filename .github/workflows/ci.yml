@@ -103,13 +103,12 @@ jobs:
         run: make e2e
 
   imux-e2e:
-    # i-mux's own e2e suite on imux-core (TASKS.md C6.2), at a pinned i-mux commit. It does
-    # not block until every test passes (C6.3); PARITY.md is kept as an artifact.
+    # i-mux's own e2e suite on imux-core (TASKS.md C6.2), at a pinned i-mux commit. Every
+    # test passes (C6.3), so it blocks; PARITY.md is kept as an artifact.
     name: i-mux's e2e suite on imux-core
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
-      IMUX_COMMIT: 397a70abe24d659402c2e94e7cb4a593f153da7a
+      IMUX_COMMIT: 88903cca6c2b14affa6892b3c640eb0fdfada6c8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
