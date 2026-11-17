@@ -77,8 +77,10 @@ func ttyName(f *os.File) string {
 		}
 		for _, e := range entries {
 			p := filepath.Join(dir, e.Name())
+			// Lstat, as ttyname(3) looks: macOS's /dev/stderr and /dev/stdin are links to the
+			// same terminal, and come before its own name.
 			var dst unix.Stat_t
-			if unix.Stat(p, &dst) == nil && dst.Mode&unix.S_IFMT == unix.S_IFCHR && dst.Rdev == st.Rdev {
+			if unix.Lstat(p, &dst) == nil && dst.Mode&unix.S_IFMT == unix.S_IFCHR && dst.Rdev == st.Rdev {
 				return p
 			}
 		}
