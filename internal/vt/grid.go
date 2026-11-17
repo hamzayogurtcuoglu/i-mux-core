@@ -14,12 +14,14 @@
 
 package vt
 
+import "encoding/binary"
+
 // The grid is ported from tmux 3.8's grid.c. A grid is lines of cells; lines are only
 // allocated when written to. Lines 0 to HSize-1 are the history and HSize to HSize+Sy-1 the
 // screen. Everything here works on absolute line numbers; the view functions (view.go) work on
 // the screen's.
 //
-// Cells are stored as tmux stores them, to keep memory low: an 8-byte entry for a cell with
+// Cells are stored as tmux stores them, to keep memory low: a 5-byte entry for a cell with
 // one ASCII character, 8-bit attributes and 8 or 256-colour colours, and an extended entry for
 // anything else.
 
@@ -114,17 +116,25 @@ var (
 	clearedCell = Cell{Data: " ", Width: 1, Flags: FlagCleared, Fg: 8, Bg: 8, Us: 8}
 )
 
-// cellEntry is tmux's grid_cell_entry: flags, then either attr, fg, bg and one ASCII byte, or
-// (FlagExtended) an offset into the line's extended cells.
+// cellEntry is tmux's grid_cell_entry, packed as tmux packs it: 5 bytes, the union of attr,
+// fg, bg and one ASCII byte, or (FlagExtended) an offset into the line's extended cells, then
+// the flags. A history of 50000 lines of 80 cells is 4 million of them.
 type cellEntry struct {
+	u     [4]byte // attr, fg, bg, data; or the extended cell's offset
 	flags uint8
-	attr  uint8
-	fg    uint8
-	bg    uint8
-	data  uint32 // the character, or the extended cell's offset
 }
 
-var clearedEntry = cellEntry{flags: FlagCleared, attr: 0, fg: 8, bg: 8, data: ' '}
+func (e *cellEntry) attr() uint8 { return e.u[0] }
+func (e *cellEntry) fg() uint8   { return e.u[1] }
+func (e *cellEntry) bg() uint8   { return e.u[2] }
+func (e *cellEntry) data() byte  { return e.u[3] }
+
+// offset is the extended cell's index (FlagExtended).
+func (e *cellEntry) offset() uint32 { return binary.LittleEndian.Uint32(e.u[:]) }
+
+func (e *cellEntry) setOffset(n uint32) { binary.LittleEndian.PutUint32(e.u[:], n) }
+
+var clearedEntry = cellEntry{u: [4]byte{0, 8, 8, ' '}, flags: FlagCleared}
 
 // extdEntry is tmux's grid_extd_entry.
 type extdEntry struct {
@@ -193,16 +203,16 @@ func (gd *Grid) SetHistory(on bool) {
 
 func storeCell(gce *cellEntry, gc *Cell, c byte) {
 	gce.flags = gc.Flags &^ FlagCleared
-	gce.fg = uint8(gc.Fg & 0xff)
+	gce.u[1] = uint8(gc.Fg & 0xff)
 	if gc.Fg&ColorFlag256 != 0 {
 		gce.flags |= FlagFg256
 	}
-	gce.bg = uint8(gc.Bg & 0xff)
+	gce.u[2] = uint8(gc.Bg & 0xff)
 	if gc.Bg&ColorFlag256 != 0 {
 		gce.flags |= FlagBg256
 	}
-	gce.attr = uint8(gc.Attr)
-	gce.data = uint32(c)
+	gce.u[0] = uint8(gc.Attr)
+	gce.u[3] = c
 }
 
 func needExtendedCell(gce *cellEntry, gc *Cell) bool {
@@ -227,7 +237,7 @@ func needExtendedCell(gce *cellEntry, gc *Cell) bool {
 
 func (l *Line) getExtendedCell(gce *cellEntry, flags uint8) {
 	l.extd = append(l.extd, extdEntry{})
-	gce.data = uint32(len(l.extd) - 1)
+	gce.setOffset(uint32(len(l.extd) - 1))
 	gce.flags = flags | FlagExtended
 }
 
@@ -235,14 +245,14 @@ func (l *Line) extendedCell(gce *cellEntry, gc *Cell) *extdEntry {
 	flags := gc.Flags &^ FlagCleared
 	if gce.flags&FlagExtended == 0 {
 		l.getExtendedCell(gce, flags)
-	} else if int(gce.data) >= len(l.extd) {
+	} else if int(gce.offset()) >= len(l.extd) {
 		panic("vt: extended cell offset too big")
 	}
 	l.Flags |= LineExtended
 	if gc.Link != 0 {
 		l.Flags |= LineHyperlink
 	}
-	gee := &l.extd[gce.data]
+	gee := &l.extd[gce.offset()]
 	if gc.Flags&FlagTab != 0 {
 		gee.data = ""
 	} else {
@@ -275,8 +285,8 @@ func (l *Line) compact() {
 	for i := range l.cells {
 		gce := &l.cells[i]
 		if gce.flags&FlagExtended != 0 {
-			extd = append(extd, l.extd[gce.data])
-			gce.data = uint32(len(extd) - 1)
+			extd = append(extd, l.extd[gce.offset()])
+			gce.setOffset(uint32(len(extd) - 1))
 		}
 	}
 	l.extd = extd
@@ -288,14 +298,14 @@ func (gd *Grid) Line(py int) *Line { return &gd.lines[py] }
 func (gd *Grid) clearCell(px, py int, bg Color, moved bool) {
 	gl := &gd.lines[py]
 	gce := &gl.cells[px]
-	oldOffset := gce.data
+	oldOffset := gce.offset()
 	hadExtd := gce.flags&FlagExtended != 0
 
 	*gce = clearedEntry
 	switch {
 	case !moved && hadExtd && int(oldOffset) < len(gl.extd):
 		gce.flags |= FlagExtended
-		gce.data = oldOffset
+		gce.setOffset(oldOffset)
 		gee := gl.extendedCell(gce, &clearedCell)
 		if bg != 8 {
 			gee.bg = bg
@@ -309,7 +319,7 @@ func (gd *Grid) clearCell(px, py int, bg Color, moved bool) {
 			if bg&ColorFlag256 != 0 {
 				gce.flags |= FlagBg256
 			}
-			gce.bg = uint8(bg)
+			gce.u[2] = uint8(bg)
 		}
 	}
 }
@@ -478,11 +488,11 @@ func (gd *Grid) PeekLine(py int) *Line {
 func (l *Line) cell(px int, gc *Cell) {
 	gce := &l.cells[px]
 	if gce.flags&FlagExtended != 0 {
-		if int(gce.data) >= len(l.extd) {
+		if int(gce.offset()) >= len(l.extd) {
 			*gc = DefaultCell
 			return
 		}
-		gee := &l.extd[gce.data]
+		gee := &l.extd[gce.offset()]
 		gc.Flags = gee.flags
 		gc.Attr = gee.attr
 		gc.Fg, gc.Bg, gc.Us = gee.fg, gee.bg, gee.us
@@ -496,17 +506,17 @@ func (l *Line) cell(px int, gc *Cell) {
 		return
 	}
 	gc.Flags = gce.flags &^ (FlagFg256 | FlagBg256)
-	gc.Attr = uint16(gce.attr)
-	gc.Fg = Color(gce.fg)
+	gc.Attr = uint16(gce.attr())
+	gc.Fg = Color(gce.fg())
 	if gce.flags&FlagFg256 != 0 {
 		gc.Fg |= ColorFlag256
 	}
-	gc.Bg = Color(gce.bg)
+	gc.Bg = Color(gce.bg())
 	if gce.flags&FlagBg256 != 0 {
 		gc.Bg |= ColorFlag256
 	}
 	gc.Us = 8
-	gc.Data = asciiString(byte(gce.data))
+	gc.Data = asciiString(gce.data())
 	gc.Width = 1
 	gc.Link = 0
 }

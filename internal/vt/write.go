@@ -151,12 +151,12 @@ func (s *Screen) writeCell(gc *Cell) {
 			switch {
 			case gce.flags&FlagExtended != 0,
 				gc.Flags != gce.flags,
-				gc.Attr != uint16(gce.attr),
-				gc.Fg != Color(gce.fg),
-				gc.Bg != Color(gce.bg),
+				gc.Attr != uint16(gce.attr()),
+				gc.Fg != Color(gce.fg()),
+				gc.Bg != Color(gce.bg()),
 				gc.Width != 1,
 				len(gc.Data) != 1,
-				uint32(gc.Data[0]) != gce.data:
+				gc.Data[0] != gce.data():
 				skip = false
 			}
 		}
