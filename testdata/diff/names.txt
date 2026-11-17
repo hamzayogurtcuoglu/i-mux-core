@@ -46,4 +46,13 @@ run display -p -t k '#{window_name}|#{automatic-rename}'
 run set -g allow-rename on ; new-session -d -s r 'sleep 0.2; printf "\033kfromprog\033\\\\x"; exec cat'
 wait -t r '#{window_name}' == fromprog
 run display -p -t r '#{window_name}|#{automatic-rename}'
+# Entering and leaving copy mode changes the pane: automatic-rename names the window again.
+run new-session -d -s m 'exec cat'
+wait -t m '#{pane_current_command}' == cat
+run send-keys -t m x
+wait -t m '#{window_name}' == cat
+run copy-mode -t m
+wait -t m '#{window_name}' == '[tmux]'
+run send -X -t m cancel
+wait -t m '#{window_name}' == cat
 run kill-server

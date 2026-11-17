@@ -88,6 +88,8 @@ func (s *Server) CopyMode(p *model.Pane, spec commands.CopyModeSpec) {
 	if m == nil && p.Term != nil {
 		m = copymode.New(p, copyEnv{s}, spec.HidePosition, spec.ScrollExit)
 		p.Mode = m
+		// window_pane_set_mode sets PANE_CHANGED: automatic-rename looks at the pane again.
+		p.Changed = true
 		m.Redraw()
 		entered = true
 	}
@@ -118,6 +120,7 @@ func (s *Server) resetMode(p *model.Pane) {
 		return
 	}
 	p.Mode = nil
+	p.Changed = true // window_pane_reset_mode's PANE_CHANGED
 	s.modeChanged(p)
 }
 
