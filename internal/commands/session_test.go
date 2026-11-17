@@ -58,6 +58,10 @@ func (h *fakeHost) PaneKey(p *model.Pane, k keys.Key) bool {
 	return k != keys.Parse("C-BSpace")
 }
 
+func (h *fakeHost) PaneMouse(p *model.Pane, m *tgt.Mouse) {
+	h.sent = append(h.sent, fmt.Sprintf("%%%d mouse %d,%d", p.ID, m.X, m.Y))
+}
+
 func (h *fakeHost) OptionChanged(name string)             { h.options = append(h.options, name) }
 func (h *fakeHost) DefaultSize(*model.Session) (int, int) { return 80, 24 }
 func (h *fakeHost) RemovePane(p *model.Pane) {

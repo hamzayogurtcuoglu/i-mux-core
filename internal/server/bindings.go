@@ -150,7 +150,8 @@ func (s *Server) dispatch(c *attachedClient, key keys.Key, m *target.Mouse) {
 			return
 		}
 		if m != nil {
-			// A mouse key goes to the pane under the mouse (task C5.3).
+			// forward_key: a mouse key goes to the pane under the mouse.
+			s.forwardMouse(c, m)
 			return
 		}
 		if p := c.window().Active; p != nil {

@@ -1,0 +1,132 @@
+# Mouse into panes (C5.3): with tmux's default mouse bindings, a program that asked for the
+# mouse gets clicks, drags, the wheel and motion at its own coordinates, encoded as it asked
+# (1000, 1002 or 1003; 1006 or 1005 or neither); one that did not gets nothing. The fake TUI
+# appends what it reads to evN.out as hex; z ends each round. "run run-shell -d 0.4" waits out
+# the click timeout (300 ms) between presses, so each starts a new click sequence.
+size 80x24
+run new-session -d -s a 'exec cat'
+client c 80x24
+# x10
+run respawn-pane -k -t %0 'faketui -mode keys -init "\x1b[?1000h" -out ev0.out'
+waittext %0 'key READY'
+run display-message -p '#{mouse_any_flag}|#{mouse_standard_flag}|#{mouse_button_flag}|#{mouse_all_flag}|#{mouse_sgr_flag}|#{mouse_utf8_flag}'
+type c '\x1b[<0;11;6M'
+type c '\x1b[<0;11;6m'
+run run-shell -d 0.4
+type c '\x1b[<2;21;4M'
+type c '\x1b[<2;21;4m'
+run run-shell -d 0.4
+type c '\x1b[<0;6;6M'
+type c '\x1b[<32;8;6M'
+type c '\x1b[<32;9;7M'
+type c '\x1b[<0;9;7m'
+run run-shell -d 0.4
+type c '\x1b[<64;30;10M'
+type c '\x1b[<65;30;10M'
+type c '\x1b[<35;40;12M'
+run run-shell -d 0.4
+type c z
+waittext %0 '7a'
+run run-shell 'tr -d "\\n" < ev0.out; echo'
+# sgr
+run respawn-pane -k -t %0 'faketui -mode keys -init "\x1b[?1000h\x1b[?1006h" -out ev1.out'
+waittext %0 'key READY'
+run display-message -p '#{mouse_any_flag}|#{mouse_standard_flag}|#{mouse_button_flag}|#{mouse_all_flag}|#{mouse_sgr_flag}|#{mouse_utf8_flag}'
+type c '\x1b[<0;11;6M'
+type c '\x1b[<0;11;6m'
+run run-shell -d 0.4
+type c '\x1b[<2;21;4M'
+type c '\x1b[<2;21;4m'
+run run-shell -d 0.4
+type c '\x1b[<0;6;6M'
+type c '\x1b[<32;8;6M'
+type c '\x1b[<32;9;7M'
+type c '\x1b[<0;9;7m'
+run run-shell -d 0.4
+type c '\x1b[<64;30;10M'
+type c '\x1b[<65;30;10M'
+type c '\x1b[<35;40;12M'
+run run-shell -d 0.4
+type c z
+waittext %0 '7a'
+run run-shell 'tr -d "\\n" < ev1.out; echo'
+# button
+run respawn-pane -k -t %0 'faketui -mode keys -init "\x1b[?1002h\x1b[?1006h" -out ev2.out'
+waittext %0 'key READY'
+run display-message -p '#{mouse_any_flag}|#{mouse_standard_flag}|#{mouse_button_flag}|#{mouse_all_flag}|#{mouse_sgr_flag}|#{mouse_utf8_flag}'
+type c '\x1b[<0;11;6M'
+type c '\x1b[<0;11;6m'
+run run-shell -d 0.4
+type c '\x1b[<2;21;4M'
+type c '\x1b[<2;21;4m'
+run run-shell -d 0.4
+type c '\x1b[<0;6;6M'
+type c '\x1b[<32;8;6M'
+type c '\x1b[<32;9;7M'
+type c '\x1b[<0;9;7m'
+run run-shell -d 0.4
+type c '\x1b[<64;30;10M'
+type c '\x1b[<65;30;10M'
+type c '\x1b[<35;40;12M'
+run run-shell -d 0.4
+type c z
+waittext %0 '7a'
+run run-shell 'tr -d "\\n" < ev2.out; echo'
+# all
+run respawn-pane -k -t %0 'faketui -mode keys -init "\x1b[?1003h\x1b[?1006h" -out ev3.out'
+waittext %0 'key READY'
+run display-message -p '#{mouse_any_flag}|#{mouse_standard_flag}|#{mouse_button_flag}|#{mouse_all_flag}|#{mouse_sgr_flag}|#{mouse_utf8_flag}'
+type c '\x1b[<0;11;6M'
+type c '\x1b[<0;11;6m'
+run run-shell -d 0.4
+type c '\x1b[<2;21;4M'
+type c '\x1b[<2;21;4m'
+run run-shell -d 0.4
+type c '\x1b[<0;6;6M'
+type c '\x1b[<32;8;6M'
+type c '\x1b[<32;9;7M'
+type c '\x1b[<0;9;7m'
+run run-shell -d 0.4
+type c '\x1b[<64;30;10M'
+type c '\x1b[<65;30;10M'
+type c '\x1b[<35;40;12M'
+run run-shell -d 0.4
+type c z
+waittext %0 '7a'
+run run-shell 'tr -d "\\n" < ev3.out; echo'
+# utf8
+run respawn-pane -k -t %0 'faketui -mode keys -init "\x1b[?1002h\x1b[?1005h" -out ev4.out'
+waittext %0 'key READY'
+run display-message -p '#{mouse_any_flag}|#{mouse_standard_flag}|#{mouse_button_flag}|#{mouse_all_flag}|#{mouse_sgr_flag}|#{mouse_utf8_flag}'
+type c '\x1b[<0;11;6M'
+type c '\x1b[<0;11;6m'
+run run-shell -d 0.4
+type c '\x1b[<2;21;4M'
+type c '\x1b[<2;21;4m'
+run run-shell -d 0.4
+type c '\x1b[<0;6;6M'
+type c '\x1b[<32;8;6M'
+type c '\x1b[<32;9;7M'
+type c '\x1b[<0;9;7m'
+run run-shell -d 0.4
+type c '\x1b[<64;30;10M'
+type c '\x1b[<65;30;10M'
+type c '\x1b[<35;40;12M'
+run run-shell -d 0.4
+type c z
+waittext %0 '7a'
+run run-shell 'tr -d "\\n" < ev4.out; echo'
+# none
+run respawn-pane -k -t %0 'faketui -mode keys -out ev5.out'
+waittext %0 'key READY'
+run display-message -p '#{mouse_any_flag}|#{mouse_standard_flag}|#{mouse_button_flag}|#{mouse_all_flag}|#{mouse_sgr_flag}|#{mouse_utf8_flag}'
+type c '\x1b[<0;11;6M'
+type c '\x1b[<0;11;6m'
+run run-shell -d 0.4
+type c '\x1b[<65;30;10M'
+type c '\x1b[<35;40;12M'
+run run-shell -d 0.4
+type c z
+waittext %0 '7a'
+run run-shell 'tr -d "\\n" < ev5.out; echo'
+run kill-server

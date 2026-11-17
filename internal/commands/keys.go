@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -18,7 +19,7 @@ import (
 // literal text, -H hexadecimal bytes, -N repeats.
 func sendKeys(it *Item) error {
 	a := it.Cmd.Args
-	for _, f := range []byte("cFKMRX") {
+	for _, f := range []byte("cFKRX") {
 		if a.Has(f) {
 			return fmt.Errorf("send-keys -%c: not implemented by imux-core yet", f)
 		}
@@ -38,6 +39,19 @@ func sendKeys(it *Item) error {
 			return fmt.Errorf("repeat count %s is too small", s)
 		}
 		n = v
+	}
+	// -M: the key's mouse event goes to the pane under the mouse.
+	if a.Has('M') {
+		m := it.Mouse()
+		var mp *model.Pane
+		if m != nil {
+			_, _, mp = target.MousePane(it.Host.Tree(), m)
+		}
+		if mp == nil {
+			return errors.New("no mouse target")
+		}
+		it.Host.PaneMouse(mp, m)
+		return nil
 	}
 	args := a.Strings()
 	for range n {

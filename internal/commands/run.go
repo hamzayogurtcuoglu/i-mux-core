@@ -37,6 +37,9 @@ type Host interface {
 	// PaneKey sends a key to a pane, encoded as the pane asked (TASKS.md C2.11); false when
 	// the key has no encoding there.
 	PaneKey(p *model.Pane, k keys.Key) bool
+	// PaneMouse is window_pane_key for a mouse key: the event goes to the pane's program,
+	// encoded as it asked, if it asked for it.
+	PaneMouse(p *model.Pane, m *target.Mouse)
 	// OptionChanged tells the server an option was set, to apply and redraw what depends on
 	// it (tmux's options_push_changes).
 	OptionChanged(name string)

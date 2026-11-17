@@ -5,6 +5,7 @@ import (
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
 
@@ -28,6 +29,36 @@ func (s *Server) PaneKey(p *model.Pane, k keys.Key) bool {
 		_, _ = p.Proc.Write(b)
 	}
 	return ok
+}
+
+// PaneMouse is window_pane_key and input_key_mouse for a mouse key: the event goes to the
+// pane's program at its position in the pane, encoded as the program asked (mouse modes 1000,
+// 1002, 1003 and encodings 1005, 1006), and nowhere when it did not ask, the mouse is outside
+// the pane, the pane is hidden by a zoom, or the event is the click timer's double click.
+func (s *Server) PaneMouse(p *model.Pane, m *target.Mouse) {
+	if p == nil || m == nil || m.Ignore || p.Term == nil || p.Proc == nil || p.Dead {
+		return
+	}
+	// No mouse moves for a pane in a mode (copy mode, task C4.8): there is none yet.
+	x, y, ok := target.MouseAt(p, m, false)
+	if !ok {
+		return
+	}
+	if w := p.Window; w.Layout != nil {
+		if z := w.Layout.Zoomed(); z >= 0 && z != p.ID {
+			return
+		}
+	}
+	p.Mu.Lock()
+	mode := p.Term.Screen.Mode
+	p.Mu.Unlock()
+	if mode&vt.AllMouseModes == 0 {
+		return
+	}
+	b := keys.EncodeMouse(int(mode), keys.MouseEvent{B: m.B, LB: m.LB, SGRType: m.SGRType, SGRB: m.SGRB}, x, y)
+	if len(b) > 0 {
+		_, _ = p.Proc.Write(b)
+	}
 }
 
 // OptionChanged implements commands.Host: what depends on the option takes its new value

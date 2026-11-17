@@ -498,9 +498,21 @@ func (s *Server) mouseKey(c *attachedClient, m *target.Mouse, double bool) {
 		}
 		return
 	}
-	// Mouse keys with the mouse option off go to the pane (task C5.3).
+	// With the mouse option off, mouse keys go straight to the pane.
 	if c.session.Options.GetNumber("mouse") == 0 {
+		s.forwardMouse(c, m)
 		return
 	}
 	s.dispatch(c, key, m)
+}
+
+// forwardMouse is forward_key for a mouse key: the pane under the mouse (cmd_find_from_mouse),
+// else the client's active pane, gets the event.
+func (s *Server) forwardMouse(c *attachedClient, m *target.Mouse) {
+	st, ok := target.FromMouse(s.tree, m)
+	p := st.P
+	if !ok {
+		p = c.session.Current.Window.Active
+	}
+	s.PaneMouse(p, m)
 }

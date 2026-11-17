@@ -1278,7 +1278,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Depends on:** C5.1, C5.3 (the default press binding ends with `send -M`). It is done after
   C5.3.
 
-### [ ] C5.3 Mouse into panes
+### [x] C5.3 Mouse into panes
 - **Goal:** programs that asked for the mouse get it, encoded as they asked.
 - **Details:**
   - `send -M` forwards the current event to the pane per its mouse mode (1000, 1002 or 1003) and
@@ -1288,6 +1288,11 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** the fake TUI's mouse echo matches tmux's for clicks, drags and the wheel in
   each mode.
 - **Depends on:** C5.1.
+- **Status:** done. `send -M`, a mouse key that is not bound and any mouse key with `mouse off`
+  give the event to the pane under the mouse (`PaneMouse`, tmux's `input_key_mouse`), at its
+  coordinates and in its mode and encoding; `mouse_utf8_flag` joins the mode flags.
+  `testdata/diff/mousepanes.txt` drives the fake TUI in modes 1000, 1000+1006, 1002+1006,
+  1003+1006, 1002+1005 and none with tmux's default bindings, and its bytes match tmux's.
 
 ### [ ] C5.4 Border drag resizing
 - **Goal:** dragging a border resizes panes like tmux.

@@ -33,6 +33,8 @@ func TestSendKeys(t *testing.T) {
 		{[]string{"-t", "nope:", "x"}, nil, "can't find session: nope"},
 		{[]string{"-t", "a:7", "x"}, nil, "can't find window: 7"},
 		{[]string{"-t", "a:0.3", "x"}, nil, "can't find pane: 3"},
+		// -M with no mouse event: a command line has none.
+		{[]string{"-M"}, nil, "no mouse target"},
 	} {
 		h.sent = nil
 		r := run(h, append([]string{"send-keys"}, tc.args...)...)

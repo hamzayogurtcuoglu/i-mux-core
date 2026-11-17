@@ -566,6 +566,7 @@ func init() {
 		"mouse_button_flag":        modeFlag(vt.ModeMouseButton),
 		"mouse_all_flag":           modeFlag(vt.ModeMouseAll),
 		"mouse_sgr_flag":           modeFlag(vt.ModeMouseSGR),
+		"mouse_utf8_flag":          modeFlag(vt.ModeMouseUTF8),
 		"synchronized_output_flag": modeFlag(vt.ModeSync),
 		"pane_key_mode": screenVar(func(_ *model.Pane, s *vt.Screen) (string, bool) {
 			if s.Mode&vt.ModeKeysExtended != 0 {
