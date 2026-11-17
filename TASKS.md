@@ -1432,6 +1432,12 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Track goroutines, fds and RSS over time.
 - **Acceptance:** no races, flat goroutine and fd counts, and RSS stable within history limits.
 - **Depends on:** C6.3.
+- **Status:** built, not yet accepted. `internal/server/soak_test.go` (`-tags soak`, `make soak`)
+  runs it with the server in the test's process, so goroutines, open files and heap can be
+  sampled, and fails when the last quarter of the run is above the first. The nightly job runs
+  it for an hour on Linux and macOS and keeps the samples. On the owner's Mac an 8-minute run
+  (2026-11-17) was clean: 46 goroutines, 28 files and 53–62 MiB of heap from start to end. The
+  task is done once the nightly runs are clean.
 
 ### [ ] C6.6 Real terminals: USER
 - **Goal:** confirm on real terminals what CI cannot see.

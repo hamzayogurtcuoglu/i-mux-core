@@ -542,6 +542,10 @@ one engine after the other, and recorded in `BENCHMARKS.md`:
    Linux only.
 7. **Fuzzing:** `go test -fuzz` for the VT parser, `cmdlang`, `format` and the IPC decoder.
    Fuzz corpora are committed.
+8. **Soak** (`make soak`, nightly for an hour on Linux and macOS): the server in the test's
+   process, built with `-race`, with 4 sessions × 4 panes of the fake TUI streaming and
+   redrawing, 2 clients attaching and detaching and a command every 100 ms. Goroutines, open
+   files and heap are sampled; they must be as flat at the end as at the start.
 
 ---
 

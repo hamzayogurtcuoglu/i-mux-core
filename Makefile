@@ -10,7 +10,7 @@ PKGS      ?= ./...
 
 export CGO_ENABLED = 0
 
-.PHONY: all build test lint fmt tmux difftest e2e vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check term-fixtures term-fixtures-check render-fixtures render-fixtures-check contract contract-record fuzz bench bench-vs-tmux ci clean
+.PHONY: all build test lint fmt tmux difftest e2e vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check term-fixtures term-fixtures-check render-fixtures render-fixtures-check contract contract-record fuzz bench bench-vs-tmux soak ci clean
 
 all: lint test build
 
@@ -134,6 +134,10 @@ bench: ## Benchmarks
 
 bench-vs-tmux: ## ARCHITECTURE.md §10's targets against the pinned tmux, into BENCHMARKS.md
 	./scripts/bench.sh
+
+SOAK ?= 10m
+soak: ## The soak test under the race detector, for $(SOAK) (the nightly job runs 1h)
+	CGO_ENABLED=1 IMUX_SOAK_DURATION=$(SOAK) $(GO) test -race -tags soak -run TestSoak -count=1 -timeout 3h ./internal/server
 
 ci: lint test difftest e2e ## What CI runs: lint, unit tests, the differential tests and the end-to-end scenarios
 

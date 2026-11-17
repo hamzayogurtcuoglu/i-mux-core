@@ -1,4 +1,4 @@
-name: Nightly fuzzing
+name: Nightly fuzzing and soak
 
 on:
   schedule:
@@ -48,3 +48,33 @@ jobs:
         with:
           name: ${{ matrix.target }}-failure
           path: "**/testdata/fuzz/${{ matrix.target }}/"
+
+  soak:
+    # The soak test (TASKS.md C6.5): an hour of panes streaming and redrawing, clients
+    # attaching and detaching and commands every 100 ms, under the race detector; the samples
+    # of goroutines, open files and memory are kept as an artifact.
+    name: Soak (${{ matrix.os }}, 1 hour, -race)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Soak
+        env:
+          CGO_ENABLED: "1"
+          IMUX_SOAK_DURATION: 1h
+          IMUX_SOAK_LOG: ${{ github.workspace }}/soak.md
+        run: go test -race -tags soak -run TestSoak -count=1 -timeout 90m ./internal/server
+      - name: Upload the samples
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soak-${{ matrix.os }}
+          path: soak.md
