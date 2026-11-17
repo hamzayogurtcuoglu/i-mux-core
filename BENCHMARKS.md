@@ -6,6 +6,26 @@ Baselines for i-mux-core's performance, to compare later changes against. The ta
 All numbers were taken on the owner's Apple M-series Mac (darwin/arm64), Go 1.27, on
 2026-11-15. Run them with `make bench`, or one at a time as shown.
 
+## Against tmux: ARCHITECTURE.md §10's targets (C6.4)
+
+`scripts/bench.sh` measures each target under the pinned tmux 3.8 and i-mux-core, one after the
+other on the same machine (`cmd/bench`; ARCHITECTURE.md §10 says how each is measured), and
+writes this table. CI runs it on its Linux and macOS runners and keeps BENCHMARKS.md as an
+artifact.
+
+<!-- bench:start -->
+Measured by `scripts/bench.sh` on Darwin arm64, go1.27.3, on 2026-11-17.
+
+| What | tmux 3.8 | i-mux-core | Target | Met |
+| --- | --- | --- | --- | --- |
+| Idle CPU (10 sessions × 4 panes, one client, 10 s) | 0.00% | 0.10% | ≤ 0.5% of a core | yes |
+| Key to screen latency (p99 of 300 keys) | 0.52 ms | 0.87 ms | ≤ tmux + 2 ms | yes |
+| Throughput (100 MB into a 200×50 pane) | 4.21 s | 1.66 s | ≤ 1.5× tmux | yes |
+| Command round trip (p50 of 200) | 5.22 ms | 4.99 ms | ≤ tmux + 1 ms | yes |
+| Memory per pane (history-limit 50000, filled) | 24.7 MiB | 43.8 MiB | ≤ 2× tmux | yes |
+| i-mux startup to the sidebar (median of 5) | 0.25 s | 0.24 s | ≤ tmux + 10% | yes |
+<!-- bench:end -->
+
 ## Emulator (C1.13)
 
 `go test -run '^$' -bench 'Terminal' -benchtime 3x ./internal/vt/`: the whole emulator (parser

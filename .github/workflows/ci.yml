@@ -129,6 +129,50 @@ jobs:
           name: parity
           path: PARITY.md
 
+  bench:
+    # ARCHITECTURE.md §10's performance targets against tmux (TASKS.md C6.4); BENCHMARKS.md is
+    # kept as an artifact.
+    name: Performance vs tmux 3.8 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      IMUX_COMMIT: 88903cca6c2b14affa6892b3c640eb0fdfada6c8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: hamzayogurtcuoglu/i-mux
+          ref: ${{ env.IMUX_COMMIT }}
+          path: i-mux
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: tmux build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libevent-dev libncurses-dev bison pkg-config
+      - name: tmux build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install libevent ncurses
+      - name: Cache the pinned tmux
+        uses: actions/cache@v4
+        with:
+          path: .cache/tmux
+          key: tmux-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build-tmux.sh') }}
+      - name: Measure
+        run: ./scripts/bench.sh i-mux
+      - name: Upload BENCHMARKS.md
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-${{ matrix.os }}
+          path: BENCHMARKS.md
+
   conpty-spike:
     name: ConPTY and IPC evidence (C0.7, ${{ matrix.os }})
     strategy:

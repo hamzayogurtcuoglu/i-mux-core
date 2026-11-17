@@ -10,7 +10,7 @@ PKGS      ?= ./...
 
 export CGO_ENABLED = 0
 
-.PHONY: all build test lint fmt tmux difftest e2e vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check term-fixtures term-fixtures-check render-fixtures render-fixtures-check contract contract-record fuzz bench ci clean
+.PHONY: all build test lint fmt tmux difftest e2e vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check term-fixtures term-fixtures-check render-fixtures render-fixtures-check contract contract-record fuzz bench bench-vs-tmux ci clean
 
 all: lint test build
 
@@ -131,6 +131,9 @@ fuzz: ## Run every fuzz target for FUZZTIME (default 10s)
 
 bench: ## Benchmarks
 	$(GO) test -run '^$$' -bench . -benchmem $(PKGS)
+
+bench-vs-tmux: ## ARCHITECTURE.md §10's targets against the pinned tmux, into BENCHMARKS.md
+	./scripts/bench.sh
 
 ci: lint test difftest e2e ## What CI runs: lint, unit tests, the differential tests and the end-to-end scenarios
 

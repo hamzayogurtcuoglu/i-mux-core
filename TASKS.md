@@ -1418,6 +1418,11 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Profile and fix whatever misses its target.
 - **Acceptance:** every target met on the macOS and Linux CI runners, with the numbers recorded.
 - **Depends on:** C6.3.
+- **Status:** measured, not yet accepted. `scripts/bench.sh` (`cmd/bench`, `make bench-vs-tmux`)
+  measures the six targets and writes BENCHMARKS.md; CI's `bench` job runs it on the Linux and
+  macOS runners and keeps BENCHMARKS.md as an artifact. On the owner's Mac (2026-11-17) every
+  target is met (memory per pane is the closest: 1.77× tmux's). The task is done once the CI
+  runners' numbers, after the next push, meet them too.
 
 ### [ ] C6.5 Soak and leak tests
 - **Goal:** it runs for days.
