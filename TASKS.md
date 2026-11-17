@@ -1275,7 +1275,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     - selecting a window on a status click;
     - the right-click menus, if C0.3 shows i-mux relies on them.
 - **Acceptance:** `list-keys -T root` difftest; engine tests for each default.
-- **Depends on:** C5.1.
+- **Depends on:** C5.1, C5.3 (the default press binding ends with `send -M`). It is done after
+  C5.3.
 
 ### [ ] C5.3 Mouse into panes
 - **Goal:** programs that asked for the mouse get it, encoded as they asked.

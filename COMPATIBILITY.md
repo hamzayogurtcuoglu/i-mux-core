@@ -464,9 +464,15 @@ a `MouseDown` (tmux 3.7+). A mouse key's commands run from the pane under the mo
 `mouse_y`, `mouse_status_line` and `mouse_status_range` are set as tmux sets them. Checked event
 by event against tmux in `testdata/diff/mouse.txt`.
 
+A mouse key that is not bound, any mouse key with `mouse off`, and `send -M` give the event to
+the pane under the mouse as tmux's `input_key_mouse` does: at the pane's own coordinates,
+encoded as its program asked (1000, 1002 or 1003; SGR 1006 when the terminal sent SGR, else
+UTF-8 1005 or the X10 form), and to nothing when it asked for no mouse, the event is a drag it
+did not ask for, or it is the click timer's double click (C5.3, `testdata/diff/mousepanes.txt`).
+
 Not yet: scrollbars and floating panes (the engine has neither), ranges on pane border status
-lines (`ControlN`), `mouse_word`, `mouse_line` and `mouse_hyperlink`; a mouse key that is not
-bound, or any mouse key with `mouse off`, goes nowhere until C5.3 sends it to the pane.
+lines (`ControlN`), `mouse_word`, `mouse_line` and `mouse_hyperlink`; panes in copy mode
+(C4.8) do not take mouse keys yet.
 
 ### Extended keys
 
