@@ -74,3 +74,58 @@ func TestPopupDrawn(t *testing.T) {
 		t.Errorf("mode %#x: no mouse", f.Mode)
 	}
 }
+
+// A popup or status line that changes is written whole, as tmux draws them (popup_draw_cb,
+// screen_redraw_draw_status), so the terminal gets their text again and not only the changed
+// cells; a pane's change stays a few bytes (TestOneChangedCell).
+func TestWholeParts(t *testing.T) {
+	w := newWorld(t)
+	term := vt.NewTerminal(20, 3, 0)
+	_, _ = term.Write([]byte("7 found\r\nrow two"))
+	status := func(s string) [][]vt.Cell {
+		line := make([]vt.Cell, 80)
+		for i := range line {
+			line[i] = vt.DefaultCell
+		}
+		for i, r := range s {
+			line[i].Data = string(r)
+		}
+		return [][]vt.Cell{line}
+	}
+	w.view.Sy, w.view.StatusLines, w.view.Status = 24, 1, status("Codex  Claude")
+	w.view.Popup = &Popup{X: 10, Y: 5, Sx: 22, Sy: 5, Lines: BoxSingle, Border: vt.DefaultCell, Defaults: vt.DefaultCell, Term: term, Mu: &sync.Mutex{}}
+	w.draw()
+
+	_, _ = term.Write([]byte("\x1b[H1"))
+	if got := plainText(w.draw()); !strings.Contains(got, "1 found") || !strings.Contains(got, "row two") {
+		t.Errorf("popup: wrote %q", got)
+	}
+	w.view.Status = status("Codex !15:00  Claude")
+	if got := plainText(w.draw()); !strings.Contains(got, "Codex !15:00  Claude") || strings.Contains(got, "row two") {
+		t.Errorf("status: wrote %q", got)
+	}
+	if got := w.draw(); got != "" {
+		t.Errorf("nothing changed, wrote %q", got)
+	}
+}
+
+// plainText is what was written without escape sequences.
+func plainText(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] != 0x1b {
+			b.WriteByte(s[i])
+			continue
+		}
+		// CSI: up to a final byte; others: the next byte.
+		if i+1 < len(s) && s[i+1] == '[' {
+			i += 2
+			for i < len(s) && (s[i] < 0x40 || s[i] > 0x7e) {
+				i++
+			}
+			continue
+		}
+		i++
+	}
+	return b.String()
+}

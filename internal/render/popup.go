@@ -162,6 +162,7 @@ func (r *Renderer) popup(f *Frame, v *View) {
 		}
 	}
 
+	f.whole(rect{pp.X, pp.Y, pp.Sx, pp.Sy})
 	for y := range pp.Sy {
 		fy := pp.Y + y
 		if fy < 0 || fy >= f.Sy {

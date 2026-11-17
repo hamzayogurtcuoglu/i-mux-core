@@ -96,18 +96,33 @@ func (r *Renderer) menu(f *Frame, v *View, sc *scene, areaY int) {
 	if m == nil {
 		return
 	}
+	box := rect{x: -1}
 	for my := range m.Sy {
 		for mx := range m.Sx {
 			x, y, ok := sc.windowToScene(m.X+mx, m.Y+my)
 			if !ok || x >= f.Sx || areaY+y >= f.Sy {
 				continue
 			}
+			box = box.add(x, areaY+y)
 			gc := m.Cells[my*m.Sx+mx]
 			gc.Fg, gc.Bg, gc.Us = v.theme(gc.Fg), v.theme(gc.Bg), v.theme(gc.Us)
 			gc.Flags &^= vt.FlagNoPalette
 			f.Line(areaY + y)[x] = gc
 		}
 	}
+	if box.x >= 0 {
+		f.whole(box)
+	}
+}
+
+// add grows rc (empty when x is -1) to hold cell x, y.
+func (rc rect) add(x, y int) rect {
+	if rc.x < 0 {
+		return rect{x, y, 1, 1}
+	}
+	x0, y0 := min(rc.x, x), min(rc.y, y)
+	x1, y1 := max(rc.x+rc.sx, x+1), max(rc.y+rc.sy, y+1)
+	return rect{x0, y0, x1 - x0, y1 - y0}
 }
 
 // menuCursor is server_client_reset_state with a window menu: the menu's screen's mode, the

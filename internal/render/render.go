@@ -1,6 +1,8 @@
 package render
 
 import (
+	"cmp"
+	"slices"
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
@@ -33,6 +35,11 @@ type Frame struct {
 	Cursor *termout.CursorState
 	// KeepCursor leaves the cursor where it is: the active pane holds a synchronized update.
 	KeepCursor bool
+	// Whole are the parts tmux draws whole when anything in them changes: the status lines
+	// (screen_redraw_draw_status), a popup (popup_draw_cb) and the menu. Draw writes all of
+	// such a part again, not only its changed cells, so the terminal gets the same text tmux
+	// sends it.
+	Whole []rect
 }
 
 // Line returns line y of the frame.
@@ -82,7 +89,7 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 	var f *Frame
 	if sp := r.spare; sp != nil && len(sp.Cells) == v.Sx*v.Sy {
 		r.spare = nil
-		*sp = Frame{Sx: v.Sx, Sy: v.Sy, Cells: sp.Cells}
+		*sp = Frame{Sx: v.Sx, Sy: v.Sy, Cells: sp.Cells, Whole: sp.Whole[:0]}
 		f = sp
 	} else {
 		f = &Frame{Sx: v.Sx, Sy: v.Sy, Cells: make([]vt.Cell, v.Sx*v.Sy)}
@@ -213,6 +220,7 @@ func (r *Renderer) status(f *Frame, v *View, lines int) {
 	if v.StatusTop {
 		y0 = 0
 	}
+	f.whole(rect{0, y0, f.Sx, lines})
 	for i := range lines {
 		line := f.Line(y0 + i)
 		for x := range line {
@@ -279,6 +287,28 @@ const runGap = 6
 
 type run struct{ y, x0, x1 int } // cells x0 to x1 (inclusive) of line y
 
+// whole adds a part drawn whole (Frame.Whole), clipped to the frame.
+func (f *Frame) whole(rc rect) {
+	x0, y0 := max(rc.x, 0), max(rc.y, 0)
+	x1, y1 := min(rc.x+rc.sx, f.Sx), min(rc.y+rc.sy, f.Sy)
+	if x0 < x1 && y0 < y1 {
+		f.Whole = append(f.Whole, rect{x0, y0, x1 - x0, y1 - y0})
+	}
+}
+
+// changed reports whether any cell of rc differs between last and f.
+func changed(last, f *Frame, rc rect) bool {
+	for y := rc.y; y < rc.y+rc.sy; y++ {
+		a, b := last.Line(y)[rc.x:rc.x+rc.sx], f.Line(y)[rc.x:rc.x+rc.sx]
+		for x := range b {
+			if !sameCell(&a[x], &b[x]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // diff returns the runs of f that differ from last (all of f when last is nil or another size).
 func diff(last, f *Frame) []run {
 	var runs []run
@@ -309,6 +339,20 @@ func diff(last, f *Frame) []run {
 		if start >= 0 {
 			runs = append(runs, widen(b, y, start, end))
 		}
+	}
+	// A part drawn whole that changed is written again in full.
+	extra := false
+	for _, rc := range f.Whole {
+		if !changed(last, f, rc) {
+			continue
+		}
+		for y := rc.y; y < rc.y+rc.sy; y++ {
+			runs = append(runs, widen(f.Line(y), y, rc.x, rc.x+rc.sx-1))
+		}
+		extra = true
+	}
+	if extra {
+		slices.SortFunc(runs, func(a, b run) int { return cmp.Or(cmp.Compare(a.y, b.y), cmp.Compare(a.x0, b.x0)) })
 	}
 	// Widening can make adjacent runs overlap: join them.
 	out := runs[:0]
