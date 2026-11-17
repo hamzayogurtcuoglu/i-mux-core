@@ -21,6 +21,7 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
@@ -148,7 +149,11 @@ func windowFlags(wl *model.Winlink, escape bool) string {
 	return b.String()
 }
 
+// stringVars are the variables, built when first used: a command-line client seldom expands
+// a format, and the table is the largest of the program's start-up work.
 var stringVars map[string]stringVar
+
+var stringVarsOnce sync.Once
 
 var timeVars = map[string]timeVar{
 	"client_activity": func(c *Context) (time.Time, bool) {
@@ -195,7 +200,7 @@ var timeVars = map[string]timeVar{
 	},
 }
 
-func init() {
+func buildStringVars() {
 	stringVars = map[string]stringVar{
 		// Paste buffers (list-buffers).
 		"buffer_name":   bv(func(b *buffers.Buffer) (string, bool) { return b.Name, true }),
@@ -735,4 +740,11 @@ func userName(uid int) string {
 		return ""
 	}
 	return u.Username
+}
+
+// lookupStringVar is the variable called key, if there is one.
+func lookupStringVar(key string) (stringVar, bool) {
+	stringVarsOnce.Do(buildStringVars)
+	v, ok := stringVars[key]
+	return v, ok
 }

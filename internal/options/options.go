@@ -24,6 +24,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
@@ -81,16 +82,16 @@ type Entry struct {
 	Unit         string
 }
 
-var tableByName = func() map[string]*Entry {
+var tableByName = sync.OnceValue(func() map[string]*Entry {
 	m := map[string]*Entry{}
 	for i := range Table {
 		m[Table[i].Name] = &Table[i]
 	}
 	return m
-}()
+})
 
 // Search finds a table entry by its exact name (options_search).
-func Search(name string) *Entry { return tableByName[name] }
+func Search(name string) *Entry { return tableByName()[name] }
 
 // ParseCommand parses a command option's value and returns it as it prints, or the parse error;
 // the command language sets it (it cannot be imported from here).

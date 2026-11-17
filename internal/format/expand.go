@@ -1284,7 +1284,7 @@ func (c *Context) find(key string, modifiers uint64, timeFormat *string) (string
 	)
 	if o, k, hasKey := c.option(key); o != nil {
 		found, hasFound = o.String(k, hasKey, true), true
-	} else if v, ok := stringVars[key]; ok {
+	} else if v, ok := lookupStringVar(key); ok {
 		found, hasFound = v(c)
 	} else if v, ok := timeVars[key]; ok {
 		if tm, ok := v(c); ok && !tm.IsZero() {
