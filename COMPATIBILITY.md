@@ -451,6 +451,23 @@ tmux 3.8's defaults that i-mux keeps and relies on: `MouseDrag1Pane` (copy mode 
 (scrolling, entering copy mode), `MouseDrag1Border` (resizing), and the other status clicks
 (`MouseUp1StatusLeft`, `MouseUp1StatusRight`, `MouseUp1StatusDefault`).
 
+### Mouse events (C5.1)
+
+A mouse report becomes a key as in tmux 3.8's `server_client_check_mouse`: where it is (pane,
+border, the status lines' left, right, default area and ranges, the empty area), a second and
+third press within 300 ms (`SecondClick`, `TripleClick`, and `DoubleClick` when the timer runs
+out after a second click), drags (`MouseDrag`, then `MouseDragEnd` on the next event), the wheel,
+and `M-`, `C-` and `S-` from the report's modifiers. A press on another pane, another place or
+with another button starts a new sequence, so a second press after the pane under it changed is
+a `MouseDown` (tmux 3.7+). A mouse key's commands run from the pane under the mouse; `-t =` and
+`{mouse}` resolve to it (or to the window of a `window|N` range); `mouse_pane`, `mouse_x`,
+`mouse_y`, `mouse_status_line` and `mouse_status_range` are set as tmux sets them. Checked event
+by event against tmux in `testdata/diff/mouse.txt`.
+
+Not yet: scrollbars and floating panes (the engine has neither), ranges on pane border status
+lines (`ControlN`), `mouse_word`, `mouse_line` and `mouse_hyperlink`; a mouse key that is not
+bound, or any mouse key with `mouse off`, goes nowhere until C5.3 sends it to the pane.
+
 ### Extended keys
 
 With `extended-keys on` and the client's `extkeys` feature, modified keys (`C-v`, `C-Enter`,
@@ -461,8 +478,11 @@ modifyOtherKeys).
 
 - **Status lines:**
   - `status 2` gives two lines, `status-format[0..1]` with `#[align]` and `#[range]`;
-  - clicks map to `mouse_status_range` (`window|N` gives the window index, `user|X` gives `X`);
-  - tmux 3.4+ rule: a range is one cell longer than drawn. i-mux works around that; match it;
+  - clicks map to `mouse_status_range`: `user|X` gives `X`, and `window|N` gives `window`
+    (tmux 3.8's `format_cb_mouse_status_range`), while `-t =` resolves to window `N`;
+  - a range covers exactly the cells drawn in it: tmux 3.4 made a range one cell longer, which
+    i-mux works around by leaving a cell outside any range after each one; tmux 3.8 does not,
+    and neither does the engine (`testdata/diff/mouse.txt` clicks that cell);
   - `%H:%M` refreshes every `status-interval`;
   - the default window list (`window-status-format`, `window-status-current-format`, the
     separator and the `window-status-*-style` options): when it does not fit, it is cut around
