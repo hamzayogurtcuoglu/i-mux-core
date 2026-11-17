@@ -532,12 +532,16 @@ properly):
 
    tmux's version is pinned (3.8, built from its release tarball by `scripts/build-tmux.sh`),
    in CI and locally (`make tmux`).
-4. **i-mux's e2e suite** (`../i-mux/e2e`, 105 tests) run with `IMUX_TMUX_BIN=imux-core`. This
+4. **The engine's own end-to-end scenarios** (`e2e/`, `make e2e`, part of `make ci`): imux-core
+   alone, each scenario with its own server, home and socket, driving attached clients in PTYs
+   (difftest's headless client) and the fake TUI, and checking screens, panes and formats.
+   They need no tmux, so they can run on all three systems.
+5. **i-mux's e2e suite** (`../i-mux/e2e`, 105 tests) run with `IMUX_TMUX_BIN=imux-core`. This
    is the final measure of parity.
-5. **Windows CI** (`windows-latest`) runs the unit tests, the VT fixtures and an engine e2e
+6. **Windows CI** (`windows-latest`) runs the unit tests, the VT fixtures and an engine e2e
    suite through ConPTY. tmux does not exist there, so the differential tests run on macOS and
    Linux only.
-6. **Fuzzing:** `go test -fuzz` for the VT parser, `cmdlang`, `format` and the IPC decoder.
+7. **Fuzzing:** `go test -fuzz` for the VT parser, `cmdlang`, `format` and the IPC decoder.
    Fuzz corpora are committed.
 
 ---
