@@ -3,3 +3,4 @@
 # or per kind of failure, for every failure whose output holds the text:
 #   ~ text | cause | task
 TestHandoffPrintLargeSession | a timing limit on i-mux's own handoff, missed under the full suite's load; passes alone on imux-core and on tmux | none (not the engine)
+TestScheduler | i-mux's test reads the clock: from 22:00 UTC a schedule every 2 h next runs the next day, so the sidebar shows the date and cuts "Claude" from the line it waits for; fails so on tmux too, and passes before 22:00 | none (not the engine)
