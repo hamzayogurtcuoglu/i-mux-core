@@ -375,6 +375,27 @@ func roundTrip(e engine) result {
 	return result{percentile(ms, 0.5), "ms"}
 }
 
+// processStart: -V, which starts the program and connects to no server, 200 times; p50. It
+// shows how much of a command's round trip is the program starting.
+func processStart(e engine) result {
+	w, err := newWorld(e)
+	if err != nil {
+		fail(err)
+	}
+	defer w.close()
+	var ms []float64
+	n := 200
+	if quick {
+		n = 50
+	}
+	for range n {
+		t0 := time.Now()
+		w.must("-V")
+		ms = append(ms, float64(time.Since(t0).Microseconds())/1000)
+	}
+	return result{percentile(ms, 0.5), "ms"}
+}
+
 // memoryPerPane: the server's resident memory growth for each of 4 panes filled past
 // history-limit 50000 with that text.
 func memoryPerPane(e engine) result {
@@ -532,6 +553,10 @@ func main() {
 		{"latency", "Key to screen latency (p99 of 300 keys)", "≤ tmux + 2 ms", latency, within(2)},
 		{"throughput", "Throughput (100 MB into a 200×50 pane)", "≤ 1.5× tmux", throughput, times(1.5)},
 		{"round-trip", "Command round trip (p50 of 200)", "≤ tmux + 1 ms", roundTrip, within(1)},
+		{
+			"start", "Program start alone (-V, p50 of 200)", "none (shows the round trip's share)", processStart,
+			func(_, _ result) bool { return true },
+		},
 		{"memory", "Memory per pane (history-limit 50000, filled)", "≤ 2× tmux", memoryPerPane, times(2)},
 	}
 	if imuxBin != "" {
@@ -558,7 +583,9 @@ func main() {
 		t := m.run(tmux)
 		c := m.run(core)
 		met := "yes"
-		if !m.meets(t, c) {
+		if strings.HasPrefix(m.target, "none") {
+			met = "—"
+		} else if !m.meets(t, c) {
 			met, failed = "**no**", true
 		}
 		fmt.Printf("| %s | %s | %s | %s | %s |\n", m.what, t, c, m.target, met)

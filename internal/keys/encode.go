@@ -19,6 +19,7 @@ package keys
 import (
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
@@ -38,7 +39,7 @@ const (
 )
 
 // encodeTable is tmux's input_key_defaults, with the modified keys built from their templates.
-var encodeTable = func() map[Key]string {
+var encodeTable = sync.OnceValue(func() map[Key]string {
 	m := map[Key]string{
 		PasteStart: "\033[200~", PasteStart | ImpliedMeta: "\033[200~",
 		PasteEnd: "\033[201~", PasteEnd | ImpliedMeta: "\033[201~",
@@ -75,7 +76,7 @@ var encodeTable = func() map[Key]string {
 		}
 	}
 	return m
-}()
+})
 
 // extended writes a key in the extended form (tmux's input_key_extended); false when it has no
 // modifier that form can carry.
@@ -212,15 +213,15 @@ func Encode(key Key, mode int, backspace Key, format ExtendedFormat) ([]byte, bo
 	if mode&vt.ModeKCursor == 0 {
 		key &^= Cursor
 	}
-	s, ok := encodeTable[key]
+	s, ok := encodeTable()[key]
 	if !ok && key&Meta != 0 && key&ImpliedMeta == 0 {
-		s, ok = encodeTable[key&^Meta]
+		s, ok = encodeTable()[key&^Meta]
 	}
 	if !ok && key&Cursor != 0 {
-		s, ok = encodeTable[key&^Cursor]
+		s, ok = encodeTable()[key&^Cursor]
 	}
 	if !ok && key&Keypad != 0 {
-		s, ok = encodeTable[key&^Keypad]
+		s, ok = encodeTable()[key&^Keypad]
 	}
 	if ok {
 		if key.IsPaste() && mode&vt.ModeBracketPaste == 0 {

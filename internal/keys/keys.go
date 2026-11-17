@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -199,8 +200,9 @@ type entry struct {
 	key  Key
 }
 
-// table is tmux's key_string_table, mouse keys made below.
-var table = func() []entry {
+// table is tmux's key_string_table, mouse keys made below. It is built when first used, not
+// when the program starts: a command-line client seldom needs it.
+var table = sync.OnceValue(func() []entry {
 	t := []entry{
 		{"F1", F1 | ImpliedMeta},
 		{"F2", F2 | ImpliedMeta},
@@ -295,11 +297,11 @@ var table = func() []entry {
 		}
 	}
 	return t
-}()
+})
 
 // searchTable is key_string_search_table.
 func searchTable(s string) Key {
-	for _, e := range table {
+	for _, e := range table() {
 		if strings.EqualFold(s, e.name) {
 			return e.key
 		}
@@ -445,7 +447,7 @@ func Name(k Key, withFlags bool) string {
 		fmt.Fprintf(&b, "User%d", k-User)
 		return flags()
 	}
-	for _, e := range table {
+	for _, e := range table() {
 		if k == e.key&MaskKey {
 			b.WriteString(e.name)
 			return flags()

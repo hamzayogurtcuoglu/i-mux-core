@@ -21,7 +21,8 @@ elif [ -d "$root/../i-mux/e2e/fakeagents" ]; then
 fi
 
 tmux=$("$root/scripts/build-tmux.sh")
-(cd "$root" && CGO_ENABLED=0 go build -o "$cache/imux-core" ./cmd/imux-core)
+# As released (the Makefile's build): stripped, which also makes it start faster.
+(cd "$root" && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$cache/imux-core" ./cmd/imux-core)
 (cd "$root" && CGO_ENABLED=0 go build -o "$cache/bench" ./cmd/bench)
 set -- -tmux "$tmux" -core "$cache/imux-core" "$@"
 if [ -n "$imux_dir" ]; then
