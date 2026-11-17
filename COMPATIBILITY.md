@@ -470,6 +470,18 @@ encoded as its program asked (1000, 1002 or 1003; SGR 1006 when the terminal sen
 UTF-8 1005 or the X10 form), and to nothing when it asked for no mouse, the event is a drag it
 did not ask for, or it is the click timer's double click (C5.3, `testdata/diff/mousepanes.txt`).
 
+tmux 3.8's default root mouse bindings run as on tmux (C5.2, `testdata/diff/mousedefaults.txt`):
+a press selects the pane or, on a border, the pane left of or above it; a press on a window in
+the status line switches to it, Ctrl and a press swaps it with the current window, the wheel
+there runs `next-window` and `previous-window`; the middle button pastes; the right button
+opens the window, pane and session menus. Those that enter copy mode (drags, the wheel and
+double and triple clicks in a pane that asked for no mouse) come with C4.8, border drags with
+C5.4, and the floating-pane ones (`new-pane`, `move-pane`, `join-pane`, `break-pane`, the
+`ControlN` border buttons) are not in i-mux's contract. One difference in timing: tmux queues a
+binding's commands, so a press and its release read together reach a menu the press opens only
+after the release; the engine runs the binding at once, so that release closes the menu as a
+later one would on tmux.
+
 Not yet: scrollbars and floating panes (the engine has neither), ranges on pane border status
 lines (`ControlN`), `mouse_word`, `mouse_line` and `mouse_hyperlink`; panes in copy mode
 (C4.8) do not take mouse keys yet.
