@@ -100,11 +100,14 @@ type Client struct {
 
 // Mouse is a mouse event's place, for the mouse_* variables.
 type Mouse struct {
-	Valid       bool
+	Valid bool
+	// X and Y are the position in the pane under the mouse, or on the status line (HasXY).
 	X, Y        int
+	HasXY       bool
 	Pane        *model.Pane
 	StatusLine  int    // -1 when not on a status line
 	StatusRange string // the range under the mouse, as #{mouse_status_range} gives it
+	HasRange    bool
 }
 
 func (c *Context) now() time.Time {

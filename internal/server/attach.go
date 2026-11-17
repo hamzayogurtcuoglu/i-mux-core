@@ -50,6 +50,9 @@ type attachedClient struct {
 
 	// The key table the client is in (tmux's keytable), when it was set (its
 	// activity_time), and the repeat state (CLIENT_REPEAT, last_key, repeat_timer).
+	// mouse is the client's mouse state: drags and clicks (task C5.1).
+	mouse mouseState
+
 	keyTable    string
 	keyTableAt  time.Time
 	repeating   bool
@@ -78,6 +81,7 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 		name: hello.TTYName, session: sess, queue: queue, activity: now, created: now,
 		pid: hello.Pid, termName: termName, env: hello.Env,
 	}
+	c.mouse.lastPane = -1
 	c.draw.r = render.New()
 	o := termout.DefaultOptions
 	o.ColorTerm = hello.Env["COLORTERM"]

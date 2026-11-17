@@ -1,0 +1,99 @@
+# Mouse events and key names (C5.1): SGR reports typed into an attached client become the same
+# mouse keys, with the same mouse_* formats and = target, as on tmux. mouse.conf binds every
+# mouse key to a command that logs it; @n counts them. A press more than the click timeout
+# (300 ms) after the last starts a new click sequence: "run run-shell -d 0.4" waits that long.
+conf mouse.conf
+size 80x24
+run new-session -d -s a 'exec cat' ; split-window -h -l 40 -t a 'exec cat' ; new-window -d -t a 'exec cat'
+client c 80x24
+# The client: status lines 0 and 1, pane status lines at 2, the panes from 3; the border at 39.
+# One click in the left pane.
+type c '\x1b[<0;11;11M'
+type c '\x1b[<0;11;11m'
+wait '#{@n}' == 2
+run run-shell -d 0.4
+# A double click in the right pane: down, up, second click, up, then the double click when
+# the timer runs out.
+type c '\x1b[<0;51;6M'
+type c '\x1b[<0;51;6m'
+type c '\x1b[<0;51;6M'
+type c '\x1b[<0;51;6m'
+wait '#{@n}' == 7
+run run-shell -d 0.4
+# A triple click.
+type c '\x1b[<0;52;7M'
+type c '\x1b[<0;52;7m'
+type c '\x1b[<0;52;7M'
+type c '\x1b[<0;52;7m'
+type c '\x1b[<0;52;7M'
+type c '\x1b[<0;52;7m'
+wait '#{@n}' == 13
+run run-shell -d 0.4
+# A press in the other pane right after a click is a new press, not a second click.
+type c '\x1b[<0;11;11M'
+type c '\x1b[<0;11;11m'
+type c '\x1b[<0;51;11M'
+type c '\x1b[<0;51;11m'
+wait '#{@n}' == 17
+run run-shell -d 0.4
+# The status lines: a window range, a user range, the default area, left and right ranges.
+type c '\x1b[<0;4;1M'
+type c '\x1b[<0;4;1m'
+run run-shell -d 0.4
+type c '\x1b[<0;7;1M'
+type c '\x1b[<0;7;1m'
+run run-shell -d 0.4
+type c '\x1b[<0;30;1M'
+type c '\x1b[<0;30;1m'
+run run-shell -d 0.4
+type c '\x1b[<0;1;2M'
+type c '\x1b[<0;1;2m'
+run run-shell -d 0.4
+type c '\x1b[<0;80;2M'
+type c '\x1b[<0;80;2m'
+run run-shell -d 0.4
+# The cell right after a range is not in it (tmux 3.4 made a range one cell longer).
+type c '\x1b[<0;3;1M'
+type c '\x1b[<0;3;1m'
+wait '#{@n}' == 29
+run run-shell -d 0.4
+# A right click on the border, on a pane status line, the wheel, and modifiers.
+type c '\x1b[<2;40;10M'
+type c '\x1b[<2;40;10m'
+run run-shell -d 0.4
+type c '\x1b[<0;6;3M'
+type c '\x1b[<0;6;3m'
+type c '\x1b[<64;20;12M'
+type c '\x1b[<65;60;12M'
+run run-shell -d 0.4
+type c '\x1b[<8;11;11M'
+type c '\x1b[<8;11;11m'
+run run-shell -d 0.4
+type c '\x1b[<16;11;12M'
+type c '\x1b[<16;11;12m'
+wait '#{@n}' == 37
+run run-shell -d 0.4
+# A drag in the left pane, then its end.
+type c '\x1b[<0;5;8M'
+type c '\x1b[<32;6;8M'
+type c '\x1b[<32;8;9M'
+type c '\x1b[<32;8;9M'
+type c '\x1b[<0;8;9m'
+wait '#{@n}' == 41
+run display-message -p '#{@log}'
+# -t = as i-mux uses it: a click on a window's range switches to it; a right click on the border
+# acts on the pane under the mouse.
+run run-shell -d 0.4
+run bind -n MouseDown1Status { switch-client -t = ; set -gF @n '#{e|+:#{@n},1}' }
+type c '\x1b[<0;4;1M'
+type c '\x1b[<0;4;1m'
+wait '#{@n}' == 43
+run display-message -p '#{window_index}'
+run run-shell -d 0.4
+run bind -n MouseDown3Border { if -F -t= 1 { set -gF @t '#{pane_id}' } ; set -gF @n '#{e|+:#{@n},1}' }
+run select-window -t a:0
+type c '\x1b[<2;40;10M'
+type c '\x1b[<2;40;10m'
+wait '#{@n}' == 45
+run display-message -p '#{@t}'
+run kill-server

@@ -1242,7 +1242,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 
 ## Phase 5: Mouse
 
-### [ ] C5.1 Mouse events and key names
+### [x] C5.1 Mouse events and key names
 - **Goal:** mouse presses become the same key names, with the same targets, as in tmux.
 - **Details:**
   - Hit-testing a mouse position: pane, border, status line (left, right, default area,
@@ -1257,6 +1257,13 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   which binding ran and what `=` resolved to, for every mouse key in COMPATIBILITY.md §7.
   Results match tmux (difftest, using bindings that log).
 - **Depends on:** C3.8, C4.2.
+- **Status:** done. `server/mouse.go` ports `server_client_check_mouse` and the click timer:
+  locations (pane, border, status left, right, default area and ranges, empty), second, double
+  and triple clicks, drags and their end, the wheel and modifiers. A mouse key runs from the
+  pane under the mouse, carries its event through the command queue, and `-t =`, `{mouse}` and
+  the `mouse_*` formats use it. `testdata/diff/mouse.txt` logs every mouse key i-mux binds or
+  relies on, with `mouse_*` and the `=` target, and matches tmux 3.8 event for event. Mouse
+  keys reach panes with C5.3; scrollbars and floating panes are not in the engine.
 
 ### [ ] C5.2 Default mouse bindings
 - **Goal:** the mouse does what tmux's defaults do where i-mux doesn't override it.

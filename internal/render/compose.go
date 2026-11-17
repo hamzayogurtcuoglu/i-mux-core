@@ -510,6 +510,12 @@ func WindowOffset(w *model.Window, sx, sy int) (ox, oy int) {
 	return ox, oy
 }
 
+// WindowArea is tty_window_offset with the size: where the client shows the window from and
+// how much of it.
+func WindowArea(w *model.Window, sx, sy int) (ox, oy, wsx, wsy int) {
+	return windowOffset(w, sx, sy)
+}
+
 // windowOffset is tty_window_offset1: where the window area starts and its size. A window
 // larger than the client is shown around the active pane's cursor.
 func windowOffset(w *model.Window, sx, sy int) (ox, oy, wsx, wsy int) {

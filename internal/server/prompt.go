@@ -86,7 +86,7 @@ func (s *Server) RunCommands(client string, list *commands.List) {
 	if wl := sess.Current; wl != nil {
 		st.W, st.P = wl.Window, wl.Window.Active
 	}
-	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, func(res commands.Result) {
+	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, nil, func(res commands.Result) {
 		s.showResult(c, res)
 		s.redrawAll()
 	})

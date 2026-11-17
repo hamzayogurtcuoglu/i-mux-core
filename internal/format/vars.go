@@ -582,19 +582,19 @@ func init() {
 			return "%" + strconv.Itoa(c.Mouse.Pane.ID), true
 		},
 		"mouse_x": func(c *Context) (string, bool) {
-			if c.Mouse == nil || !c.Mouse.Valid {
+			if c.Mouse == nil || !c.Mouse.Valid || !c.Mouse.HasXY {
 				return "", false
 			}
 			return itoa(c.Mouse.X)
 		},
 		"mouse_y": func(c *Context) (string, bool) {
-			if c.Mouse == nil || !c.Mouse.Valid {
+			if c.Mouse == nil || !c.Mouse.Valid || !c.Mouse.HasXY {
 				return "", false
 			}
 			return itoa(c.Mouse.Y)
 		},
 		"mouse_status_range": func(c *Context) (string, bool) {
-			if c.Mouse == nil || !c.Mouse.Valid || c.Mouse.StatusLine < 0 {
+			if c.Mouse == nil || !c.Mouse.Valid || !c.Mouse.HasRange {
 				return "", false
 			}
 			return c.Mouse.StatusRange, true

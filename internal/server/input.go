@@ -202,8 +202,10 @@ func (s *Server) inputKey(c *attachedClient, ev *input.Event) {
 		s.paste(p, ev.Raw)
 		return
 	}
-	// Mouse reports are classified with the mouse (task C5.1); they bind nothing yet.
+	// A mouse report becomes a mouse key (server_client_check_mouse).
 	if key.IsMouse() {
+		m := mouseEvent(ev.Mouse)
+		s.mouseKey(c, &m, false)
 		return
 	}
 	// The key goes through the client's bindings (task C3.8); what they leave goes to

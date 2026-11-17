@@ -45,6 +45,7 @@ func (it *Item) formatContext(c *ClientInfo, s *model.Session, wl *model.Winlink
 		ctx.Values[k] = v
 	}
 	ctx.Defaults(c, s, wl, p)
+	ctx.Mouse = it.formatMouse(c)
 	return ctx
 }
 
@@ -159,4 +160,39 @@ func displayMessage(it *Item) error {
 		it.Host.ShowMessage(tc.Name, msg, MessageOptions{Delay: delay, IgnoreKeys: a.Has('N'), NoFreeze: a.Has('C')})
 	}
 	return nil
+}
+
+// formatMouse is the format tree's mouse event (ft->m) for the mouse_* variables, from the
+// key's event; c is the format's client.
+func (it *Item) formatMouse(c *ClientInfo) *format.Mouse {
+	m := it.Mouse()
+	if m == nil {
+		return nil
+	}
+	fm := &format.Mouse{Valid: true, StatusLine: -1}
+	started := c != nil && c.Started
+	onStatus := false
+	switch {
+	case m.StatusAt == 0 && m.Y < m.StatusLines:
+		fm.StatusLine, onStatus = m.Y, true
+	case m.StatusAt > 0 && m.Y >= m.StatusAt:
+		fm.StatusLine, onStatus = m.Y-m.StatusAt, true
+	}
+	if !started {
+		fm.StatusLine, onStatus = -1, false
+	}
+	_, _, p := target.MousePane(it.Host.Tree(), m)
+	fm.Pane = p
+	if p != nil {
+		if x, y, ok := target.MouseAt(p, m, false); ok {
+			fm.X, fm.Y, fm.HasXY = x, y, true
+		}
+	}
+	if !fm.HasXY && onStatus {
+		fm.X, fm.Y, fm.HasXY = m.X, fm.StatusLine, true
+	}
+	if onStatus && m.HasStatusRange {
+		fm.StatusRange, fm.HasRange = m.StatusRange, true
+	}
+	return fm
 }

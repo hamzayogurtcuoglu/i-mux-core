@@ -162,7 +162,7 @@ type Item struct {
 
 // targetContext is what the item's targets are looked up in.
 func (it *Item) targetContext() *target.Context {
-	ctx := &target.Context{Tree: it.Host.Tree(), Current: it.Current}
+	ctx := &target.Context{Tree: it.Host.Tree(), Current: it.Current, Mouse: it.Mouse()}
 	for _, c := range it.Host.Clients() {
 		ctx.Clients = append(ctx.Clients, target.Client{Name: c.Name, Session: c.Session, Activity: c.Activity})
 	}

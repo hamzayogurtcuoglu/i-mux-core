@@ -46,6 +46,8 @@ type runState struct {
 	// warned are the commands a config has already warned about not being implemented:
 	// each warns once (COMPATIBILITY.md §10).
 	warned map[string]bool
+	// mouse is the mouse event of the key that ran the list (cmdq_get_event), if any.
+	mouse *target.Mouse
 
 	list   *List
 	i      int
@@ -65,6 +67,7 @@ func (rs *runState) child() *runState {
 	return &runState{
 		h: rs.h, c: rs.c, out: rs.out, current: rs.current, formats: rs.formats,
 		noHooks: rs.noHooks, config: rs.config, depth: rs.depth, warned: rs.warned,
+		mouse: rs.mouse,
 	}
 }
 
@@ -252,9 +255,19 @@ func (it *Item) setCode(code int) {
 }
 
 // RunList runs a command list for client c (an attached client, or nil), starting from st as
-// the current target: what a key binding runs. done gets its output and errors, which tmux
-// shows on the client's message line.
-func RunList(h Host, c *Client, list *List, st *target.State, done func(Result)) {
+// the current target: what a key binding runs, with the key's mouse event m if any. done gets
+// its output and errors, which tmux shows on the client's message line.
+func RunList(h Host, c *Client, list *List, st *target.State, m *target.Mouse, done func(Result)) {
 	cur := *st
-	newRun(h, c, &cur).start(list, done)
+	rs := newRun(h, c, &cur)
+	rs.mouse = m
+	rs.start(list, done)
+}
+
+// Mouse is the mouse event of the key that ran the command, or nil.
+func (it *Item) Mouse() *target.Mouse {
+	if it.rs == nil || it.rs.mouse == nil || !it.rs.mouse.Valid {
+		return nil
+	}
+	return it.rs.mouse
 }

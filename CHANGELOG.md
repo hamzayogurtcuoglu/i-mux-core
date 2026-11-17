@@ -103,3 +103,4 @@ All notable changes to i-mux-core are listed here. The format follows
 - Environment: sessions' own environments with `update-environment`, and panes' and jobs'
   environments built as tmux builds them; the client sends its whole environment.
 - Styles: tmux's style parser, style options checked when set, border styles from the options.
+- Mouse events: reports become tmux's mouse keys (clicks, double and triple clicks, drags, the wheel), with `-t =` and the `mouse_*` formats.

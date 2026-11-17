@@ -71,7 +71,12 @@ func (s *Server) SetKeyTable(name, table string) error {
 // tmux's server_client_key_callback: the prefix switch, the lookup in the client's
 // table with the fallbacks tmux tries (Any, then the default table), and what is left
 // going to the pane.
-func (s *Server) dispatchKey(c *attachedClient, key keys.Key) {
+func (s *Server) dispatchKey(c *attachedClient, key keys.Key) { s.dispatch(c, key, nil) }
+
+// dispatch is dispatchKey for a key with its mouse event m (nil for a key from the keyboard):
+// a mouse key's commands run from the pane under the mouse, and a mouse key that is not bound
+// goes to that pane.
+func (s *Server) dispatch(c *attachedClient, key keys.Key, m *target.Mouse) {
 	sess := c.session
 	mask := keys.MaskKey | keys.MaskModifiers
 	prefix := keys.Key(sess.Options.GetNumber("prefix")) & mask
@@ -126,7 +131,7 @@ func (s *Server) dispatchKey(c *attachedClient, key keys.Key) {
 				c.repeating = false
 				s.setKeyTable(c, "")
 			}
-			s.runBinding(c, bd)
+			s.runBinding(c, bd, m)
 			return
 		}
 		// No binding in this table: the default table, unless that is where this started;
@@ -142,6 +147,10 @@ func (s *Server) dispatchKey(c *attachedClient, key keys.Key) {
 		}
 		if first != table && !wasRepeating {
 			s.setKeyTable(c, "")
+			return
+		}
+		if m != nil {
+			// A mouse key goes to the pane under the mouse (task C5.3).
 			return
 		}
 		if p := c.window().Active; p != nil {
@@ -198,14 +207,19 @@ func (s *Server) armRepeat(c *attachedClient, d time.Duration) {
 // (cmd_find_from_client). Errors go on the client's message line, their first letter
 // capitalised, as cmdq_error does; output goes there too until view mode comes (tmux shows
 // it in a view mode, task C4.8).
-func (s *Server) runBinding(c *attachedClient, bd *keys.Binding) {
+func (s *Server) runBinding(c *attachedClient, bd *keys.Binding, m *target.Mouse) {
 	list, _ := bd.Cmds.(*commands.List)
 	if list == nil {
 		return
 	}
 	sess := c.session
-	st := target.State{S: sess, WL: sess.Current, Idx: -1, W: sess.Current.Window, P: sess.Current.Window.Active}
-	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, func(res commands.Result) {
+	// A mouse key runs from the pane under the mouse (cmd_find_from_mouse), else from the
+	// client's (cmd_find_from_client).
+	st, ok := target.FromMouse(s.tree, m)
+	if m == nil || !ok {
+		st = target.State{S: sess, WL: sess.Current, Idx: -1, W: sess.Current.Window, P: sess.Current.Window.Active}
+	}
+	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, m, func(res commands.Result) {
 		s.showResult(c, res)
 		s.redrawAll()
 	})

@@ -81,6 +81,8 @@ type Context struct {
 	Inside *model.Pane
 	// Current is the command list's current state, if any.
 	Current *State
+	// Mouse is the mouse event of the key that ran the command, if any (= and {mouse}).
+	Mouse *Mouse
 }
 
 // Error is a target that was not found; its message is empty when the lookup was quiet.
@@ -552,8 +554,10 @@ func Find(ctx *Context, target string, typ Type, flags int) (State, error) {
 		f.st.P = f.st.W.Active
 		return found()
 	case "=", "{mouse}":
-		// Mouse targets come with the mouse (task C5.1).
-		return fail("no mouse target")
+		if !f.fromMouse(typ) {
+			return fail("no mouse target")
+		}
+		return found()
 	case "~", "{marked}":
 		return fail("no marked target")
 	}
