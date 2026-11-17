@@ -230,8 +230,9 @@ Checked against tmux 3.8 in `testdata/diff/shell.txt`:
 - Output: each line of the job's stdout (and stderr with `-E`; else stderr is dropped), then
   `'<cmd>' returned N` or `'<cmd>' terminated by signal N`. A command-line client gets them
   on its stdout and exits with the job's status (128 + N for a signal). With `-b`, `-t`, or a
-  client that is attached (a key binding), they go to a pane's view mode in tmux, which comes
-  with copy mode (C4.8); until then they are dropped.
+  client that is attached (a key binding), they go to a pane's view mode in tmux; the engine
+  has no view mode yet (it is copy mode's read-only twin, not in i-mux's use), so they are
+  dropped.
 - The command is a format first; `run-shell`'s further arguments are `#{1}`, `#{2}`, …;
   `-c` is a format. Jobs run in `/bin/sh -c` with the server's environment, `TERM` (the
   `default-terminal`), `TERM_PROGRAM`, `TERM_PROGRAM_VERSION`, `COLORTERM` (none of these
@@ -356,7 +357,7 @@ source and generated config among them):
 - `pane_dead_signal` is the signal's number, as tmux on a system without `sys_signame` (Linux).
 
 Not yet, with the task that brings each: `#(…)` gives nothing (C4.2's status jobs); `#{A:…}`
-moves only in status formats (C4.2); `#{C:…}` gives `0` (copy mode, C4.8); `pane_fg` and
+moves only in status formats (C4.2); `#{C:…}` gives `0` (copy mode's search, not in the subset); `pane_fg` and
 `pane_bg` read only the `fg=` and `bg=` of `window-style` and `window-active-style` (C4.1);
 the alert flags (`window_activity_flag`, `#` `!` `~` in `window_flags`) are off (C4.5);
 `display-message` without `-p` shows nothing (C4.5), and its `-a`, `-I` and `-j` are refused.
@@ -484,17 +485,16 @@ the status line switches to it, Ctrl and a press swaps it with the current windo
 there runs `next-window` and `previous-window`; the middle button pastes; the right button
 opens the window, pane and session menus. Dragging a border (`resize-pane -M`) moves the
 borders at and around the press as tmux's `cmd_resize_pane_mouse_resize_tiled` does, a corner
-moving both, panes keeping their minimum size (C5.4, `testdata/diff/mousedrag.txt`). Those that enter copy mode (drags, the wheel and
-double and triple clicks in a pane that asked for no mouse) come with C4.8, and the
-floating-pane ones (`new-pane`, `move-pane`, `join-pane`, `break-pane`, the
+moving both, panes keeping their minimum size (C5.4, `testdata/diff/mousedrag.txt`). Those that
+enter copy mode (drags, the wheel and double and triple clicks in a pane that asked for no
+mouse) work with copy mode (C4.8, `testdata/diff/copymode.txt`), and the floating-pane ones (`new-pane`, `move-pane`, `join-pane`, `break-pane`, the
 `ControlN` border buttons) are not in i-mux's contract. One difference in timing: tmux queues a
 binding's commands, so a press and its release read together reach a menu the press opens only
 after the release; the engine runs the binding at once, so that release closes the menu as a
 later one would on tmux.
 
 Not yet: scrollbars and floating panes (the engine has neither), ranges on pane border status
-lines (`ControlN`), `mouse_word`, `mouse_line` and `mouse_hyperlink`; panes in copy mode
-(C4.8) do not take mouse keys yet.
+lines (`ControlN`), `mouse_word`, `mouse_line` and `mouse_hyperlink`.
 
 ### Extended keys
 
@@ -577,9 +577,14 @@ modifyOtherKeys).
   `-w` and a program's OSC 52 with `set-clipboard on` reach the client's terminal clipboard
   (`Ms`); with the default, `external`, a program's OSC 52 is ignored.
   `testdata/diff/buffers.txt` checks these against tmux.
-- **Copy mode:** entering it (`copy-mode -H`); the mouse selection a double or triple click
-  makes; `copy-pipe-and-cancel` to buffer and clipboard; wheel scrolling in and out of it, and
-  `pane_in_mode`.
+- **Copy mode:** entering it (`copy-mode` with `-H -e -u -d -M -q`); the mouse selection a
+  double or triple click makes; `copy-pipe-and-cancel` to buffer and clipboard; wheel scrolling
+  in and out of it, and `pane_in_mode`. A pane in copy mode shows a copy of its screen and
+  history taken on entry, with the position indicator (`copy-mode-position-format` in
+  `copy-mode-position-style`, left out with `-H`) and the selection in
+  `copy-mode-selection-style`; keys go to `copy-mode` or `copy-mode-vi` (`mode-keys`), and
+  `send-keys` to such a pane runs those tables' bindings. `testdata/diff/copymode.txt` checks
+  frames, cursor and selection formats and buffer contents against tmux, in both key modes.
 
 ### Replies to programs
 
@@ -652,7 +657,8 @@ and every key table come out as tmux's. `source-file`:
 - `-n` parses only.
 
 Without `-f`, i-mux-core loads no file, where tmux reads its default paths: i-mux always gives
-`-f`. The startup config's errors are kept for the view mode of the first client (C4.8).
+`-f`. The startup config's errors are kept for the view mode of the first client, which the
+engine does not have yet.
 
 ## 11. Attach behaviour
 
