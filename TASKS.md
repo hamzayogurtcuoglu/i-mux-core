@@ -37,7 +37,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Goal:** a buildable, lintable, testable repository from day one.
 - **Details:**
   - Module `github.com/hamzayogurtcuoglu/i-mux-core`, with the same Go version as `../i-mux/go.mod`.
-  - `cmd/imux-core/main.go`. `imux-core -V` prints `imux-core 0.0.0-dev (tmux 3.8 compatible)` (E9).
+  - `cmd/imux-core/main.go`. `imux-core -V` prints `tmux 3.8 (imux-core 0.0.0-dev)` (E9).
   - The package directories from ARCHITECTURE.md §3, each with a `doc.go` stating what it owns.
   - Makefile targets:
     - `build`, `test` (with `-race`), `lint`, `fmt`;
@@ -1388,8 +1388,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Do **not** change i-mux's tests to make them pass. If a test depends on tmux behaviour that
     COMPATIBILITY.md missed, add that behaviour to the contract first.
 - **Acceptance:**
-  - All i-mux e2e tests pass on i-mux-core (105 at the time of writing; whatever the pinned
-    commit has).
+  - All i-mux e2e tests pass on i-mux-core (108 at the pinned commit 397a70a; whatever the
+    pinned commit has).
+  - First, `-V` prints the E9 line i-mux reads as tmux 3.8, so the suite gets past its version
+    check.
   - The CI job from C6.2 becomes blocking.
 - **Depends on:** C6.2.
 
@@ -1463,8 +1465,8 @@ i-mux's `make ci` must pass with tmux exactly as before.
 ### [ ] C7.3 Engine detection and versions
 - **Goal:** i-mux knows which engine it talks to, and its feature level.
 - **Details:**
-  - `ParseVersion` accepts `imux-core X.Y.Z (tmux 3.8 compatible)` and maps it to tmux 3.8
-    features, plus an `Engine` field.
+  - `ParseVersion` already reads `tmux 3.8 (imux-core X.Y.Z)` as tmux 3.8 (E9); it gains an
+    `Engine` field, set from the part in brackets.
   - `imux doctor` shows the engine and its version.
   - `imux doctor` warns when an i-mux-core older than i-mux's minimum is found.
 - **Acceptance:** unit tests; doctor e2e for both engines.
