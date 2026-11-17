@@ -1,6 +1,7 @@
 package server
 
 import (
+	"strings"
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
@@ -69,6 +70,14 @@ func (s *Server) PaneMouse(p *model.Pane, m *target.Mouse) {
 // (tmux's options_push_changes, for what the engine has so far), and every client is drawn
 // again.
 func (s *Server) OptionChanged(name string) {
+	// options_push_changes: the theme options give every client its theme colours again.
+	if name == "theme" || strings.HasPrefix(name, "dark-theme-") || strings.HasPrefix(name, "light-theme-") {
+		for _, c := range s.attached {
+			if !c.gone {
+				s.updateThemeColours(c)
+			}
+		}
+	}
 	switch name {
 	case "extended-keys":
 		for _, p := range s.tree.Panes() {

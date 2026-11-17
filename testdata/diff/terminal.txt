@@ -1,0 +1,17 @@
+# A client's terminal (regressions): it is described with the server's terminal-features and
+# terminal-overrides as the config set them (tty_term_create), and its theme colours are worked
+# out as it opens (server_client_open), so with RGB the default borders are gray70 and
+# yellowgreen at once; the theme option changes them.
+conf terminal.conf
+size 60x10
+run new-session -d -s a 'exec cat' ; split-window -h -t a 'exec cat'
+client c 60x10
+run list-clients -F '#{client_colours}|#{client_termfeatures}'
+screen c
+run set -g theme light
+screen c
+run set -g theme terminal
+screen c
+run set -g dark-theme-green red ; set -g theme detect
+screen c
+run kill-server

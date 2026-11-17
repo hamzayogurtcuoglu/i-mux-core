@@ -85,8 +85,12 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	}
 	c.mouse.lastPane = -1
 	c.draw.r = render.New()
-	o := termout.DefaultOptions
-	o.ColorTerm = hello.Env["COLORTERM"]
+	// tty_term_create: the server's terminal-features and terminal-overrides.
+	o := termout.Options{
+		TerminalFeatures:  s.arrayOption("terminal-features"),
+		TerminalOverrides: s.arrayOption("terminal-overrides"),
+		ColorTerm:         hello.Env["COLORTERM"],
+	}
 	term, err := termout.NewTerm(termName, hello.Terminfo, &c.features, o)
 	if err != nil {
 		return nil, err
@@ -106,6 +110,9 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 		erase = *hello.Erase
 	}
 	s.startInput(c, erase)
+	// server_client_open: the theme colours as the terminal opens (after the input state,
+	// which they live in, is made).
+	s.updateThemeColours(c)
 	s.send(c)
 	// The client starts in its session's default key table (tmux's root, or the session's
 	// key-table option); the fields are set here, not through setKeyTable, so nothing is
@@ -248,4 +255,19 @@ func (s *Server) shutdownClients() {
 	for _, c := range append([]*attachedClient(nil), s.attached...) {
 		s.endClient(c, ipc.TypeExit, "server exited", 1)
 	}
+}
+
+// arrayOption is a server array option's values, in order of their indexes.
+func (s *Server) arrayOption(name string) []string {
+	o := s.tree.Options.Server.Get(name)
+	if o == nil {
+		return nil
+	}
+	var out []string
+	for _, k := range o.ArrayKeys() {
+		if v, ok := o.ArrayGet(k); ok {
+			out = append(out, v.Str)
+		}
+	}
+	return out
 }

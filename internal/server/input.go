@@ -3,6 +3,7 @@ package server
 import (
 	"time"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/input"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
@@ -312,22 +313,22 @@ func (s *Server) reportTheme(c *attachedClient, theme vt.Theme) {
 	s.send(c)
 }
 
-// themeDefaults are tmux 3.8's dark-theme-* and light-theme-* options: the colour for 256 or
-// more colours, else the ANSI one, by theme colour.
-var themeDefaults = [render.ThemeCount]struct {
-	dark, light string
-	ansi        vt.Color
+// themeNames are tmux 3.8's colour_theme_table: each theme colour's options for the dark and
+// light themes, and its terminal (ANSI) colour, by theme colour.
+var themeNames = [render.ThemeCount]struct {
+	name     string
+	terminal vt.Color
 }{
-	{"gray5", "gray10", 0},
-	{"gray90", "gray95", 7},
-	{"gray70", "gray80", 7},
-	{"gray15", "gray45", 0},
-	{"yellowgreen", "seagreen", 2},
-	{"darkgoldenrod", "darkgoldenrod", 3},
-	{"indianred", "indianred4", 1},
-	{"skyblue3", "steelblue", 4},
-	{"cadetblue", "darkcyan", 6},
-	{"mediumpurple", "purple4", 5},
+	{"black", 0},
+	{"white", 7},
+	{"light-grey", 7},
+	{"dark-grey", 0},
+	{"green", 2},
+	{"yellow", 3},
+	{"red", 1},
+	{"blue", 4},
+	{"cyan", 6},
+	{"magenta", 5},
 }
 
 // themeOf is colour_totheme: a background colour's theme.
@@ -357,26 +358,44 @@ func themeOf(c int) vt.Theme {
 	return vt.ThemeUnknown
 }
 
-// updateThemeColours is server_client_update_theme_colours with theme detect (the default):
-// the dark or light theme's colours, chosen for how many colours the terminal has.
+// updateThemeColours is server_client_update_theme_colours: the client's theme colours from
+// the theme option, the client's theme (or its background's) and the dark-theme-* and
+// light-theme-* options, expanded for the client.
 func (s *Server) updateThemeColours(c *attachedClient) {
+	opts := s.tree.Options.Server
+	tc := make([]vt.Color, render.ThemeCount)
+	option := opts.GetNumber("theme")
+	if option == 1 { // terminal
+		for i, t := range themeNames {
+			tc[i] = t.terminal
+		}
+		c.in.themes = tc
+		s.invalidate(c)
+		return
+	}
+	ctx := &format.Context{Tree: s.tree, Server: s.ServerInfo(), Clients: s.clientFormats(), Now: s.opts.Now}
+	ctx.Defaults(s.formatClient(c), nil, nil, nil)
 	theme := c.in.theme
 	if theme == vt.ThemeUnknown {
 		theme = themeOf(c.in.bg)
 	}
-	rich := c.tty.Term.Colours() >= 256
-	tc := make([]vt.Color, render.ThemeCount)
-	for i, d := range themeDefaults {
-		tc[i] = d.ansi
-		if rich {
-			name := d.dark
-			if theme == vt.ThemeLight {
-				name = d.light
-			}
-			if col := vt.ParseX11Color(name); col != -1 {
-				tc[i] = col
-			}
+	switch option {
+	case 2:
+		theme = vt.ThemeLight
+	case 3:
+		theme = vt.ThemeDark
+	}
+	for i, t := range themeNames {
+		tc[i] = 8
+		name := "dark-theme-" + t.name
+		if theme == vt.ThemeLight {
+			name = "light-theme-" + t.name
 		}
+		col := vt.ColorFromString(ctx.Expand(opts.GetString(name)))
+		if col == -1 || col&vt.ColorFlagTheme != 0 {
+			continue
+		}
+		tc[i] = col
 	}
 	c.in.themes = tc
 	s.invalidate(c)
