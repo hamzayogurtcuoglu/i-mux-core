@@ -1,12 +1,16 @@
 package target
 
-import "github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+import (
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+)
 
 // Mouse is a mouse event (tmux's struct mouse_event): where it happened on the client's
 // terminal and what it hit. S, W and P are ids, -1 when not set.
 type Mouse struct {
 	Valid  bool
-	Ignore bool // a double click made by the click timer, which commands must not act on twice
+	Key    keys.Key // the mouse key the event made
+	Ignore bool     // a double click made by the click timer, which commands must not act on twice
 
 	StatusAt    int // the status lines' first line, -1 with no status line
 	StatusLines int

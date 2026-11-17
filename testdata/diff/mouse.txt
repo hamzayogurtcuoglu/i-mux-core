@@ -3,6 +3,10 @@
 # mouse key to a command that logs it; @n counts them. A press more than the click timeout
 # (300 ms) after the last starts a new click sequence: "run run-shell -d 0.4" waits that long.
 conf mouse.conf
+file mouse/switch.conf mouse/switch.conf
+file mouse/border.conf mouse/border.conf
+file mouse/menu.conf mouse/menu.conf
+file mouse/popup.conf mouse/popup.conf
 size 80x24
 run new-session -d -s a 'exec cat' ; split-window -h -l 40 -t a 'exec cat' ; new-window -d -t a 'exec cat'
 client c 80x24
@@ -84,16 +88,30 @@ run display-message -p '#{@log}'
 # -t = as i-mux uses it: a click on a window's range switches to it; a right click on the border
 # acts on the pane under the mouse.
 run run-shell -d 0.4
-run bind -n MouseDown1Status { switch-client -t = ; set -gF @n '#{e|+:#{@n},1}' }
+run source-file mouse/switch.conf
 type c '\x1b[<0;4;1M'
 type c '\x1b[<0;4;1m'
 wait '#{@n}' == 43
 run display-message -p '#{window_index}'
 run run-shell -d 0.4
-run bind -n MouseDown3Border { if -F -t= 1 { set -gF @t '#{pane_id}' } ; set -gF @n '#{e|+:#{@n},1}' }
+run source-file mouse/border.conf
 run select-window -t a:0
 type c '\x1b[<2;40;10M'
 type c '\x1b[<2;40;10m'
 wait '#{@n}' == 45
 run display-message -p '#{@t}'
+# A menu opened by a right click sits at the mouse (-xM -yM); its item runs with the click's
+# event, so -t = and mouse_pane still name the pane that was clicked. -O keeps it open after
+# the release, as i-mux opens its menus.
+run run-shell -d 0.4
+run source-file mouse/menu.conf
+type c '\x1b[<2;61;12M'
+type c '\x1b[<2;61;12m'
+screen c
+type c n
+run display-message -p '#{@m}' ; display-message -p -t %1 '#{@p}' ; display-message -p -t %0 '#{@p}'
+run source-file mouse/popup.conf
+type c '\x1b[<2;11;8M'
+type c '\x1b[<2;11;8m'
+screen c
 run kill-server

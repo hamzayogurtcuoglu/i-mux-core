@@ -305,7 +305,7 @@ func TestPopupFormats(t *testing.T) {
 		Ranges: [][]status.Range{{{Type: style.RangeWindow, Arg: uint32(wl.Index), Start: 5, End: 9}}},
 	}
 	v := map[string]string{}
-	popupFormats(v, g, tgt.State{S: s, WL: wl, P: p}, 20, 10)
+	popupFormats(v, g, tgt.State{S: s, WL: wl, P: p}, nil, 20, 10)
 	want := map[string]string{
 		"popup_centre_x": "29", "popup_centre_y": "16", "popup_width": "20", "popup_height": "10",
 		"popup_status_line_y": "23", "popup_window_status_line_x": "5", "popup_window_status_line_y": "23",

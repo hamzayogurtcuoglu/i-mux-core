@@ -491,7 +491,7 @@ func (s *Server) mouseKey(c *attachedClient, m *target.Mouse, double bool) {
 	if key == keys.Unknown {
 		return
 	}
-	m.Valid = true
+	m.Valid, m.Key = true, key
 	if key&keys.MaskKey == keys.Dragging {
 		if c.mouse.dragUpdate != nil {
 			c.mouse.dragUpdate(c, m)

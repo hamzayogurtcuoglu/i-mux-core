@@ -74,8 +74,12 @@ type ClientGeometry struct {
 
 // popupFormats adds cmd_display_menu_get_popup_pos's popup_* variables for a popup of w×h on a
 // client of geometry g to values.
-func popupFormats(values map[string]string, g ClientGeometry, st target.State, w, h int) {
+func popupFormats(values map[string]string, g ClientGeometry, st target.State, m *target.Mouse, w, h int) {
 	add := func(k string, n int) { values[k] = strconv.Itoa(n) }
+	if m != nil {
+		add("popup_mouse_x", m.X)
+		add("popup_mouse_y", m.Y)
+	}
 	top := 0
 	if g.StatusAt != -1 {
 		if g.StatusAt == 0 {
@@ -115,6 +119,20 @@ func popupFormats(values map[string]string, g ClientGeometry, st target.State, w
 	} else {
 		add("popup_centre_y", n)
 	}
+	if m != nil {
+		add("popup_mouse_centre_x", max(m.X-w/2, 0))
+		if n := m.Y - h/2; n+h >= g.Sy {
+			add("popup_mouse_centre_y", g.Sy-h)
+		} else {
+			add("popup_mouse_centre_y", n)
+		}
+		if n := m.Y + h; n >= g.Sy {
+			add("popup_mouse_top", g.Sy-1)
+		} else {
+			add("popup_mouse_top", n)
+		}
+		add("popup_mouse_bottom", max(m.Y-h, 0))
+	}
 	if p := st.P; p != nil {
 		if n := top + p.Yoff - g.Oy + h; n >= g.Sy {
 			add("popup_pane_top", g.Sy-h)
@@ -148,7 +166,7 @@ func (it *Item) popupPosition(ctx *format.Context, g ClientGeometry, st target.S
 	if w > g.Sx || h > g.Sy {
 		return 0, 0, false
 	}
-	popupFormats(ctx.Values, g, st, w, h)
+	popupFormats(ctx.Values, g, st, it.Mouse(), w, h)
 	a := it.Cmd.Args
 
 	xp, given := a.Get('x')

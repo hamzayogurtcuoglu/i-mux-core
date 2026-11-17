@@ -525,8 +525,10 @@ modifyOtherKeys).
   focus while it is open. The chosen command runs in the menu's target for the client that
   chose it. `-C` starting choice, `-b` lines, `-s -H -S` styles over `menu-style`,
   `menu-selected-style` and `menu-border-style`; a long name keeps its end, cut with `>`.
-  `testdata/diff/menus.txt` checks i-mux's menus against tmux. Not yet: the mouse event that
-  opened a menu (`-x M -y M`, and `-M` implied by a mouse binding) comes with the mouse (C5.1).
+  `testdata/diff/menus.txt` checks i-mux's menus against tmux. A menu or popup opened by a
+  mouse key takes the mouse without `-M`, sits at the mouse with `-x M -y M` (`popup_mouse_*`),
+  and its chosen command runs with that key's event, so `-t =` and `mouse_pane` still name
+  what was clicked (`testdata/diff/mouse.txt`).
 - **Command prompt:** `-I` initial text (a format), `-p` prompt, `-t` client; several prompts
   and inputs separated by commas (`-l` one); the template's `%1`… are the inputs, `%%` the
   first single-quoted and `%%%` double-quoted, as tmux's `cmd_template_replace` does; without
@@ -536,7 +538,7 @@ modifyOtherKeys).
   with `message-format` in `message-style` (`message-command-style` in vi's command mode) on
   `message-line`, the panes frozen unless `-C`. `testdata/diff/prompt.txt` checks i-mux's
   rename-tab binding against tmux. Not yet: Tab completion, `-i` (incremental) and `-P` (a
-  prompt in a pane); clicks in the prompt come with the mouse (C5.1).
+  prompt in a pane), and clicks in the prompt (not in i-mux's contract).
 - **Paste buffers:** `set-buffer` (`-a -b -n -w`), `delete-buffer`, `load-buffer` (`-b -w`),
   `save-buffer` (`-a`), `show-buffer`, `paste-buffer` (`-b -d -p -r -s -S -t`) and
   `list-buffers` (`-F -f -O -r`) work as tmux's: automatic buffers are `bufferN` and

@@ -61,8 +61,10 @@ type MenuSpec struct {
 	StartingChoice int // -C: the first item chosen, or -1
 	// Style, Selected and Border are -s, -H and -S, nil when not given.
 	Style, Selected, Border *string
-	// Key is the key that opened the menu, given to the chosen command.
-	Key keys.Key
+	// Key is the key that opened the menu, given to the chosen command with its mouse
+	// event, if it was a mouse key.
+	Key   keys.Key
+	Mouse *target.Mouse
 }
 
 // addMenuItem is menu_add_item: an item, or a separator for a nil name, with its name and
@@ -113,9 +115,31 @@ func addMenuItem(items []MenuItem, width *int, name *string, key keys.Key, comma
 
 // menuFormats adds cmd_display_menu_get_menu_pos's popup_* variables for a menu of w×h on the
 // window w0 to values (the mouse ones come with the mouse, task C5.1).
-func menuFormats(values map[string]string, g ClientGeometry, st target.State, w0 *model.Window, w, h int) {
+func menuFormats(values map[string]string, g ClientGeometry, st target.State, m *target.Mouse, w0 *model.Window, w, h int) {
 	add := func(k string, n int) { values[k] = strconv.Itoa(n) }
 	maxY := max(w0.Sy-h, 0)
+	// The mouse in the window (tty_window_offset's offset and the height shown).
+	mouseX, mouseY := 0, 0
+	if m != nil {
+		areaSy := g.Sy - g.StatusLines
+		sy := areaSy
+		if g.Sx >= w0.Sx && areaSy >= w0.Sy {
+			sy = w0.Sy
+		}
+		mouseX = m.X + g.Ox
+		switch {
+		case m.StatusAt == 0 && m.Y >= m.StatusLines:
+			mouseY = m.Y - m.StatusLines + g.Oy
+		case m.StatusAt == 0:
+			mouseY = g.Oy
+		case m.StatusAt > 0 && m.Y >= m.StatusAt:
+			mouseY = g.Oy + sy - 1
+		default:
+			mouseY = m.Y + g.Oy
+		}
+		add("popup_mouse_x", mouseX)
+		add("popup_mouse_y", mouseY)
+	}
 	add("popup_last_x", w0.MenuLastX)
 	add("popup_last_y", w0.MenuLastY+h)
 	if g.StatusAt != -1 && g.StatusLines != 0 {
@@ -153,6 +177,20 @@ func menuFormats(values map[string]string, g ClientGeometry, st target.State, w0
 	} else {
 		add("popup_centre_y", n)
 	}
+	if m != nil {
+		add("popup_mouse_centre_x", max(mouseX-w/2, 0))
+		if n := mouseY - h/2; n+h >= w0.Sy {
+			add("popup_mouse_centre_y", maxY)
+		} else {
+			add("popup_mouse_centre_y", n)
+		}
+		if n := mouseY + h; n >= w0.Sy {
+			add("popup_mouse_top", w0.Sy-1)
+		} else {
+			add("popup_mouse_top", n)
+		}
+		add("popup_mouse_bottom", max(mouseY-h, 0))
+	}
 	if p := st.P; p != nil {
 		if n := p.Yoff + h; n >= w0.Sy {
 			add("popup_pane_top", maxY)
@@ -169,7 +207,7 @@ func menuFormats(values map[string]string, g ClientGeometry, st target.State, w0
 // -x and -y (numbers, formats, or the letters C R P M L W S).
 func (it *Item) menuPosition(ctx *format.Context, g ClientGeometry, st target.State, w0 *model.Window, w, h int) (px, py int) {
 	maxX, maxY := max(w0.Sx-w, 0), max(w0.Sy-h, 0)
-	menuFormats(ctx.Values, g, st, w0, w, h)
+	menuFormats(ctx.Values, g, st, it.Mouse(), w0, w, h)
 	a := it.Cmd.Args
 
 	xp, given := a.Get('x')
@@ -294,8 +332,8 @@ func displayMenu(it *Item) error {
 	if a.Has('O') {
 		flags |= MenuStayOpen
 	}
-	if !a.Has('M') {
-		// The mouse event that opened the menu comes with the mouse (task C5.1).
+	m := it.Mouse()
+	if m == nil && !a.Has('M') {
 		flags |= MenuNoMouse
 	}
 	var sty, sel, border *string
@@ -308,13 +346,15 @@ func displayMenu(it *Item) error {
 	if v, ok := a.Get('S'); ok {
 		border = &v
 	}
-	// The key event that opened the menu (for the chosen command's mouse target) comes with
-	// the mouse, task C5.1.
+	// The key that opened the menu: a mouse key's event goes to the chosen command.
 	key := keys.None
+	if m != nil {
+		key = m.Key
+	}
 	it.Host.DisplayMenu(MenuSpec{
 		Client: tc.Name, Window: w0, State: st, Title: title, Items: items, Width: width,
 		X: px, Y: py, Flags: flags, Lines: lines, StartingChoice: starting,
-		Style: sty, Selected: sel, Border: border, Key: key,
+		Style: sty, Selected: sel, Border: border, Key: key, Mouse: m,
 	})
 	return nil
 }
