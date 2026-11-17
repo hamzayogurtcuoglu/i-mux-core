@@ -121,7 +121,7 @@ func sourceFile(it *Item) error {
 			continue
 		}
 		pattern := path
-		if !strings.HasPrefix(path, "/") {
+		if !filepath.IsAbs(path) {
 			pattern = cwd + "/" + path
 		}
 		matches, gerr := filepath.Glob(pattern)

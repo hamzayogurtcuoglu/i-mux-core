@@ -354,7 +354,7 @@ func (it *Item) cwdFor(s *model.Session) string {
 // spawnCwd is spawn.c's -c: a format, relative to the client's (or session's) directory.
 func (it *Item) spawnCwd(c string, s *model.Session) string {
 	cwd := it.formatContext(nil, s, nil, nil).Expand(c)
-	if !strings.HasPrefix(cwd, "/") {
+	if !filepath.IsAbs(cwd) {
 		base := it.cwdFor(s)
 		if cwd != "" {
 			return base + "/" + cwd
