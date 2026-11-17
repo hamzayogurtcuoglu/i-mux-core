@@ -70,6 +70,7 @@ type Server struct {
 	nameTimers map[*model.Window]bool // windows with an automatic-rename timer pending
 
 	pendingHooks []commands.Event // events whose hooks run once the current event is done
+	dirty        bool             // a client is marked dirty: drawDirty has work
 	cfgCauses    []string         // the startup config's errors (tmux's cfg_causes)
 
 	started time.Time // when the server started (start_time)
@@ -199,21 +200,44 @@ func (s *Server) Run() {
 	for {
 		select {
 		case f := <-s.events:
-			f()
-			if !s.exiting {
-				s.runHooks()
-				s.checkNames()
+			// The event, and those already queued behind it, then one draw (ARCHITECTURE.md
+			// §4.4).
+			s.turn(f)
+			for range maxTurnEvents - 1 {
+				if s.exiting {
+					break
+				}
+				select {
+				case f := <-s.events:
+					s.turn(f)
+					continue
+				default:
+				}
+				break
 			}
 			if s.exiting {
 				s.shutdown()
 				s.finish()
 				return
 			}
+			s.drawDirty()
 		case <-s.stop:
 			s.shutdown()
 			s.finish()
 			return
 		}
+	}
+}
+
+// maxTurnEvents is how many queued events the loop handles before it draws.
+const maxTurnEvents = 64
+
+// turn handles one event: the event, then the hooks it fired and the window names.
+func (s *Server) turn(f func()) {
+	f()
+	if !s.exiting {
+		s.runHooks()
+		s.checkNames()
 	}
 }
 

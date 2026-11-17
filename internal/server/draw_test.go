@@ -156,3 +156,58 @@ func TestStatusTimerOnlyWithStatus(t *testing.T) {
 	w.run(t, "set", "-g", "status", "on")
 	waitArmed(true)
 }
+
+// A busy loop draws once for the events queued in its turn, not once for each (ARCHITECTURE.md
+// §4.4): with frames slower than the frame interval, every event drew every client again and
+// the loop fell behind for good (the macOS soak). The clock here makes every frame 20 ms after
+// the last.
+func TestDrawOncePerTurn(t *testing.T) {
+	w := newKeyWorld(t)
+	var c *attachedClient
+	clock := time.Now()
+	if err := w.s.Do(func(*model.Tree) {
+		c = w.s.attached[0]
+		w.s.opts.Now = func() time.Time {
+			clock = clock.Add(20 * time.Millisecond)
+			return clock
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// No draw left on a timer from the attach.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		var pending bool
+		if err := w.s.Do(func(*model.Tree) { pending = c.draw.scheduled }); err != nil {
+			t.Fatal(err)
+		}
+		if !pending {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("a draw stays scheduled")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	hold := make(chan struct{})
+	var before int
+	w.s.post(func() {
+		before = c.draw.frames
+		<-hold
+	})
+	for range 50 {
+		w.s.post(w.s.redrawAll)
+	}
+	close(hold)
+	// The turn with the 50 redraws ends with one frame; the next turn sees it.
+	var after int
+	if err := w.s.Do(func(*model.Tree) {}); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.s.Do(func(*model.Tree) { after = c.draw.frames }); err != nil {
+		t.Fatal(err)
+	}
+	if n := after - before; n < 1 || n > 2 {
+		t.Errorf("%d frames for 50 redraws queued together, want 1", n)
+	}
+}

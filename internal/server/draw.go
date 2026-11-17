@@ -26,6 +26,7 @@ type drawState struct {
 	dirty     bool
 	lastDraw  time.Time
 	scheduled bool // a draw is due on a timer
+	frames    int  // frames drawn
 }
 
 // view is what the client shows.
@@ -75,22 +76,33 @@ func (s *Server) invalidate(c *attachedClient) {
 	s.markDirty(c)
 }
 
-// markDirty asks for the client to be drawn: now, unless it was drawn less than a frame
-// interval ago, then when the interval ends.
+// markDirty asks for the client to be drawn, at the end of the loop's turn (drawDirty).
 func (s *Server) markDirty(c *attachedClient) {
 	if c.gone {
 		return
 	}
 	c.draw.dirty = true
-	if c.draw.scheduled {
+	s.dirty = true
+}
+
+// drawDirty is the end of the loop's turn: each dirty client is drawn now, unless it was drawn
+// less than a frame interval ago, then when the interval ends.
+func (s *Server) drawDirty() {
+	if !s.dirty {
 		return
 	}
-	wait := FrameInterval - s.opts.Now().Sub(c.draw.lastDraw)
-	if wait <= 0 {
+	s.dirty = false
+	now := s.opts.Now()
+	for _, c := range s.attached {
+		if c.gone || !c.draw.dirty || c.draw.scheduled {
+			continue
+		}
+		if wait := FrameInterval - now.Sub(c.draw.lastDraw); wait > 0 {
+			s.drawAfter(c, wait)
+			continue
+		}
 		s.drawClient(c)
-		return
 	}
-	s.drawAfter(c, wait)
 }
 
 // drawAfter draws the client after d, if it is still dirty then.
@@ -99,7 +111,7 @@ func (s *Server) drawAfter(c *attachedClient, d time.Duration) {
 	time.AfterFunc(d, func() {
 		s.post(func() {
 			c.draw.scheduled = false
-			if c.draw.dirty {
+			if c.draw.dirty && !c.gone {
 				s.drawClient(c)
 			}
 		})
@@ -114,6 +126,7 @@ func (s *Server) drawClient(c *attachedClient) {
 	now := s.opts.Now()
 	c.draw.dirty = false
 	c.draw.lastDraw = now
+	c.draw.frames++
 	c.draw.r.Draw(c.tty, c.draw.r.Compose(s.view(c), now))
 	s.send(c)
 	// A pane holding a synchronized update is drawn once it times out.
