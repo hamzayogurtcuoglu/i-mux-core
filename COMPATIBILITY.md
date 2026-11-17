@@ -155,7 +155,7 @@ layout scenarios through the commands. What they showed:
 Not yet: the command client's own variables in lists (`#{client_name}` of an unattached
 client is `client-PID` in tmux, which nothing compares); `switch-client -T` (key tables,
 C3.8); `capture-pane` without `-p` (paste buffers, C4.9); `select-layout`'s named layouts and
-`-E -n -o -p`; `resize-pane -M -T`; `resize-window -a -A`; `respawn-pane -E`;
+`-E -n -o -p`; `resize-pane -T`; `resize-window -a -A`; `respawn-pane -E`;
 `new-window -E -k -S`. These are not in i-mux's contract and are refused.
 
 ### Names and titles (C3.7)
@@ -474,9 +474,11 @@ tmux 3.8's default root mouse bindings run as on tmux (C5.2, `testdata/diff/mous
 a press selects the pane or, on a border, the pane left of or above it; a press on a window in
 the status line switches to it, Ctrl and a press swaps it with the current window, the wheel
 there runs `next-window` and `previous-window`; the middle button pastes; the right button
-opens the window, pane and session menus. Those that enter copy mode (drags, the wheel and
-double and triple clicks in a pane that asked for no mouse) come with C4.8, border drags with
-C5.4, and the floating-pane ones (`new-pane`, `move-pane`, `join-pane`, `break-pane`, the
+opens the window, pane and session menus. Dragging a border (`resize-pane -M`) moves the
+borders at and around the press as tmux's `cmd_resize_pane_mouse_resize_tiled` does, a corner
+moving both, panes keeping their minimum size (C5.4, `testdata/diff/mousedrag.txt`). Those that enter copy mode (drags, the wheel and
+double and triple clicks in a pane that asked for no mouse) come with C4.8, and the
+floating-pane ones (`new-pane`, `move-pane`, `join-pane`, `break-pane`, the
 `ControlN` border buttons) are not in i-mux's contract. One difference in timing: tmux queues a
 binding's commands, so a press and its release read together reach a menu the press opens only
 after the release; the engine runs the binding at once, so that release closes the menu as a
