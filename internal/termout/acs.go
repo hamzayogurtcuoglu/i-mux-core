@@ -82,3 +82,7 @@ func (t *TTY) acsGet(ch byte) string {
 	}
 	return acsUTF8[ch]
 }
+
+// ACSUTF8 is tty_acs_get with no terminal: the UTF-8 form of an alternate-charset character,
+// or "" (copy mode copies line-drawing characters so).
+func ACSUTF8(ch byte) string { return acsUTF8[ch] }

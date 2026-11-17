@@ -146,7 +146,7 @@ func (r *Renderer) promptCursor(f *Frame, v *View) {
 	if v.Mouse {
 		for _, q := range v.Window.Panes {
 			q.Mu.Lock()
-			all := q.Term != nil && q.Term.Screen.Mode&vt.ModeMouseAll != 0
+			all := q.Term != nil && paneScreen(q).Mode&vt.ModeMouseAll != 0
 			q.Mu.Unlock()
 			if all {
 				mode |= vt.ModeMouseAll

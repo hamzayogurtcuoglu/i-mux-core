@@ -10,6 +10,7 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/buffers"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/copymode"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
@@ -40,6 +41,11 @@ type Host interface {
 	// PaneMouse is window_pane_key for a mouse key: the event goes to the pane's program,
 	// encoded as it asked, if it asked for it.
 	PaneMouse(p *model.Pane, m *target.Mouse)
+	// CopyMode puts p in copy mode, or takes it out (copy-mode).
+	CopyMode(p *model.Pane, spec CopyModeSpec)
+	// CopyCommand runs a copy-mode command (send -X) in p's mode for the client, with the
+	// key's mouse event if any; it fails when p is in no mode.
+	CopyCommand(client string, p *model.Pane, call copymode.Call, m *target.Mouse) error
 	// DragResize is resize-pane -M: the client's drag, from the event m on, moves the borders
 	// under it.
 	DragResize(client string, m *target.Mouse)
@@ -258,6 +264,7 @@ func init() {
 		"next-window":         nextWindow(true),
 		"previous-window":     nextWindow(false),
 		"swap-window":         swapWindow,
+		"copy-mode":           copyMode,
 		"new-window":          newWindow,
 		"split-window":        splitWindow,
 		"select-window":       selectWindow,

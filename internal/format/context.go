@@ -160,6 +160,17 @@ func (c *Context) Defaults(cl *Client, s *model.Session, wl *model.Winlink, p *m
 			c.W = p.Window
 		}
 		c.P = p
+		// A pane's mode adds its own variables (format_defaults_pane).
+		if p.Mode != nil {
+			if c.Values == nil {
+				c.Values = map[string]string{}
+			}
+			for k, v := range p.Mode.Formats() {
+				if _, ok := c.Values[k]; !ok {
+					c.Values[k] = v
+				}
+			}
+		}
 	}
 }
 

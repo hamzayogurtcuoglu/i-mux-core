@@ -14,6 +14,7 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/copymode"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
@@ -59,6 +60,10 @@ func (h *fakeHost) PaneKey(p *model.Pane, k keys.Key) bool {
 }
 
 func (h *fakeHost) DragResize(string, *tgt.Mouse) {}
+
+func (h *fakeHost) CopyMode(*model.Pane, CopyModeSpec) {}
+
+func (h *fakeHost) CopyCommand(string, *model.Pane, copymode.Call, *tgt.Mouse) error { return nil }
 
 func (h *fakeHost) PaneMouse(p *model.Pane, m *tgt.Mouse) {
 	h.sent = append(h.sent, fmt.Sprintf("%%%d mouse %d,%d", p.ID, m.X, m.Y))

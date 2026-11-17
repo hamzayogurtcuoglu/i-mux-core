@@ -1183,7 +1183,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   without `-M -O`, keyboard and mouse choice.
 - **Depends on:** C4.6.
 
-### [ ] C4.8 Copy mode (subset)
+### [x] C4.8 Copy mode (subset)
 - **Goal:** scrolling back and selecting text work as i-mux's bindings expect.
 - **Details:**
   - Enter it with `copy-mode`; `-H` (hide the position indicator) and `-e` (leave at the
@@ -1200,6 +1200,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   triple-click bindings in i-mux's config and for a wheel scroll in and out.
 - **Depends on:** C4.4, C1.10, C4.9 (the copied text goes to a paste buffer), C5.1 (the clicks
   and the wheel are mouse keys). It is done after C5.1: C4.9, C4.10 and C5.1 come first.
+- **Status:** done. Panes have modes (`model.Pane.Mode`); `internal/copymode` ports the subset
+  of `window-copy.c` and `grid-reader.c` in COMPATIBILITY.md §3: the copy of the pane's screen,
+  the view with its position indicator and selection, scrolling and paging, cursor moves,
+  `begin-selection`, `select-word`, `select-line`, the copy commands, and mouse drags with
+  their scroll timer. `copy-mode` and `send -X` drive it; keys go to the mode's table.
+  `testdata/diff/copymode.txt` matches tmux for frames, formats and copied text, by commands,
+  keys, the wheel, double and triple clicks and a drag. View mode (run-shell's output, the
+  startup config's errors) is not in the engine.
 
 ### [x] C4.9 Paste buffers and clipboard
 - **Goal:** pasting, and copying to the user's clipboard, work as in tmux.

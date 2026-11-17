@@ -1,0 +1,83 @@
+# Copy mode (C4.8): entering and leaving it, scrolling, the position indicator, selections,
+# select-word and select-line, copying to a buffer, and the mouse (the wheel, double and triple
+# clicks, drags) through tmux's default bindings, compared with tmux.
+conf copymode.conf
+size 80x24
+run new-session -d -s a -n w 'seq 1 40; printf "alpha beta-gamma delta\nsecond line here\n"; exec cat'
+waittext %0 'second line here'
+client c 80x24
+# Enter, scroll, page, the history's top and bottom.
+run copy-mode -t %0 ; display-message -p -t %0 '#{pane_in_mode}|#{pane_mode}|#{scroll_position}|#{copy_cursor_x},#{copy_cursor_y}|#{selection_present}'
+screen c
+run send -X -N 5 -t %0 scroll-up ; display-message -p -t %0 '#{scroll_position}|#{copy_cursor_x},#{copy_cursor_y}'
+run send -X -t %0 page-up ; display-message -p -t %0 '#{scroll_position}|#{copy_cursor_x},#{copy_cursor_y}'
+screen c
+run send -X -t %0 history-top ; display-message -p -t %0 '#{scroll_position}|#{copy_cursor_x},#{copy_cursor_y}'
+run send -X -t %0 halfpage-down ; display-message -p -t %0 '#{scroll_position}|#{copy_cursor_x},#{copy_cursor_y}'
+run send -X -t %0 history-bottom ; display-message -p -t %0 '#{scroll_position}|#{copy_cursor_x},#{copy_cursor_y}'
+run send -X -t %0 cursor-up ; send -X -t %0 cursor-up ; send -X -t %0 cursor-up ; send -X -t %0 start-of-line ; display-message -p -t %0 '#{copy_cursor_x},#{copy_cursor_y}'
+run send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 end-of-line ; display-message -p -t %0 '#{copy_cursor_x},#{copy_cursor_y}'
+run send -X -t %0 nonsense ; send -X -t %0 cancel ; display-message -p -t %0 '#{pane_in_mode}'
+run send -X -t %0 cancel
+# A selection: begin it, move, copy it to a buffer.
+run copy-mode -t %0 ; send -X -t %0 cursor-up ; send -X -t %0 cursor-up ; send -X -t %0 start-of-line ; send -X -t %0 begin-selection ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-down
+run display-message -p -t %0 '#{selection_present}|#{selection_active}|#{selection_start_x},#{selection_start_y}|#{selection_end_x},#{selection_end_y}'
+screen c
+run send -X -t %0 copy-selection ; show-buffer ; display-message -p -t %0 '#{pane_in_mode}|#{selection_present}'
+# select-word on each kind of word, and select-line; copy-pipe-and-cancel leaves copy mode.
+run send -X -t %0 history-bottom ; send -X -t %0 cursor-up ; send -X -t %0 cursor-up ; send -X -t %0 start-of-line ; send -X -t %0 cursor-right ; send -X -t %0 select-word
+screen c
+run send -X -t %0 copy-selection-no-clear ; show-buffer
+run send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 select-word ; send -X -t %0 copy-selection ; show-buffer
+run send -X -t %0 cursor-right ; send -X -t %0 select-word ; send -X -t %0 copy-selection ; show-buffer
+run set -g word-separators '' ; send -X -t %0 start-of-line ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 cursor-right ; send -X -t %0 select-word ; send -X -t %0 copy-selection ; show-buffer ; set -gu word-separators
+run send -X -t %0 select-line ; send -X -t %0 copy-pipe-and-cancel ; show-buffer ; display-message -p -t %0 '#{pane_in_mode}'
+# send-keys runs the copy-mode table's bindings: q cancels.
+run copy-mode -t %0 ; send -t %0 C-Space ; send -t %0 Up ; send -t %0 M-w ; show-buffer ; display-message -p -t %0 '#{pane_in_mode}'
+run send -t %0 q ; display-message -p -t %0 '#{pane_in_mode}'
+# The wheel enters copy mode (-e) on a pane that asked for no mouse, scrolls, and leaves at the
+# bottom.
+type c '\x1b[<64;20;10M'
+type c '\x1b[<64;20;10M'
+type c '\x1b[<64;20;10M'
+run display-message -p -t %0 '#{pane_in_mode}|#{scroll_position}'
+screen c
+type c '\x1b[<65;20;10M'
+type c '\x1b[<65;20;10M'
+run display-message -p -t %0 '#{pane_in_mode}|#{scroll_position}'
+# A double click copies the word under the mouse, a triple click the line: each enters copy
+# mode and leaves it 0.3 seconds later.
+type c '\x1b[<0;10;22M'
+type c '\x1b[<0;10;22m'
+type c '\x1b[<0;10;22M'
+type c '\x1b[<0;10;22m'
+wait -t %0 '#{pane_in_mode}' == 1
+wait -t %0 '#{pane_in_mode}' == 0
+run show-buffer ; display-message -p -t %0 '#{pane_in_mode}'
+run run-shell -d 0.4
+type c '\x1b[<0;3;23M'
+type c '\x1b[<0;3;23m'
+type c '\x1b[<0;3;23M'
+type c '\x1b[<0;3;23m'
+type c '\x1b[<0;3;23M'
+type c '\x1b[<0;3;23m'
+wait -t %0 '#{pane_in_mode}' == 1
+wait -t %0 '#{pane_in_mode}' == 0
+run show-buffer ; display-message -p -t %0 '#{pane_in_mode}'
+run run-shell -d 0.4
+# A drag selects from the press to the release and copies it.
+type c '\x1b[<0;3;21M'
+type c '\x1b[<32;6;21M'
+type c '\x1b[<32;9;22M'
+screen c
+type c '\x1b[<0;9;22m'
+wait '#{pane_in_mode}' == 0
+run show-buffer
+# With mode-keys vi: the cursor stops on the last character, and selections take it in.
+run set -g mode-keys vi ; copy-mode -t %0 ; send -X -t %0 history-bottom ; send -X -t %0 cursor-up ; send -X -t %0 cursor-up ; send -X -t %0 start-of-line ; send -X -t %0 select-word ; send -X -t %0 copy-selection ; display-message -p -t %0 '#{copy_cursor_x},#{copy_cursor_y}'
+run show-buffer
+run send -X -t %0 start-of-line ; send -X -t %0 begin-selection ; send -X -t %0 cursor-down ; send -X -t %0 end-of-line ; display-message -p -t %0 '#{copy_cursor_x},#{copy_cursor_y}'
+screen c
+run send -X -t %0 copy-selection-and-cancel
+run show-buffer
+run kill-server

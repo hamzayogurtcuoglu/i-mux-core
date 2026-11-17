@@ -105,6 +105,10 @@ type Pane struct {
 	Xoff   int
 	Yoff   int
 
+	// Mode is the mode the pane is in (tmux's first wp->modes entry), or nil; the loop alone
+	// touches it (ARCHITECTURE.md §4.3).
+	Mode PaneMode
+
 	Options *options.Options
 
 	Mu   sync.Mutex
@@ -571,3 +575,13 @@ func (t *Tree) RemoveSession(s *Session) {
 
 // Empty reports whether the tree has no sessions left (the server then exits).
 func (t *Tree) Empty() bool { return len(t.sessions) == 0 }
+
+// PaneMode is a mode a pane can be in (tmux's window_mode_entry): while the pane is in it, its
+// screen is shown instead of the program's and the client's keys go to its key table.
+type PaneMode interface {
+	Screen() *vt.Screen
+	Name() string     // #{pane_mode}
+	KeyTable() string // copy-mode or copy-mode-vi
+	// Formats are the mode's format variables (the mode's formats callback).
+	Formats() map[string]string
+}

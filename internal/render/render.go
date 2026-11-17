@@ -122,7 +122,7 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 			hold[p] = true
 		}
 		p.Mu.Lock()
-		syncing := p.Term.Screen.Mode&vt.ModeSync != 0
+		syncing := paneScreen(p).Mode&vt.ModeSync != 0
 		p.Mu.Unlock()
 		if !syncing {
 			delete(r.held, p)
@@ -175,7 +175,7 @@ func (r *Renderer) Compose(v *View, now time.Time) *Frame {
 				copy(line[x:x+n], r.last.Line(areaY + y)[x:x+n])
 			} else {
 				p.Mu.Lock()
-				paneLine(line[x:x+n], p, p.Term.Screen, px, py, &r.links, v)
+				paneLine(line[x:x+n], p, paneScreen(p), px, py, &r.links, v)
 				p.Mu.Unlock()
 			}
 			x += n
@@ -237,7 +237,7 @@ func (r *Renderer) cursor(f *Frame, v *View, sc *scene, areaY int) {
 		return
 	}
 	p.Mu.Lock()
-	s := p.Term.Screen
+	s := paneScreen(p)
 	mode := s.Mode
 	cx, cy := p.Xoff+s.Cx, p.Yoff+s.Cy
 	f.Cursor = cursorState(s)
@@ -254,7 +254,7 @@ func (r *Renderer) cursor(f *Frame, v *View, sc *scene, areaY int) {
 		mode &^= vt.AllMouseModes
 		for _, q := range v.Window.Panes {
 			q.Mu.Lock()
-			all := q.Term != nil && q.Term.Screen.Mode&vt.ModeMouseAll != 0
+			all := q.Term != nil && paneScreen(q).Mode&vt.ModeMouseAll != 0
 			q.Mu.Unlock()
 			if all {
 				mode |= vt.ModeMouseAll

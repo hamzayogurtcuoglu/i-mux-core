@@ -528,7 +528,7 @@ func windowOffset(w *model.Window, sx, sy int) (ox, oy, wsx, wsy int) {
 		return 0, 0, wsx, wsy
 	}
 	p.Mu.Lock()
-	s := p.Term.Screen
+	s := paneScreen(p)
 	cursor := s.Mode&vt.ModeCursor != 0
 	cx, cy := p.Xoff+s.Cx, p.Yoff+s.Cy
 	p.Mu.Unlock()
@@ -863,4 +863,13 @@ func cursorState(s *vt.Screen) *termout.CursorState {
 		c = s.DefaultCColour
 	}
 	return &termout.CursorState{Style: s.CStyle, DefaultStyle: s.DefaultCStyle, DefaultMode: s.DefaultMode, Colour: c}
+}
+
+// paneScreen is wp->screen: the screen of the pane's mode while it is in one, else its
+// program's.
+func paneScreen(p *model.Pane) *vt.Screen {
+	if p.Mode != nil {
+		return p.Mode.Screen()
+	}
+	return p.Term.Screen
 }

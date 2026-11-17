@@ -52,6 +52,8 @@ type attachedClient struct {
 	// activity_time), and the repeat state (CLIENT_REPEAT, last_key, repeat_timer).
 	// mouse is the client's mouse state: drags and clicks (task C5.1).
 	mouse mouseState
+	// copyDragTimer scrolls copy mode while a drag holds its cursor at the view's edge.
+	copyDragTimer *time.Timer
 
 	keyTable    string
 	keyTableAt  time.Time

@@ -39,6 +39,10 @@ func (s *Server) PaneMouse(p *model.Pane, m *target.Mouse) {
 	if p == nil || m == nil || m.Ignore || p.Term == nil || p.Proc == nil || p.Dead {
 		return
 	}
+	// A pane in a mode: copy mode takes no mouse keys this way (window_pane_key).
+	if p.Mode != nil {
+		return
+	}
 	// No mouse moves for a pane in a mode (copy mode, task C4.8): there is none yet.
 	x, y, ok := target.MouseAt(p, m, false)
 	if !ok {

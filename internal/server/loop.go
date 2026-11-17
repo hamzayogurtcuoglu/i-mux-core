@@ -179,6 +179,10 @@ func (s *Server) paneResized(p *model.Pane) {
 	if p.Proc != nil {
 		_ = p.Proc.Resize(p.Sx, p.Sy)
 	}
+	// The pane's mode follows (the mode's resize callback).
+	if r, ok := p.Mode.(interface{ Resize(sx, sy int) }); ok {
+		r.Resize(p.Sx, p.Sy)
+	}
 }
 
 // Run runs the loop until Shutdown, then waits for the pane readers to end.

@@ -88,6 +88,18 @@ func (s *Server) dispatch(c *attachedClient, key keys.Key, m *target.Mouse) {
 	if table == "" {
 		table = def
 	}
+	// A pane in a mode takes its keys from the mode's table while the client is in its
+	// default one (server_client_key_callback): the pane under the mouse for a mouse key,
+	// else the active pane.
+	if table == def {
+		p := c.window().Active
+		if st, ok := target.FromMouse(s.tree, m); m != nil && ok {
+			p = st.P
+		}
+		if p != nil && p.Mode != nil {
+			table = p.Mode.KeyTable()
+		}
+	}
 	first := table
 	wasRepeating := c.repeating
 
@@ -154,7 +166,9 @@ func (s *Server) dispatch(c *attachedClient, key keys.Key, m *target.Mouse) {
 			s.forwardMouse(c, m)
 			return
 		}
-		if p := c.window().Active; p != nil {
+		// A pane in a mode takes no keys from the client (window_pane_key: copy mode has no
+		// key callback).
+		if p := c.window().Active; p != nil && p.Mode == nil {
 			s.PaneKey(p, key)
 		}
 		return

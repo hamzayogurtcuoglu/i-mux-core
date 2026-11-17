@@ -475,7 +475,13 @@ func init() {
 			}
 			return itoa(p.Proc.Pid())
 		}),
-		"pane_in_mode":   pv(func(*model.Pane) (string, bool) { return "0", true }),
+		"pane_in_mode": pv(func(p *model.Pane) (string, bool) { return boolString(p.Mode != nil), true }),
+		"pane_mode": pv(func(p *model.Pane) (string, bool) {
+			if p.Mode == nil {
+				return "", false
+			}
+			return p.Mode.Name(), true
+		}),
 		"pane_input_off": pv(func(*model.Pane) (string, bool) { return "0", true }),
 		"pane_marked":    pv(func(*model.Pane) (string, bool) { return "0", true }),
 		"pane_marked_set": pv(func(*model.Pane) (string, bool) {
