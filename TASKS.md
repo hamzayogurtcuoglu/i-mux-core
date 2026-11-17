@@ -1265,7 +1265,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   relies on, with `mouse_*` and the `=` target, and matches tmux 3.8 event for event. Mouse
   keys reach panes with C5.3; scrollbars and floating panes are not in the engine.
 
-### [ ] C5.2 Default mouse bindings
+### [x] C5.2 Default mouse bindings
 - **Goal:** the mouse does what tmux's defaults do where i-mux doesn't override it.
 - **Details:**
   - tmux 3.8's default root mouse bindings:
@@ -1277,6 +1277,13 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 - **Acceptance:** `list-keys -T root` difftest; engine tests for each default.
 - **Depends on:** C5.1, C5.3 (the default press binding ends with `send -M`). It is done after
   C5.3.
+- **Status:** done. tmux 3.8's root mouse defaults run as on tmux: pane and border presses
+  select, status presses switch windows, Ctrl swaps them (`swap-window`), the wheel on the status
+  line runs `next-window` and `previous-window` (now commands of their own), the middle button
+  pastes, and the right button opens the window, pane and session menus.
+  `testdata/diff/mousedefaults.txt` checks `list-keys -T root` and each of these against tmux.
+  The copy-mode ones wait for C4.8, border drags for C5.4; the floating-pane ones are not in
+  i-mux's contract.
 
 ### [x] C5.3 Mouse into panes
 - **Goal:** programs that asked for the mouse get it, encoded as they asked.

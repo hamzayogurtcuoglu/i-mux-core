@@ -401,6 +401,7 @@ func (s *Server) runMenuCommand(c *attachedClient, md *menu, command string) {
 	st := md.spec.State
 	commands.RunList(s, &commands.Client{Name: c.name, Session: c.session, Env: c.env}, list, &st, md.spec.Mouse, func(res commands.Result) {
 		s.showResult(c, res)
+		s.recalculateSizes()
 		s.redrawAll()
 	})
 }

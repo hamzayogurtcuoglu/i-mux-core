@@ -105,3 +105,4 @@ All notable changes to i-mux-core are listed here. The format follows
 - Styles: tmux's style parser, style options checked when set, border styles from the options.
 - Mouse events: reports become tmux's mouse keys (clicks, double and triple clicks, drags, the wheel), with `-t =` and the `mouse_*` formats.
 - Mouse into panes: `send -M` and unbound mouse keys reach programs that asked for the mouse, encoded as they asked.
+- Default mouse bindings: clicks select panes and windows, the wheel on the status line steps through windows, right-click menus; `next-window`, `previous-window`, `swap-window`.

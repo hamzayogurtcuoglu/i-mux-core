@@ -1,0 +1,71 @@
+# Default mouse bindings (C5.2): tmux 3.8's root mouse bindings, pressed through an attached
+# client, do what they do on tmux. Panes run cat, which asks for no mouse, so send -M sends
+# nothing. The status line is tmux's default at the bottom; the window list starts at column 5
+# ("[a] 0:w0* 1:w1- 2:w2"). "run run-shell -d 0.4" waits out the click timeout between presses.
+# The bindings that enter copy mode (drags and the wheel in such panes, double and triple
+# clicks) come with C4.8, and border drags with C5.4.
+conf mousedefaults.conf
+size 80x24
+run list-keys -T root
+run new-session -d -s a -n w0 'exec cat' ; split-window -h -l 40 -t a:w0 'exec cat' ; new-window -d -t a -n w1 'exec cat' ; new-window -d -t a -n w2 'exec cat'
+run select-window -t a:w1 ; select-window -t a:w0 ; select-pane -t a:w0.0
+client c 80x24
+# next-window, previous-window and swap-window from the command line.
+run next-window -t a ; display-message -p '#{window_index}' ; previous-window -t a ; display-message -p '#{window_index}'
+run previous-window -t a ; display-message -p '#{window_index}' ; next-window -t a ; display-message -p '#{window_index}'
+run next-window -a -t a ; previous-window -a -t a ; next-window -t nope
+run swap-window -s a:0 -t a:2 ; list-windows -t a -F '#{window_index}:#{window_name}:#{window_active}'
+run swap-window -d -s a:0 -t a:2 ; list-windows -t a -F '#{window_index}:#{window_name}:#{window_active}'
+run swap-window -s a:1 -t a:1 ; select-window -t a:0 ; select-pane -t a:0.0
+# A press on a pane selects it; on the border, the pane left of it.
+type c '\x1b[<0;61;10M'
+type c '\x1b[<0;61;10m'
+run run-shell -d 0.4
+run display-message -p '#{pane_index}'
+type c '\x1b[<0;40;10M'
+type c '\x1b[<0;40;10m'
+run run-shell -d 0.4
+run display-message -p '#{pane_index}'
+# A press on a window in the status line switches to it; the wheel there steps through them.
+type c '\x1b[<0;18;24M'
+type c '\x1b[<0;18;24m'
+run run-shell -d 0.4
+run display-message -p '#{window_index}'
+type c '\x1b[<65;30;24M'
+run display-message -p '#{window_index}'
+type c '\x1b[<64;30;24M'
+type c '\x1b[<64;30;24M'
+run display-message -p '#{window_index}'
+screen c
+# Ctrl and a press on a window swaps it with the current one.
+run run-shell -d 0.4
+type c '\x1b[<16;18;24M'
+type c '\x1b[<16;18;24m'
+run run-shell -d 0.4
+run list-windows -t a -F '#{window_index}:#{window_name}:#{window_active}'
+# The middle button pastes the top buffer into a pane that asked for no mouse.
+run select-window -t a:w0 ; set-buffer 'pasted by the middle button'
+type c '\x1b[<1;11;5M'
+type c '\x1b[<1;11;5m'
+waittext %0 'pasted by the middle button'
+run run-shell -d 0.4
+# The right button: the window menu on the status line, the pane menu on a pane, the session
+# menu on the status line's left. Each is seen while the button is down and closed with q
+# before the release: a release outside a menu without -O closes it, and tmux, which queues
+# the binding, only sees that release when it comes in a later read than the press.
+type c '\x1b[<2;6;24M'
+screen c
+type c q
+type c '\x1b[<2;6;24m'
+run run-shell -d 0.4
+type c '\x1b[<2;11;5M'
+screen c
+type c q
+type c '\x1b[<2;11;5m'
+run run-shell -d 0.4
+type c '\x1b[<2;2;24M'
+screen c
+type c q
+type c '\x1b[<2;2;24m'
+screen c
+run kill-server

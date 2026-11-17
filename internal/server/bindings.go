@@ -222,6 +222,7 @@ func (s *Server) runBinding(c *attachedClient, bd *keys.Binding, m *target.Mouse
 	}
 	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, m, func(res commands.Result) {
 		s.showResult(c, res)
+		s.recalculateSizes()
 		s.redrawAll()
 	})
 }

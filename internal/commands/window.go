@@ -187,25 +187,11 @@ func selectWindow(it *Item) error {
 		return err
 	}
 	s := st.S
-	links := s.Links()
 	switch {
 	case a.Has('n') || a.Has('p'):
-		i := 0
-		for j, l := range links {
-			if l == s.Current {
-				i = j
-			}
+		if err := stepWindow(s, a.Has('n'), false); err != nil {
+			return err
 		}
-		next := links[(i+1)%len(links)]
-		what := "no next window"
-		if !a.Has('n') {
-			next = links[(i-1+len(links))%len(links)]
-			what = "no previous window"
-		}
-		if next == s.Current {
-			return errors.New(what)
-		}
-		s.SelectWindow(next)
 		it.setCurrent(sessionState(s))
 	case a.Has('l'):
 		last := s.LastWindow()
@@ -285,6 +271,77 @@ func selectPane(it *Item) error {
 		cur := target.State{S: st.S, WL: st.WL, Idx: st.WL.Index, W: w, P: p}
 		it.setCurrent(cur)
 		it.afterHook("after-select-pane", cur)
+	}
+	return nil
+}
+
+// stepWindow is session_next and session_previous: the session's next or previous window
+// becomes its current one, wrapping round; with alert, only a window with an alert (the engine
+// has no alert flags yet, task C4.5, so there is none).
+func stepWindow(s *model.Session, next, alert bool) error {
+	what := "no next window"
+	if !next {
+		what = "no previous window"
+	}
+	links := s.Links()
+	if alert || s.Current == nil || len(links) == 0 {
+		return errors.New(what)
+	}
+	i := 0
+	for j, l := range links {
+		if l == s.Current {
+			i = j
+		}
+	}
+	wl := links[(i+1)%len(links)]
+	if !next {
+		wl = links[(i-1+len(links))%len(links)]
+	}
+	if wl == s.Current {
+		return errors.New(what)
+	}
+	s.SelectWindow(wl)
+	return nil
+}
+
+// nextWindow is next-window and previous-window (cmd_select_window_exec for them): the target
+// session moves to its next or previous window (-a: with an alert).
+func nextWindow(next bool) func(it *Item) error {
+	return func(it *Item) error {
+		st, err := it.findFlag('t', target.Session, 0)
+		if err != nil {
+			return err
+		}
+		s := st.S
+		if err := stepWindow(s, next, it.Cmd.Args.Has('a')); err != nil {
+			return err
+		}
+		it.setCurrent(sessionState(s))
+		it.afterHook("after-select-window", sessionState(s))
+		return nil
+	}
+}
+
+// swapWindow is swap-window: the windows of -s and -t change places; with -d the sessions
+// show the windows now at their indexes.
+func swapWindow(it *Item) error {
+	dst, err := it.findFlag('t', target.Window, 0)
+	if err != nil {
+		return err
+	}
+	src, err := it.findFlag('s', target.Window, target.DefaultMarked)
+	if err != nil {
+		return err
+	}
+	if src.WL.Window == dst.WL.Window {
+		return nil
+	}
+	it.Host.Tree().SwapWindows(src.WL, dst.WL)
+	if it.Cmd.Args.Has('d') {
+		dst.S.SelectWindow(dst.WL)
+		if src.S != dst.S {
+			src.S.SelectWindow(src.WL)
+		}
 	}
 	return nil
 }

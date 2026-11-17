@@ -318,6 +318,16 @@ func (w *Window) Index() int { return w.link.Index }
 // Link returns the window's winlink.
 func (w *Window) Link() *Winlink { return w.link }
 
+// SwapWindows exchanges the windows of two winlinks (swap-window): each window moves to the
+// other's index and session.
+func (t *Tree) SwapWindows(a, b *Winlink) {
+	if a.Window == b.Window {
+		return
+	}
+	a.Window, b.Window = b.Window, a.Window
+	a.Window.link, b.Window.link = a, b
+}
+
 // NewPane adds a pane to w, after the pane at, or before it when before is set, or last
 // when at is nil. The first pane of a window becomes its active pane.
 func (t *Tree) NewPane(w *Window, at *Pane, before bool, sx, sy int) *Pane {
