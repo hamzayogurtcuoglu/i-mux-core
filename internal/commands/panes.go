@@ -552,13 +552,27 @@ func percentage(v string, lo, hi, whole int) (int, string) {
 // resizePane is resize-pane: -Z toggles zoom; -x and -y set a size; -L -R -U -D move a border
 // (by their value, the argument, or 1).
 func resizePane(it *Item) error {
-	if err := notImplemented(it, "MT"); err != nil {
+	if err := notImplemented(it, "T"); err != nil {
 		return err
 	}
 	a := it.Cmd.Args
 	st, err := it.findFlag('t', target.Pane, 0)
 	if err != nil {
 		return err
+	}
+	// -M (cmd_resize_pane_mouse_update): the drag of the key that ran the command resizes,
+	// for the client that pressed it, in the session under the mouse.
+	if a.Has('M') {
+		m := it.Mouse()
+		if m == nil {
+			return nil
+		}
+		s, _, mp := target.MousePane(it.Host.Tree(), m)
+		if mp == nil || it.Client == nil || it.Client.Session != s {
+			return nil
+		}
+		it.Host.DragResize(it.Client.Name, m)
+		return nil
 	}
 	t := it.Host.Tree()
 	w, p := st.W, st.P

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"slices"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/layout"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/options"
 )
@@ -165,6 +167,38 @@ func (t *Tree) ResizePane(p *Pane, horizontal bool, change int) {
 	}
 	p.Window.Layout.ResizePane(p.ID, typ, change, true)
 	t.fixPanes(p.Window)
+}
+
+// ResizeByBorder is cmd_resize_pane_mouse_resize_tiled: a drag from lx, ly to x, y in the
+// window moves the borders at and around lx, ly. It reports whether anything moved.
+func (t *Tree) ResizeByBorder(w *Window, lx, ly, x, y int) bool {
+	if w.Layout == nil {
+		return false
+	}
+	offsets := [][2]int{{0, 0}, {0, 1}, {1, 0}, {0, -1}, {-1, 0}}
+	var cells []*layout.Cell
+	for _, o := range offsets {
+		c := w.Layout.SearchByBorder(lx+o[0], ly+o[1])
+		if c == nil || slices.Contains(cells, c) {
+			continue
+		}
+		cells = append(cells, c)
+	}
+	resized := false
+	for _, c := range cells {
+		switch typ := c.Parent.Type; {
+		case y != ly && typ == layout.TopBottom:
+			w.Layout.ResizeCell(c, y-ly)
+			resized = true
+		case x != lx && typ == layout.LeftRight:
+			w.Layout.ResizeCell(c, x-lx)
+			resized = true
+		}
+	}
+	if resized {
+		t.fixPanes(w)
+	}
+	return resized
 }
 
 // ResizePaneTo sets a pane's width (horizontal) or height, as resize-pane -x and -y do. A

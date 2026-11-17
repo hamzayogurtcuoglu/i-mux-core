@@ -506,6 +506,42 @@ func (s *Server) mouseKey(c *attachedClient, m *target.Mouse, double bool) {
 	s.dispatch(c, key, m)
 }
 
+// DragResize is resize-pane -M (cmd_resize_pane_mouse_update): the client's drag moves the
+// borders under it, now and on every drag report until the button is released.
+func (s *Server) DragResize(client string, m *target.Mouse) {
+	c := s.clientByName(client)
+	if c == nil {
+		return
+	}
+	c.mouse.dragUpdate = s.resizeDrag
+	s.resizeDrag(c, m)
+}
+
+// resizeDrag is cmd_resize_pane_mouse_resize_tiled: the drag from the last report to this one,
+// in the window under the mouse, moves the borders at the last report's position.
+func (s *Server) resizeDrag(c *attachedClient, m *target.Mouse) {
+	_, wl := target.MouseWindow(s.tree, m)
+	if wl == nil {
+		c.mouse.dragUpdate = nil
+		return
+	}
+	at := func(x, y int) (int, int) {
+		x, y = x+m.OX, y+m.OY
+		switch {
+		case m.StatusAt == 0 && y >= m.StatusLines:
+			y -= m.StatusLines
+		case m.StatusAt > 0 && y >= m.StatusAt:
+			y = m.StatusAt - 1
+		}
+		return x, y
+	}
+	x, y := at(m.X, m.Y)
+	lx, ly := at(m.LX, m.LY)
+	if s.tree.ResizeByBorder(wl.Window, lx, ly, x, y) {
+		s.OptionChanged("")
+	}
+}
+
 // forwardMouse is forward_key for a mouse key: the pane under the mouse (cmd_find_from_mouse),
 // else the client's active pane, gets the event.
 func (s *Server) forwardMouse(c *attachedClient, m *target.Mouse) {

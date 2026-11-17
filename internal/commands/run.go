@@ -40,6 +40,9 @@ type Host interface {
 	// PaneMouse is window_pane_key for a mouse key: the event goes to the pane's program,
 	// encoded as it asked, if it asked for it.
 	PaneMouse(p *model.Pane, m *target.Mouse)
+	// DragResize is resize-pane -M: the client's drag, from the event m on, moves the borders
+	// under it.
+	DragResize(client string, m *target.Mouse)
 	// OptionChanged tells the server an option was set, to apply and redraw what depends on
 	// it (tmux's options_push_changes).
 	OptionChanged(name string)

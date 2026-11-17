@@ -562,6 +562,44 @@ func (l *Layout) ResizePane(pane int, t Type, change int, opposite bool) {
 	l.resizeLayout(c, t, change, opposite)
 }
 
+// SearchByBorder is layout_search_by_border: the cell whose right or bottom border is at x, y,
+// or nil.
+func (l *Layout) SearchByBorder(x, y int) *Cell { return searchByBorder(l.Root, x, y) }
+
+func searchByBorder(c *Cell, x, y int) *Cell {
+	var last *Cell
+	for _, child := range c.Cells {
+		if x >= child.Xoff && x < child.Xoff+int(child.Sx) && y >= child.Yoff && y < child.Yoff+int(child.Sy) {
+			return searchByBorder(child, x, y)
+		}
+		if last == nil {
+			last = child
+			continue
+		}
+		switch c.Type {
+		case LeftRight:
+			if x < child.Xoff && x >= last.Xoff+int(last.Sx) {
+				return last
+			}
+		case TopBottom:
+			if y < child.Yoff && y >= last.Yoff+int(last.Sy) {
+				return last
+			}
+		}
+		last = child
+	}
+	return nil
+}
+
+// ResizeCell is layout_resize_layout without its opposite: cell c grows or shrinks by change
+// in its parent's direction.
+func (l *Layout) ResizeCell(c *Cell, change int) {
+	if c.Parent == nil {
+		return
+	}
+	l.resizeLayout(c, c.Parent.Type, change, false)
+}
+
 func (l *Layout) resizeLayout(c *Cell, t Type, change int, opposite bool) {
 	needed := change
 	for needed != 0 {

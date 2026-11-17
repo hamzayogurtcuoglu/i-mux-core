@@ -58,6 +58,8 @@ func (h *fakeHost) PaneKey(p *model.Pane, k keys.Key) bool {
 	return k != keys.Parse("C-BSpace")
 }
 
+func (h *fakeHost) DragResize(string, *tgt.Mouse) {}
+
 func (h *fakeHost) PaneMouse(p *model.Pane, m *tgt.Mouse) {
 	h.sent = append(h.sent, fmt.Sprintf("%%%d mouse %d,%d", p.ID, m.X, m.Y))
 }

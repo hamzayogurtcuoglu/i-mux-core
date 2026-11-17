@@ -1301,11 +1301,16 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   `testdata/diff/mousepanes.txt` drives the fake TUI in modes 1000, 1000+1006, 1002+1006,
   1003+1006, 1002+1005 and none with tmux's default bindings, and its bytes match tmux's.
 
-### [ ] C5.4 Border drag resizing
+### [x] C5.4 Border drag resizing
 - **Goal:** dragging a border resizes panes like tmux.
 - **Details:** `MouseDrag1Border` → `resize-pane -M`, with tmux's rules.
 - **Acceptance:** difftest: pane sizes after the same drag are identical.
 - **Depends on:** C5.2.
+- **Status:** done. `resize-pane -M` makes the pressing client's drag move the borders under it
+  (`layout.SearchByBorder`, `Tree.ResizeByBorder`, the server's drag update);
+  `testdata/diff/mousedrag.txt` compares pane sizes and frames with tmux after drags of
+  vertical and horizontal borders, a corner, past the edge, from inside a pane, and with two
+  status lines and pane border status lines at the top.
 
 **Gate 5:**
 - Every mouse binding in i-mux's config behaves as on tmux in engine tests and difftests.
