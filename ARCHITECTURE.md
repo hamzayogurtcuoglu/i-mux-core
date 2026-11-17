@@ -197,14 +197,19 @@ A per-client ticker (at most every 16 ms, and right away after input) then:
    follows the same split. A menu is the window's, as in tmux 3.8 (`w->menu`): `server` keeps it
    by window, every client showing the window draws it over the panes and borders, in window
    coordinates, and the keys of a client showing that window go to it (after a popup's).
-2. **Diffs** it against the last frame sent, cell by cell.
+2. **Diffs** it against the last frame sent, cell by cell. The parts tmux draws whole when they
+   change are written whole when anything in them changed: the status lines
+   (`screen_redraw_draw_status`), a popup (`popup_draw_cb`) and the menu. Pane cells stay diffed:
+   tmux passes a program's own writes through there.
 3. **Writes** the changes with the fewest escape sequences the terminal supports (`termout`).
 4. **Wraps** the update in synchronized output (DEC mode 2026) when the terminal supports it, and
    ends it with the cursor where the active pane, or the overlay, wants it.
 
 The frame is what the client's terminal is to show, not how tmux gets there: tmux draws scenes
-of spans and updates panes incrementally, the engine diffs frames, and only the resulting
-screen must be the same. The parts that decide that screen are ported: the border cells and
+of spans and updates panes incrementally, the engine diffs frames, and the resulting screen
+must be the same. So must the text of the parts drawn whole: i-mux's e2e suite reads a
+client's output stream after a mark and looks for a popup's, menu's or status line's text in
+it, which a cell diff would cut into the changed cells only (C6.3). The parts that decide that screen are ported: the border cells and
 which pane colours them (`screen-redraw.c`, with tmux's z order of panes kept in the model),
 the fill cells (`window-border.c`), a pane's colours (`tty_attributes`), and the writing of a run
 of cells for the terminal's capabilities (`tty_draw_line`, `tty_colours`, the line drawing set).
