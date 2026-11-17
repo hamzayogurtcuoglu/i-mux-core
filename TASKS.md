@@ -1359,7 +1359,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   `send-keys` and hooks. Green on Linux, run several times in a row; macOS and Windows have
   not run them yet.
 
-### [ ] C6.2 Run i-mux's e2e suite on i-mux-core, without touching i-mux
+### [x] C6.2 Run i-mux's e2e suite on i-mux-core, without touching i-mux
 - **Goal:** measure parity with the real thing.
 - **Details:**
   - `scripts/imux-e2e.sh` builds `imux-core` and puts a directory first on `PATH` holding a link
@@ -1372,6 +1372,13 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     C6.3 is done.
 - **Acceptance:** the script runs end to end and `PARITY.md` is generated.
 - **Depends on:** C6.1.
+- **Status:** done. `scripts/imux-e2e.sh` runs the suite (16 s here) and `cmd/parity` writes
+  `PARITY.md`, with causes from `parity/notes.txt` (by test, or by text in a failure's output).
+  First run, i-mux at 397a70a: 108 tests, 10 pass, 98 fail. 97 fail because i-mux does not
+  accept imux-core's `-V` line (E9) and stops before doing anything; one is a timing limit on
+  i-mux's own handoff, missed under the suite's load and passed alone. CI runs it at that
+  commit (`imux-e2e`, non-blocking) and keeps `PARITY.md` as an artifact; the engine's own
+  scenarios run in CI too (`e2e`, Linux and macOS).
 
 ### [ ] C6.3 Fix until every i-mux e2e test passes
 - **Goal:** full parity.

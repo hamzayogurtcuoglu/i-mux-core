@@ -1,0 +1,7 @@
+# Causes of i-mux e2e failures on i-mux-core, for PARITY.md (cmd/parity): one line per test,
+#   TestName | cause | task
+# or per kind of failure, for every failure whose output holds the text:
+#   ~ text | cause | task
+~ unrecognized version "imux-core | i-mux does not accept imux-core's `-V` line (`imux-core X (tmux 3.8 compatible)`, E9) and stops | C6.3
+~ unparseable tmux -V | i-mux does not accept imux-core's `-V` line (E9) | C6.3
+TestHandoffPrintLargeSession | a timing limit on i-mux's own handoff, missed under the full suite's load; passes alone on imux-core and on tmux | none (not the engine)

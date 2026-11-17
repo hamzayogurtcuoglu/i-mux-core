@@ -86,6 +86,50 @@ jobs:
           IMUX_DIFFTEST_REQUIRE: "1"
         run: make difftest
 
+  e2e:
+    name: Engine e2e scenarios (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: End-to-end scenarios
+        run: make e2e
+
+  imux-e2e:
+    # i-mux's own e2e suite on imux-core (TASKS.md C6.2), at a pinned i-mux commit. It does
+    # not block until every test passes (C6.3); PARITY.md is kept as an artifact.
+    name: i-mux's e2e suite on imux-core
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      IMUX_COMMIT: 397a70abe24d659402c2e94e7cb4a593f153da7a
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: hamzayogurtcuoglu/i-mux
+          ref: ${{ env.IMUX_COMMIT }}
+          path: i-mux
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run the suite
+        run: ./scripts/imux-e2e.sh i-mux
+      - name: Upload PARITY.md
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity
+          path: PARITY.md
+
   conpty-spike:
     name: ConPTY and IPC evidence (C0.7, ${{ matrix.os }})
     strategy:

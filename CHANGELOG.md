@@ -110,3 +110,4 @@ All notable changes to i-mux-core are listed here. The format follows
 - Copy mode: scrolling back, selecting with keys and the mouse, double- and triple-click copies, copy to buffer and clipboard.
 - i-mux's look end to end: sidebar, splits, tabs, agent bar and themes render as on tmux.
 - The engine's end-to-end scenarios (`make e2e`): 36 scenarios against imux-core alone.
+- i-mux's e2e suite on imux-core (`scripts/imux-e2e.sh`), reported in `PARITY.md`.
