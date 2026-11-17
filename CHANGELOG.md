@@ -109,3 +109,4 @@ All notable changes to i-mux-core are listed here. The format follows
 - Border drag resizing: dragging a pane border resizes the panes as on tmux (`resize-pane -M`).
 - Copy mode: scrolling back, selecting with keys and the mouse, double- and triple-click copies, copy to buffer and clipboard.
 - i-mux's look end to end: sidebar, splits, tabs, agent bar and themes render as on tmux.
+- The engine's end-to-end scenarios (`make e2e`): 36 scenarios against imux-core alone.

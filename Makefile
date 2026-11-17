@@ -10,7 +10,7 @@ PKGS      ?= ./...
 
 export CGO_ENABLED = 0
 
-.PHONY: all build test lint fmt tmux difftest vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check term-fixtures term-fixtures-check render-fixtures render-fixtures-check contract contract-record fuzz bench ci clean
+.PHONY: all build test lint fmt tmux difftest e2e vt-fixtures vt-fixtures-check layout-fixtures layout-fixtures-check parse-fixtures parse-fixtures-check term-fixtures term-fixtures-check render-fixtures render-fixtures-check contract contract-record fuzz bench ci clean
 
 all: lint test build
 
@@ -43,6 +43,9 @@ tmux: ## Build the pinned tmux 3.8 into .cache/tmux
 difftest: build vt-fixtures-check layout-fixtures-check parse-fixtures-check term-fixtures-check render-fixtures-check ## Differential tests against the pinned tmux
 	IMUX_CORE_BIN=$(CURDIR)/bin/$(BINARY) IMUX_DIFFTEST_TMUX=$(TMUX_PINNED) \
 		$(GO) test -count=1 -tags difftest ./internal/difftest/...
+
+e2e: build ## The engine's end-to-end scenarios (e2e/), against imux-core alone
+	IMUX_CORE_BIN=$(CURDIR)/bin/$(BINARY) $(GO) test -count=1 -tags e2e ./e2e/...
 
 # The VT fixtures' expected screens come from the pinned tmux (cmd/vtfixture).
 vt-fixtures: ## Regenerate testdata/vt/*.screen from the pinned tmux
@@ -129,7 +132,7 @@ fuzz: ## Run every fuzz target for FUZZTIME (default 10s)
 bench: ## Benchmarks
 	$(GO) test -run '^$$' -bench . -benchmem $(PKGS)
 
-ci: lint test difftest ## What CI runs: lint, unit tests and the differential tests
+ci: lint test difftest e2e ## What CI runs: lint, unit tests, the differential tests and the end-to-end scenarios
 
 clean:
 	$(GO) clean

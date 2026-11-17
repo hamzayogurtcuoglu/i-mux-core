@@ -1336,7 +1336,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 
 ## Phase 6: Parity with tmux on macOS and Linux
 
-### [ ] C6.1 Engine end-to-end suite
+### [x] C6.1 Engine end-to-end suite
 - **Goal:** realistic scenarios tested against the engine alone, runnable on all three systems
   later.
 - **Details:**
@@ -1351,6 +1351,13 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Each scenario drives a headless client and asserts on screens and formats.
 - **Acceptance:** at least 30 scenarios, green on macOS and Linux CI.
 - **Depends on:** Gate 5.
+- **Status:** done. `e2e/` has 36 scenarios (`make e2e`, in `make ci`): attaching, detaching
+  (by command and by key) and reattaching; switching sessions; splits, kills, respawn, zoom,
+  swap and dead panes; popups and menus; paste buffers, bracketed paste, copy mode, the wheel
+  and double clicks; clicks, status clicks, border drags and the mouse into a program; two
+  clients; the server exiting with its last session or pane and starting again; typed keys,
+  `send-keys` and hooks. Green on Linux, run several times in a row; macOS and Windows have
+  not run them yet.
 
 ### [ ] C6.2 Run i-mux's e2e suite on i-mux-core, without touching i-mux
 - **Goal:** measure parity with the real thing.
