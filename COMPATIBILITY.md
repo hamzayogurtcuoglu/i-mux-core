@@ -259,7 +259,15 @@ A window with a size from `resize-window` goes back to that size after `select-l
 `select-word`, `select-line`, `copy-pipe-and-cancel` (with no command: it copies to the buffer
 and the clipboard). i-mux's double- and triple-click bindings run them after `copy-mode -H`.
 Mouse selection and scrolling otherwise use tmux's default `copy-mode` and `copy-mode-vi`
-bindings (§7); task C4.8 lists the commands those need.
+bindings (§7). The engine's copy mode (C4.8) has what those need and the moves around them:
+`cancel`; `scroll-up`, `scroll-down`, `scroll-down-and-cancel`, `page-up`, `page-down`,
+`halfpage-up`, `halfpage-down`, `history-top`, `history-bottom`; `cursor-up`, `-down`,
+`-left`, `-right`, `start-of-line`, `end-of-line`, `top-line`, `middle-line`, `bottom-line`;
+`begin-selection`, `clear-selection`, `select-word`, `select-line`; `copy-selection`,
+`copy-pipe` and their `-and-cancel` and `-no-clear` forms (no command: buffer and clipboard).
+Searching, jumps, marks, rectangles, line numbers and `top_line_time` (the position indicator's
+time; a script compares frames with a position format without it) are not in i-mux's
+contract; unknown `send -X` commands do nothing, as tmux's do.
 
 ## 4. Formats
 

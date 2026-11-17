@@ -169,6 +169,15 @@ A pane whose program exits:
   `pane_dead_signal` set, and fires `pane-died`;
 - otherwise closes, and fires `pane-exited`.
 
+A pane may be **in a mode** (tmux's `wp->modes`; the engine has copy mode, task C4.8). The mode
+is `model.Pane.Mode`, a small interface: the screen to show, its key table and its name.
+While a pane has one, the renderer draws the mode's screen instead of the program's (the
+program goes on writing to its own), the client's keys go to the mode's key table
+(`copy-mode`, or `copy-mode-vi` with `mode-keys vi`) as tmux's `server_client_key_callback`
+picks it, and mouse keys are not sent to the program. `internal/copymode` keeps a copy of the
+pane's screen and history taken on entry (`window_copy_clone_screen`) and a view of the pane's
+size drawn from it, touched only in the loop.
+
 ### 4.4 Rendering
 
 Each attached client has a renderer. When anything it shows changes, the client is marked dirty.
