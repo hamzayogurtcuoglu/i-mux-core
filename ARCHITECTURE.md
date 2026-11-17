@@ -181,7 +181,10 @@ size drawn from it, touched only in the loop.
 ### 4.4 Rendering
 
 Each attached client has a renderer. When anything it shows changes, the client is marked dirty.
-A per-client ticker (at most every 16 ms, and right away after input) then:
+Dirty clients are drawn at the end of the loop's turn, as tmux draws at the end of its loop:
+after the event and the events already queued behind it (up to 64), so that a busy server
+draws once for many events, and no client more often than every 16 ms (a timer draws it when
+its 16 ms are up). Each draw:
 
 1. **Composes** the frame from:
    - the status lines;
