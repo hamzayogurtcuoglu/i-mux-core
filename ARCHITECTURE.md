@@ -81,7 +81,8 @@ first one and back after the last, and prints the reason it detached.
 ## 3. Packages
 
 ```
-cmd/imux-core/            main: argv → client or server
+cmd/imux-core/            main: argv → client or server (calls engine.Main)
+engine/                   the one public package: Main, for i-mux's own cmd/imux-core (E16)
 cmd/contract/             development tool: extracts and checks the contract (C0.3)
 cmd/tmuxrec/              development tool: a recording tmux shim (C0.3)
 internal/
@@ -582,3 +583,4 @@ switch; nothing requires it.
 | E13 | On Windows, the server listens on a named pipe with a protected DACL (the user and SYSTEM), `PIPE_REJECT_REMOTE_CLIENTS`, and a token SID check of every client | The C0.7 evidence: the DACL, the remote client flag and the client's SID all work on a pipe. AF_UNIX gives the peer SID too, but its socket file's protection could not be shown (the spike could not read its DACL) and it has no remote client flag |
 | E14 | On Windows, `run-shell` and `if-shell` shell commands run in `cmd.exe /d /s /c`; i-mux's own calls use an engine extension, the argv form (`["prog", "arg", …]`, formats expanded in each element, no shell), and pane programs go as separate arguments | i-mux builds POSIX lines (`'<imux>' … >/dev/null 2>&1 \|\| true`, `rm -f`) that no Windows shell runs; quoting them for PowerShell or `cmd.exe` would bring its own bugs, while an argv needs none. macOS and Linux stay unchanged (C9.3) |
 | E15 | The client reads terminfo with our own reader of compiled terminfo files (the legacy and the 32-bit formats, with extended capabilities), from the places ncurses looks; parameters are expanded by our own `tparm`. A built-in `xterm-256color` description, generated from ncurses' entry, is used when there is no terminfo (Windows) | No cgo and no ncurses dependency; tmux itself only needs the capabilities as strings, which is what crosses the socket. The reader and `tparm` are checked against tmux's own view of the terminal (`show-messages -T`) |
+| E16 | i-mux ships the engine by building it from this Go module: i-mux's `go.mod` requires `github.com/hamzayogurtcuoglu/i-mux-core` at a pinned version, and i-mux's `cmd/imux-core` calls `engine.Main`, this repository's one public package (everything else stays `internal/`). i-mux's `make build`, `make install-local` and its GoReleaser release build both binaries from that pin, into the same archives. Built that way, `-V` reports the pinned module version, read from the build info (`0.1.0` for `v0.1.0`, the pseudo-version before the first tag), unless `-ldflags -X` sets `version.Version`; built here, `0.0.0-dev` as before. | One pin decides what i-mux builds, releases and tests; Go's checksum database verifies the engine's source; no release script clones this repository. An engine change reaches i-mux only when i-mux moves its pin. |

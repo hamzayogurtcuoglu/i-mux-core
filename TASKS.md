@@ -1573,7 +1573,8 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Goal:** users who opt in get the engine with no extra steps.
 - **Details:**
   - GoReleaser builds `imux-core` for darwin and linux (amd64 and arm64) and ships it in the same
-    archives and the Homebrew formula.
+    archives and the Homebrew formula. It builds it from i-mux's `go.mod` pin of this module,
+    through `engine.Main` (E16).
   - `make install-local` installs both binaries.
   - The self-update (`imux update`, Settings → Update) replaces both, checksum-verified, as one
     step. If one fails, neither changes.
@@ -1587,8 +1588,8 @@ i-mux's `make ci` must pass with tmux exactly as before.
 ### [ ] C7.6 CI for both engines
 - **Goal:** neither engine can regress unnoticed.
 - **Details:**
-  - i-mux's CI gets an `e2e-core` job: it checks out i-mux-core at the pinned version, builds
-    it, and runs `make e2e-core` on Linux and macOS.
+  - i-mux's CI gets an `e2e-core` job: it builds i-mux-core at the pinned version (i-mux's
+    `go.mod`, E16) and runs `make e2e-core` on Linux and macOS.
   - The job is blocking.
 - **Acceptance:** green on both systems.
 - **Depends on:** C7.5.
