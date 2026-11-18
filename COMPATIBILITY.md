@@ -681,6 +681,12 @@ engine does not have yet.
   3.8's default `latest` applies: the window follows the size of the client that used it last.
 - Detach (`detach-client`, or the session ending) restores the terminal fully: modes, alternate
   screen, cursor, mouse and paste reporting off.
+- Pixel sizes, as tmux's: a window's cell is 16×32 pixels unless an attached client's terminal
+  reports its own (its `TIOCGWINSZ` pixels over its size; the largest of the window's clients
+  wins), and a pane's `TIOCGWINSZ` holds its size in pixels from that cell, as do its `CSI 14 t`
+  and `16 t` replies. A client resized with no pixel size is asked `CSI 18 t` and `CSI 14 t`
+  once, and its terminal's answers (`CSI 8 ; rows ; cols t`, `CSI 4 ; height ; width t`) give its
+  size and cell size (`tty_resize`, `tty_keys_winsz`).
 
 ## 12. Extensions
 
