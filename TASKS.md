@@ -1478,6 +1478,15 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     - a real agent session's look and speed.
 - **Acceptance:** the owner signs off, or files issues that become tasks.
 - **Depends on:** C6.3.
+- **Status:** the programmatic half is done (2026-11-18): the coding agent ran the trial in the
+  owner's Terminal.app, with i-mux's fake agents on an isolated HOME and socket, next to the
+  same setup on the pinned tmux 3.8, and compared Terminal's own text buffer after every step —
+  layout, wide characters and emoji, resizes (80×24 → 188×40 → 88×19), zoom, copy mode and
+  scrollback, a multi-line paste into the agent pane, OSC 52 and `kill-server`'s exit. Every
+  step matched the tmux twin; the details are in CHECKLIST.md under "Verified
+  programmatically". Left for the owner: the colour/theme look, the mouse, Cmd+V and image
+  paste, the theme switch and a real agent session — the parts that need eyes and hands on a
+  real terminal — and the sign-off.
 
 **Gate 6:**
 - 100% of i-mux's e2e tests pass on i-mux-core.

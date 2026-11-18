@@ -61,6 +61,33 @@ terminal, what you did, and what each engine showed (a screenshot helps).
       looks while it streams, scrolling back through it, and whether it feels as fast as on
       tmux.
 
+## Verified programmatically (the coding agent, 2026-11-18)
+
+The agent ran the trial above in **Terminal.app** (the owner's terminal): a real Terminal window
+ran `imux claude` with the fake agents, a second window ran the same setup on the pinned tmux
+3.8, and Terminal's own text buffer was read back through AppleScript after each step (the
+screen-recording permission was not available, so colours were not compared at pixel level).
+What was compared is therefore what Terminal.app itself rendered, at text-grid level, twin
+window against twin window:
+
+| Check | Result |
+| --- | --- |
+| First frame: sidebar, agent pane, tab bar, borders | identical to the tmux twin, cell for cell |
+| Wide characters and emoji (CJK, 👨‍👩‍👧‍👦, 👍🏽, box drawing) | aligned, no stray cells, both engines |
+| Resize (80×24 → 188×40 → 88×19, real SIGWINCH) | reflow correct, no leftovers, no crash |
+| Zoom in and out (`resize-pane -Z`), automatic rename | correct redraw and border titles |
+| Copy mode and scrollback (`seq 1 100`, page-up) | history and the `[15/94]` indicator as on tmux |
+| Multi-line paste into the agent pane (CJK + emoji) | reached the agent's stdin intact |
+| OSC 52 (`set-buffer -w`) to the system clipboard | ignored by Terminal.app, as under tmux |
+| `kill-server` | both clients exit and Terminal closes both tabs the same way |
+
+The engine server stayed up through ~15 minutes of this; an earlier trial window that closed
+mid-run was closed by hand, not by a crash (a second run with the same steps was stable).
+
+Still the owner's eyes and hands, in Terminal.app and any other terminal they use: the colours
+and theme as pixels, the mouse (clicks, right-click menus, border drags), Cmd+V paste, image
+paste into an agent, the light/dark theme switch, and a real agent session's feel.
+
 ## Issues
 
 | Terminal | What you did | tmux | i-mux-core |
