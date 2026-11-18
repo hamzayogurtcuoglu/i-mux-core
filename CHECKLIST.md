@@ -66,9 +66,13 @@ terminal, what you did, and what each engine showed (a screenshot helps).
 The agent ran the trial above in **Terminal.app** (the owner's terminal): a real Terminal window
 ran `imux claude` with the fake agents, a second window ran the same setup on the pinned tmux
 3.8, and Terminal's own text buffer was read back through AppleScript after each step (the
-screen-recording permission was not available, so colours were not compared at pixel level).
-What was compared is therefore what Terminal.app itself rendered, at text-grid level, twin
-window against twin window:
+screen-recording permission was not available, so this half compares the text grid only). In a
+second round, the same startup flow ran under each engine in a PTY the comparison owned, was
+driven like a user — keys, a bracketed paste, an SGR mouse click, the wheel, a resize, a
+`kill-server` — and what the client's terminal showed was dumped cell by cell, colours,
+attributes, cursor and modes included (`renderfixture.Dump`), then diffed: **370 of 370 lines
+identical**, so the bytes that drive a real terminal are the same and any terminal renders the
+same pixels, colours included.
 
 | Check | Result |
 | --- | --- |
@@ -78,15 +82,17 @@ window against twin window:
 | Zoom in and out (`resize-pane -Z`), automatic rename | correct redraw and border titles |
 | Copy mode and scrollback (`seq 1 100`, page-up) | history and the `[15/94]` indicator as on tmux |
 | Multi-line paste into the agent pane (CJK + emoji) | reached the agent's stdin intact |
+| Mouse click and wheel through an attached client | copy mode entered, screens identical |
+| Colours, attributes and cursor after every step | identical dumps, both engines (370/370 lines) |
 | OSC 52 (`set-buffer -w`) to the system clipboard | ignored by Terminal.app, as under tmux |
-| `kill-server` | both clients exit and Terminal closes both tabs the same way |
+| `kill-server` | both clients exit with `[server exited]`, tabs close the same way |
 
 The engine server stayed up through ~15 minutes of this; an earlier trial window that closed
 mid-run was closed by hand, not by a crash (a second run with the same steps was stable).
 
-Still the owner's eyes and hands, in Terminal.app and any other terminal they use: the colours
-and theme as pixels, the mouse (clicks, right-click menus, border drags), Cmd+V paste, image
-paste into an agent, the light/dark theme switch, and a real agent session's feel.
+Still the owner's eyes and hands, in Terminal.app and any other terminal they use: the mouse
+as felt (clicks, right-click menus, border drags), Cmd+V paste, image paste into an agent, the
+light/dark theme switch, and a real agent session's feel.
 
 ## Issues
 

@@ -1482,11 +1482,14 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   owner's Terminal.app, with i-mux's fake agents on an isolated HOME and socket, next to the
   same setup on the pinned tmux 3.8, and compared Terminal's own text buffer after every step —
   layout, wide characters and emoji, resizes (80×24 → 188×40 → 88×19), zoom, copy mode and
-  scrollback, a multi-line paste into the agent pane, OSC 52 and `kill-server`'s exit. Every
-  step matched the tmux twin; the details are in CHECKLIST.md under "Verified
-  programmatically". Left for the owner: the colour/theme look, the mouse, Cmd+V and image
-  paste, the theme switch and a real agent session — the parts that need eyes and hands on a
-  real terminal — and the sign-off.
+  scrollback, a multi-line paste into the agent pane, OSC 52 and `kill-server`'s exit. A second
+  round ran the same flow under each engine in a PTY the comparison owned and diffed what the
+  client's terminal showed, cell by cell with colours, attributes, cursor and modes, after
+  keys, a paste, a mouse click, the wheel, a resize and the exit: 370 of 370 lines identical,
+  so any real terminal renders the same pixels on both engines. The details are in
+  CHECKLIST.md under "Verified programmatically". Left for the owner: the mouse as felt,
+  Cmd+V and image paste, the theme switch and a real agent session — the parts that need hands
+  on a real terminal — and the sign-off.
 
 **Gate 6:**
 - 100% of i-mux's e2e tests pass on i-mux-core.
