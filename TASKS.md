@@ -1531,7 +1531,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   `make ci` passes in full with tmux, and `make e2e-core` passes on i-mux-core (TestScheduler
   is flaky by time of day on both engines, recorded there too).
 
-### [ ] C7.3 Engine detection and versions
+### [x] C7.3 Engine detection and versions
 - **Goal:** i-mux knows which engine it talks to, and its feature level.
 - **Details:**
   - `ParseVersion` already reads `tmux 3.8 (imux-core X.Y.Z)` as tmux 3.8 (E9); it gains an
@@ -1540,6 +1540,11 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - `imux doctor` warns when an i-mux-core older than i-mux's minimum is found.
 - **Acceptance:** unit tests; doctor e2e for both engines.
 - **Depends on:** C7.2.
+- **Status:** done. i-mux commit 9fad112 (T88.2): `Version.Engine` parses the bracket in
+  `tmux 3.8 (imux-core X.Y.Z)` (before, it landed in Suffix), `EngineVersion` returns the
+  engine's own number, and doctor names the engine and warns below `tmux.MinCoreVersion`
+  (0.0.0 until the engine's first release); the doctor e2e asserts the line on i-mux-core and
+  its absence on tmux, so `make e2e` and `make e2e-core` cover both engines.
 
 ### [ ] C7.4 The engine switch
 - **Goal:** users can choose the engine, and tmux remains the default.
