@@ -116,3 +116,10 @@ All notable changes to i-mux-core are listed here. The format follows
   `refresh-client` and `-S`; a changed status line, popup or menu is written whole, as tmux
   draws them; focus events and extended keys turn on when the terminal's queries time out;
   a menu closes before its chosen item runs.
+
+### Changed
+
+- The i-mux startup target is absolute now, at most tmux + 25 ms (the owner's decision,
+  2026-11-18): i-mux starts with about twenty engine commands, each a process Go starts slightly
+  later than tmux's C, which a shared Linux CI runner turns into outliers under a relative
+  target. The other five targets of ARCHITECTURE.md §10 are unchanged.

@@ -513,7 +513,15 @@ moment falls on both:
 | Throughput | `cat` of a 100 MB file of 80-column lines, a third coloured, into a 200×50 pane an attached client shows, until `cat` ends | ≤ 1.5× tmux's time |
 | One command round trip | `display-message -p '#{pane_id}'` from a new client process, 200 times (p50) | ≤ tmux + 1 ms |
 | Memory per pane | The server's resident memory growth for each of 4 panes filled past `history-limit 50000` with that text | ≤ 2× tmux's |
-| i-mux startup to its first frame | `imux claude` in a project in a 160×40 terminal, with i-mux's fake agents, until the sidebar shows, in turns with tmux (median of 5) | no slower than on tmux (within 10%, the measurement's noise) |
+| i-mux startup to its first frame | `imux claude` in a project in a 160×40 terminal, with i-mux's fake agents, until the sidebar shows, in turns with tmux (median of 5) | ≤ tmux + 25 ms |
+
+The startup target is an absolute margin, wider than the others, by the owner's decision of
+2026-11-18: i-mux starts with about twenty engine commands, each a new process, and Go's runtime
+starts a process 0.35–0.45 ms later than tmux's C on a shared Linux runner, where the sidebar's
+first frame also races the attach on either engine. Under a relative target most Linux CI runs
+missed it by a few milliseconds; with the margin above every measured run passes (BENCHMARKS.md
+has the numbers). i-mux may still start with fewer engine calls in Phase 7, behind the engine
+switch; nothing requires it.
 
 ---
 
