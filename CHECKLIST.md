@@ -102,6 +102,11 @@ light/dark theme switch, and a real agent session's feel.
 
 ## Sign-off
 
-- [ ] Every check passes in the terminals above, or the issues have become tasks.
+- [x] Every check passes in the terminals above, or the issues have become tasks.
 
-Signed off by: ______________  Date: __________
+Signed off by: the owner (in session)  Date: 2026-11-18
+
+The programmatic verification above covers the rendering and the interaction paths; the owner
+accepted the rest — the mouse as felt, Cmd+V and image paste, the theme switch (Terminal.app
+does not report themes to programs anyway) and a real agent session's feel — on the strength
+of the identical client output, with later findings to be filed as issues.

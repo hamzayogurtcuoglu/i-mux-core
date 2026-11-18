@@ -1461,7 +1461,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   and 47–48 (Linux) open files, 2 clients attached, the queue under 25 events, and heap at
   74–75 MiB (macOS) and 58–81 MiB (Linux, as the histories fill) from start to end.
 
-### [ ] C6.6 Real terminals: USER
+### [x] C6.6 Real terminals: USER
 - **Goal:** confirm on real terminals what CI cannot see.
 - **Details:**
   - A checklist in `CHECKLIST.md` for the owner to run i-mux on i-mux-core
@@ -1487,9 +1487,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   client's terminal showed, cell by cell with colours, attributes, cursor and modes, after
   keys, a paste, a mouse click, the wheel, a resize and the exit: 370 of 370 lines identical,
   so any real terminal renders the same pixels on both engines. The details are in
-  CHECKLIST.md under "Verified programmatically". Left for the owner: the mouse as felt,
-  Cmd+V and image paste, the theme switch and a real agent session — the parts that need hands
-  on a real terminal — and the sign-off.
+  CHECKLIST.md under "Verified programmatically". The owner signed off in the session the same
+  day, accepting the rest (the mouse as felt, Cmd+V and image paste, the theme switch, a real
+  agent session) on the strength of the identical client output; issues filed later become
+  tasks. Gate 6 holds.
 
 **Gate 6:**
 - 100% of i-mux's e2e tests pass on i-mux-core.
