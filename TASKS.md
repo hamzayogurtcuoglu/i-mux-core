@@ -1569,7 +1569,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   i-mux commit 838b4a5 fixed TestScheduler: it failed from 22:00 local time (the next run's
   date cut the line it waited for) and on a race between the Run panel and the watcher.
 
-### [ ] C7.5 Packaging and updates
+### [x] C7.5 Packaging and updates
 - **Goal:** users who opt in get the engine with no extra steps.
 - **Details:**
   - GoReleaser builds `imux-core` for darwin and linux (amd64 and arm64) and ships it in the same
@@ -1584,6 +1584,15 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - A goreleaser snapshot contains both.
   - An update e2e (with a local release fixture, as i-mux's update tests do) replaces both.
 - **Depends on:** C7.4.
+- **Status:** done. i-mux commit 1a5903a (T88.4): i-mux pins this module at eb9d6ba
+  (`engine.Main`, E16; commit eb9d6ba here) and builds `cmd/imux-core` from it in `make build`,
+  `make install-local` and GoReleaser; a goreleaser 2.20.0 snapshot holds both binaries in all
+  four archives, and the formula installs both. `install.sh`, which the self-update runs,
+  replaces both or neither (`TestInstallScriptReplacesBoth`), and `imux update` says a running
+  engine keeps its old version until its sessions end. i-mux's CI can build the pin only once
+  this repository's commits up to eb9d6ba are pushed. Along the way: 8918abc (one event's input
+  reaches a program in one write, as under tmux) and i-mux 5b52495 (TestScheduler's
+  every-5-min row at 23:55).
 
 ### [ ] C7.6 CI for both engines
 - **Goal:** neither engine can regress unnoticed.
