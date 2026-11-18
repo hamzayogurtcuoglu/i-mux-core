@@ -1602,6 +1602,10 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - The job is blocking.
 - **Acceptance:** green on both systems.
 - **Depends on:** C7.5.
+- **Status:** waiting for the first GitHub run. i-mux commit fe833f3 (T88.5) adds the
+  `e2e-core` job on Linux and macOS; `make e2e-core` now defaults to `bin/imux-core`, built
+  by `make build` from the pin. Locally green on macOS and on Linux (golang:1.27, non-root,
+  with `less` installed as GitHub's runners have it). Ticked once the job is green there.
 
 ### [ ] C7.7 Beta release: USER
 - **Goal:** real users try the engine on macOS and Linux.
