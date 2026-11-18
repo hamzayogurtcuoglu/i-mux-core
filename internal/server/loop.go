@@ -70,8 +70,14 @@ type Server struct {
 	nameTimers map[*model.Window]bool // windows with an automatic-rename timer pending
 
 	pendingHooks []commands.Event // events whose hooks run once the current event is done
-	dirty        bool             // a client is marked dirty: drawDirty has work
-	cfgCauses    []string         // the startup config's errors (tmux's cfg_causes)
+
+	// While the loop handles an event, what it writes to programs waits in pendingInput and
+	// goes out at the event's end, each program's in one write: tmux's bufferevents send
+	// theirs once its loop turns (writeProc).
+	batching     bool
+	pendingInput []pendingWrite
+	dirty        bool     // a client is marked dirty: drawDirty has work
+	cfgCauses    []string // the startup config's errors (tmux's cfg_causes)
 
 	started time.Time // when the server started (start_time)
 
@@ -235,12 +241,52 @@ func (s *Server) Run() {
 // maxTurnEvents is how many queued events the loop handles before it draws.
 const maxTurnEvents = 64
 
-// turn handles one event: the event, then the hooks it fired and the window names.
+// turn handles one event: the event, then the hooks it fired and the window names; then what
+// they wrote to programs goes out.
 func (s *Server) turn(f func()) {
+	s.batching = true
 	f()
 	if !s.exiting {
 		s.runHooks()
 		s.checkNames()
+	}
+	s.batching = false
+	s.flushInput()
+}
+
+// pendingWrite is a program's input waiting for the end of the loop's event.
+type pendingWrite struct {
+	w io.Writer
+	b []byte
+}
+
+// writeProc writes input to a program (a pane's or a popup's). In the loop's event it waits
+// for the event's end and goes with the rest of that program's input, in one write, as tmux's
+// bufferevent sends it: keys from one read of the client's terminal, or send-keys' keys,
+// reach the program together. Elsewhere it is written at once. Only the loop calls it.
+func (s *Server) writeProc(w io.Writer, b []byte) {
+	if len(b) == 0 {
+		return
+	}
+	if !s.batching {
+		_, _ = w.Write(b)
+		return
+	}
+	for i := range s.pendingInput {
+		if s.pendingInput[i].w == w {
+			s.pendingInput[i].b = append(s.pendingInput[i].b, b...)
+			return
+		}
+	}
+	s.pendingInput = append(s.pendingInput, pendingWrite{w: w, b: append([]byte(nil), b...)})
+}
+
+// flushInput writes what the event left for programs, in the order they first got input.
+func (s *Server) flushInput() {
+	pend := s.pendingInput
+	s.pendingInput = nil
+	for _, pw := range pend {
+		_, _ = pw.w.Write(pw.b)
 	}
 }
 

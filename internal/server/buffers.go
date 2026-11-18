@@ -24,7 +24,7 @@ func (s *Server) PaneWrite(p *model.Pane, b []byte) {
 	if p == nil || p.Proc == nil || p.Dead || len(b) == 0 {
 		return
 	}
-	_, _ = p.Proc.Write(b)
+	s.writeProc(p.Proc, b)
 }
 
 // clipboardMode is set-clipboard as the panes' terminals take it.

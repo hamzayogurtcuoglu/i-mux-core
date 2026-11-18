@@ -15,6 +15,7 @@ import (
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/vt"
 )
 
@@ -59,9 +60,15 @@ type inputWorld struct {
 
 func newInputWorld(t *testing.T, mode string) *inputWorld {
 	t.Helper()
+	return newInputWorldPTY(t, mode, nil)
+}
+
+// newInputWorldPTY is newInputWorld with the programs started by pt (nil: startServer's).
+func newInputWorldPTY(t *testing.T, mode string, pt pty.PTY) *inputWorld {
+	t.Helper()
 	w := &inputWorld{t: t}
 	l, path := listen(t)
-	w.s = startServer(t, Options{SocketPath: path, Environ: env, Event: func(name, client string) {
+	w.s = startServer(t, Options{SocketPath: path, Environ: env, PTY: pt, Event: func(name, client string) {
 		w.mu.Lock()
 		w.events = append(w.events, name)
 		w.mu.Unlock()
@@ -239,4 +246,57 @@ func TestTypedKeysReachPane(t *testing.T) {
 	w.waitPane("key: 1b76 M-v")
 	w.typed("\x7f")
 	w.waitPane("key: 7f BSpace")
+}
+
+// recPTY starts programs on real PTYs and records every write to them, one entry per Write.
+type recPTY struct {
+	pty.PTY
+	mu     sync.Mutex
+	writes []string
+}
+
+func (r *recPTY) Start(spec pty.Spec) (pty.Proc, error) {
+	p, err := r.PTY.Start(spec)
+	if err != nil {
+		return nil, err
+	}
+	return &recProc{Proc: p, r: r}, nil
+}
+
+func (r *recPTY) written() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.writes...)
+}
+
+type recProc struct {
+	pty.Proc
+	r *recPTY
+}
+
+func (p *recProc) Write(b []byte) (int, error) {
+	p.r.mu.Lock()
+	p.r.writes = append(p.r.writes, string(b))
+	p.r.mu.Unlock()
+	return p.Proc.Write(b)
+}
+
+// Keys from one read of the client's terminal reach the pane's program in one write, as tmux's
+// bufferevent sends them once its loop turns: a program that tells a paste from typing by how
+// its input comes sees what it sees under tmux.
+func TestTypedKeysReachPaneTogether(t *testing.T) {
+	rec := &recPTY{PTY: &pty.Unix{KillGrace: 200 * time.Millisecond}}
+	w := newInputWorldPTY(t, "keys", rec)
+	w.typed("hello")
+	deadline := time.Now().Add(10 * time.Second)
+	for !strings.HasSuffix(strings.Join(rec.written(), ""), "hello") {
+		if time.Now().After(deadline) {
+			t.Fatalf("hello never reached the pane: %q", rec.written())
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if ws := rec.written(); ws[len(ws)-1] != "hello" {
+		t.Errorf("the pane got the keys in %d writes: %q", len(ws), ws)
+	}
+	w.waitPane(`key: 68656c6c6f "hello"`)
 }

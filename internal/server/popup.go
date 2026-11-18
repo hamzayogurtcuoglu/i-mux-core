@@ -435,7 +435,7 @@ func (s *Server) popupKey(c *attachedClient, ev *input.Event) bool {
 		b, _ = keys.Encode(key, mode, backspace, s.extendedFormat())
 	}
 	if len(b) > 0 {
-		_, _ = pd.proc.Write(b)
+		s.writeProc(pd.proc, b)
 	}
 	return false
 }

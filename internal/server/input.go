@@ -249,7 +249,7 @@ func (s *Server) paste(p *model.Pane, b []byte) {
 	if p == nil || p.Proc == nil || p.Dead {
 		return
 	}
-	_, _ = p.Proc.Write(b)
+	s.writeProc(p.Proc, b)
 }
 
 // pasteBracket writes a paste bracket to a pane that asked for bracketed paste (input_key).
@@ -261,7 +261,7 @@ func (s *Server) pasteBracket(p *model.Pane, seq string) {
 	on := p.Term.Screen.Mode&vt.ModeBracketPaste != 0
 	p.Mu.Unlock()
 	if on {
-		_, _ = p.Proc.Write([]byte(seq))
+		s.writeProc(p.Proc, []byte(seq))
 	}
 }
 
@@ -301,7 +301,7 @@ func (s *Server) updateFocus(w *model.Window) {
 			name, seq = "pane-focus-in", "\033[I"
 		}
 		if on {
-			_, _ = p.Proc.Write([]byte(seq))
+			s.writeProc(p.Proc, []byte(seq))
 		}
 		s.firePane(name, p)
 	}
@@ -489,9 +489,9 @@ func (s *Server) sendThemeUpdates() {
 		st.themeChanged = false
 		switch theme {
 		case vt.ThemeLight:
-			_, _ = p.Proc.Write([]byte("\033[?997;2n"))
+			s.writeProc(p.Proc, []byte("\033[?997;2n"))
 		case vt.ThemeDark:
-			_, _ = p.Proc.Write([]byte("\033[?997;1n"))
+			s.writeProc(p.Proc, []byte("\033[?997;1n"))
 		}
 	}
 }

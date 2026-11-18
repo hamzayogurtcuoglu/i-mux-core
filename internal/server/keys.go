@@ -27,7 +27,7 @@ func (s *Server) PaneKey(p *model.Pane, k keys.Key) bool {
 	p.Mu.Unlock()
 	b, ok := keys.Encode(k, mode, backspace, s.extendedFormat())
 	if len(b) > 0 {
-		_, _ = p.Proc.Write(b)
+		s.writeProc(p.Proc, b)
 	}
 	return ok
 }
@@ -62,7 +62,7 @@ func (s *Server) PaneMouse(p *model.Pane, m *target.Mouse) {
 	}
 	b := keys.EncodeMouse(int(mode), keys.MouseEvent{B: m.B, LB: m.LB, SGRType: m.SGRType, SGRB: m.SGRB}, x, y)
 	if len(b) > 0 {
-		_, _ = p.Proc.Write(b)
+		s.writeProc(p.Proc, b)
 	}
 }
 

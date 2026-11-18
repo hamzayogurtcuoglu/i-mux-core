@@ -449,6 +449,15 @@ key; a binding in it can enter it again. Any key not bound in it falls back to t
 leaves the table. i-mux binds nothing in `copy-mode` and `copy-mode-vi` but relies on their
 defaults.
 
+### How input reaches a program
+
+Everything the engine writes to one program while it handles one event (the keys from one read of
+the client's terminal, a paste, `send-keys`' keys, focus and theme reports) reaches the program in
+one write, as tmux's bufferevent sends it once its loop turns: `hi` typed at once is one read of
+`hi`, not `h` then `i`. Programs that tell a paste from typing by how input comes see what they
+see under tmux. The popups difftest (`testdata/diff/popups.txt`) shows tmux's chunk;
+`internal/server`'s `TestTypedKeysReachPaneTogether` checks the engine's.
+
 ### Key names
 
 Bound: letters and punctuation (`a b c h j k l q r v H J K L S - , ?`), `C-p C-v C-\ M-v`,
