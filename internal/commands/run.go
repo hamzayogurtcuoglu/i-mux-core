@@ -60,8 +60,9 @@ type Host interface {
 	RefreshClient(client string, statusOnly bool)
 	// SetKeyTable puts the client named (an attached one) in a key table.
 	SetKeyTable(client, table string) error
-	// DefaultSize is the size of a new window of s (tmux's default_window_size).
-	DefaultSize(s *model.Session) (sx, sy int)
+	// DefaultSize is the size of a new window of s, and its cell's size in pixels (0 for the
+	// default) (tmux's default_window_size).
+	DefaultSize(s *model.Session) (sx, sy, xpixel, ypixel int)
 	// RemovePane takes a pane out, killing its program, and its window and session if empty.
 	RemovePane(p *model.Pane)
 	// Respawn starts a pane's program again, killing the one it has.
@@ -131,8 +132,10 @@ type Client struct {
 	Env  map[string]string
 	TTY  bool   // its stdin is a terminal
 	Name string // its terminal's path (#{client_name})
-	// Cols and Rows are its terminal's size, when it has one.
-	Cols, Rows int
+	// Cols and Rows are its terminal's size, when it has one; XPixel and YPixel its cell's
+	// size in pixels, 0 when the terminal does not say.
+	Cols, Rows     int
+	XPixel, YPixel int
 	// AttachTo is set by attach-session and new-session: the client attaches to it once its
 	// commands are done.
 	AttachTo *model.Session

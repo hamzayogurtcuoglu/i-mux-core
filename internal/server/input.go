@@ -131,6 +131,8 @@ func (s *Server) inputEvent(c *attachedClient, ev *input.Event) {
 		}
 		s.updatePaneColours()
 		s.themeChanged(c)
+	case input.EventWinsize:
+		s.winsizeReply(c, ev.Rows, ev.Cols, ev.YPixel, ev.XPixel)
 	case input.EventKey:
 		s.inputKey(c, ev)
 	}

@@ -67,6 +67,24 @@ type Winlink struct {
 }
 
 // Window is a window: its panes in order, the active and last ones, its size.
+// DefaultXPixel and DefaultYPixel are a cell's size in pixels when no terminal says (tmux's
+// DEFAULT_XPIXEL and DEFAULT_YPIXEL).
+const (
+	DefaultXPixel = 16
+	DefaultYPixel = 32
+)
+
+// SetPixels sets the window's cell size in pixels; 0 is the default (window_resize).
+func (w *Window) SetPixels(xpixel, ypixel int) {
+	if xpixel == 0 {
+		xpixel = DefaultXPixel
+	}
+	if ypixel == 0 {
+		ypixel = DefaultYPixel
+	}
+	w.XPixel, w.YPixel = xpixel, ypixel
+}
+
 type Window struct {
 	ID      int
 	Name    string
@@ -88,6 +106,10 @@ type Window struct {
 
 	// ManualSx and ManualSy are the size resize-window set (window-size manual), or 0.
 	ManualSx, ManualSy int
+
+	// XPixel and YPixel are a cell's size in pixels (tmux's w->xpixel and w->ypixel): the
+	// panes' terminals are told their size in pixels from it.
+	XPixel, YPixel int
 
 	// MenuLastX and MenuLastY are where the window's last menu went (menu_last_px and
 	// menu_last_py, for display-menu -x L and -y L).
@@ -304,7 +326,10 @@ func (t *Tree) NewWindow(s *Session, idx, base, sx, sy int) (*Winlink, error) {
 	} else if s.links[idx] != nil {
 		return nil, fmt.Errorf("%w: %d", ErrIndexInUse, idx)
 	}
-	w := &Window{ID: t.nextWindow, Sx: sx, Sy: sy, Options: options.New(t.Options.Window), tree: t}
+	w := &Window{
+		ID: t.nextWindow, Sx: sx, Sy: sy, Options: options.New(t.Options.Window), tree: t,
+		XPixel: DefaultXPixel, YPixel: DefaultYPixel,
+	}
 	t.nextWindow++
 	wl := &Winlink{Index: idx, Window: w, Session: s}
 	w.link = wl

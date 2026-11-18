@@ -353,7 +353,7 @@ func TestInsidePaneTarget(t *testing.T) {
 		if r := eng.Run(ctx, &inside, []string{"send-keys", "from-inside", "Enter"}); r.Code != 0 {
 			t.Fatalf("%s send-keys: %+v", eng.Name(), r)
 		}
-		c, err := eng.Attach(ctx, env, "c", 40, 10)
+		c, err := eng.Attach(ctx, env, "c", 40, 10, 0, 0)
 		if err != nil {
 			t.Fatal(err)
 		}

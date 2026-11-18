@@ -92,8 +92,10 @@ func newSession(it *Item) error {
 		return err
 	}
 	// A session made for a client to attach takes the client's size, less a status line.
+	xpixel, ypixel := 0, 0
 	if attach && it.Client.Cols > 0 && it.Client.Rows > 0 {
 		sx, sy = it.Client.Cols, it.Client.Rows
+		xpixel, ypixel = it.Client.XPixel, it.Client.YPixel
 		if sy > 0 && t.Options.Session.GetNumber("status") != 0 {
 			sy--
 		}
@@ -130,6 +132,8 @@ func newSession(it *Item) error {
 		t.RemoveSession(s)
 		return err
 	}
+	// default_window_size from the attaching client: its cell's size in pixels.
+	wl.Window.SetPixels(xpixel, ypixel)
 	s.SelectWindow(wl)
 	w := wl.Window
 	argv := it.commandArgv(s)

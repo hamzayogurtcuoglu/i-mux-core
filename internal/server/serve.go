@@ -116,6 +116,9 @@ func (s *Server) handle(c net.Conn) {
 		Cwd: hello.Cwd, Env: hello.Env, TTY: hello.StdinTTY, Name: hello.TTYName,
 		Cols: hello.Size.Cols, Rows: hello.Size.Rows,
 	}
+	if hello.Size.Cols > 0 && hello.Size.Rows > 0 {
+		client.XPixel, client.YPixel = hello.Size.XPixel/hello.Size.Cols, hello.Size.YPixel/hello.Size.Rows
+	}
 	var res commands.Result
 	var att *attachedClient
 	queue := ipc.NewQueue(0, 0)

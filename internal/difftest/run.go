@@ -170,7 +170,11 @@ func Execute(ctx context.Context, script *Script, eng Engine) (*Transcript, erro
 				return nil, fmt.Errorf("%s:%d: engine %s cannot attach a client", script.Path, st.Line, eng.Name())
 			}
 			cols, rows := parseSize(st.Args[1])
-			c, err := at.Attach(ctx, env, st.Args[0], cols, rows)
+			xp, yp := 0, 0
+			if len(st.Args) == 3 {
+				xp, yp = parseSize(st.Args[2])
+			}
+			c, err := at.Attach(ctx, env, st.Args[0], cols, rows, xp, yp)
 			if err != nil {
 				return nil, fmt.Errorf("%s:%d: %w", script.Path, st.Line, err)
 			}

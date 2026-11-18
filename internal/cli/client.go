@@ -108,7 +108,7 @@ func hello(g globals) *ipc.Hello {
 	if h.StdinTTY {
 		// What an attached client needs: its terminal's name, size and capabilities (E15).
 		h.TTYName = ttyName(os.Stdin)
-		h.Size.Cols, h.Size.Rows, _ = newConsole().size()
+		h.Size, _ = newConsole().size()
 		if ti, err := termout.Lookup(os.Getenv("TERM"), termout.SearchDirs(os.Getenv)); err == nil {
 			h.Terminfo = ti.Capabilities()
 		}

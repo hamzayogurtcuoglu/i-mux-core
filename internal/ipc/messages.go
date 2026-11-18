@@ -44,6 +44,9 @@ func (t Type) String() string {
 type Size struct {
 	Cols int `json:"cols"`
 	Rows int `json:"rows"`
+	// XPixel and YPixel are the terminal's size in pixels (TIOCGWINSZ), 0 when it does not say.
+	XPixel int `json:"xpixel,omitempty"`
+	YPixel int `json:"ypixel,omitempty"`
 }
 
 // Hello is the first message of every connection.

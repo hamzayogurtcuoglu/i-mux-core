@@ -287,7 +287,7 @@ func (s *Server) resizePopupScreen(pd *popup) {
 	pd.term.Resize(jx, jy)
 	pd.mu.Unlock()
 	if pd.proc != nil {
-		_ = pd.proc.Resize(jx, jy)
+		_ = pd.proc.Resize(jx, jy, 0, 0) // job_resize: no size in pixels
 	}
 }
 

@@ -37,6 +37,15 @@ func size() (cols, rows int) {
 	return int(ws.Col), int(ws.Row)
 }
 
+// pixels is the terminal's size in pixels, as its TIOCGWINSZ says (0 when it does not say).
+func pixels() (x, y int) {
+	ws, err := unix.IoctlGetWinsize(1, unix.TIOCGWINSZ)
+	if err != nil {
+		return 0, 0
+	}
+	return int(ws.Xpixel), int(ws.Ypixel)
+}
+
 func onResize() <-chan os.Signal {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGWINCH)

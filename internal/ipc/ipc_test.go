@@ -35,7 +35,7 @@ func TestRoundTripEveryMessage(t *testing.T) {
 	}{
 		{TypeHello, &Hello{
 			Protocol: ProtocolVersion, ClientVersion: "0.0.0-dev", Argv: []string{"-L", "x", "new-session", "-d"},
-			Cwd: "/tmp", Env: map[string]string{"TERM": "xterm-256color", "IMUX_HOME": "/h"}, Size: Size{120, 40},
+			Cwd: "/tmp", Env: map[string]string{"TERM": "xterm-256color", "IMUX_HOME": "/h"}, Size: Size{Cols: 120, Rows: 40, XPixel: 1200, YPixel: 800},
 			StdinTTY: true, StdoutTTY: true, UTF8: true, Pid: 42,
 		}, &Hello{}},
 		{TypeCommand, &Command{Commands: [][]string{{"new-session", "-d"}, {"set", "-g", "@x", "a;b"}}}, &Command{}},

@@ -265,3 +265,33 @@ func TestTerminfoKeys(t *testing.T) {
 		t.Error("F1")
 	}
 }
+
+// The answers to CSI 18 t and 14 t are read while the server waits for them (tty_keys_winsz);
+// the pixel answer ends the wait, and other times the bytes are keys.
+func TestWinsizeReplies(t *testing.T) {
+	p := newParser(t)
+	p.WinsizeQuery = true
+	evs := p.Feed([]byte("\x1b[8;40;120t\x1b[4;800;1200tx"))
+	if len(evs) != 3 || evs[0].Kind != EventWinsize || evs[0].Rows != 40 || evs[0].Cols != 120 ||
+		evs[1].Kind != EventWinsize || evs[1].YPixel != 800 || evs[1].XPixel != 1200 ||
+		evs[2].Kind != EventKey || evs[2].Key != 'x' {
+		t.Fatalf("events %+v", evs)
+	}
+	if p.WinsizeQuery {
+		t.Error("the pixel answer did not end the query")
+	}
+	// A partial answer waits for the rest.
+	p.WinsizeQuery = true
+	if evs := p.Feed([]byte("\x1b[4;80")); len(evs) != 0 {
+		t.Fatalf("partial: %+v", evs)
+	}
+	if evs := p.Feed([]byte("0;1200t")); len(evs) != 1 || evs[0].Kind != EventWinsize || evs[0].XPixel != 1200 {
+		t.Fatalf("rest: %+v", evs)
+	}
+	// Not asked: not an answer.
+	for _, ev := range p.Feed([]byte("\x1b[8;40;120t")) {
+		if ev.Kind == EventWinsize {
+			t.Fatalf("read unasked: %+v", ev)
+		}
+	}
+}

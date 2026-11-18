@@ -12,6 +12,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 var testEnv = []string{"PATH=/usr/bin:/bin", "TERM=xterm", "LANG=C"}
@@ -79,7 +81,7 @@ func TestResize(t *testing.T) {
 	p := startSh(t, &Unix{}, `stty size; read l; stty size`)
 	out := lines(p)
 	expect(t, out, "24 80")
-	if err := p.Resize(132, 50); err != nil {
+	if err := p.Resize(132, 50, 0, 0); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := p.Write([]byte("\n")); err != nil {
@@ -93,7 +95,7 @@ func TestResizeSignal(t *testing.T) {
 	p := startSh(t, &Unix{}, `trap 'echo winch' WINCH; echo ready; while :; do read l || exit; done`)
 	out := lines(p)
 	expect(t, out, "ready")
-	if err := p.Resize(100, 30); err != nil {
+	if err := p.Resize(100, 30, 0, 0); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := p.Write([]byte("\n")); err != nil { // wake the read, so the trap runs
@@ -269,5 +271,27 @@ func TestStartErrors(t *testing.T) {
 	}
 	if _, err := u.Start(Spec{Argv: []string{"/bin/sh"}, Env: testEnv, Dir: "/nonexistent", Cols: 80, Rows: 24}); err == nil {
 		t.Error("missing directory: no error")
+	}
+}
+
+// The PTY's size in pixels is a cell's times the cells, at start and on a resize.
+func TestPixels(t *testing.T) {
+	m, fd, s, err := open()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer m.Close()
+	defer s.Close()
+	for _, c := range []struct{ cols, rows, xp, yp int }{{80, 24, 16, 32}, {100, 30, 0, 0}} {
+		if err := unix.IoctlSetWinsize(fd, unix.TIOCSWINSZ, winsize(c.cols, c.rows, c.xp, c.yp)); err != nil {
+			t.Fatal(err)
+		}
+		ws, err := unix.IoctlGetWinsize(int(s.Fd()), unix.TIOCGWINSZ)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if int(ws.Col) != c.cols || int(ws.Row) != c.rows || int(ws.Xpixel) != c.cols*c.xp || int(ws.Ypixel) != c.rows*c.yp {
+			t.Errorf("%+v: winsize %+v", c, ws)
+		}
 	}
 }

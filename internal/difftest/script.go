@@ -106,8 +106,9 @@ func ParseScript(path string) (*Script, error) {
 				return nil, bad("no client %s", st.Args[0])
 			}
 		case "client", "resize":
-			if len(st.Args) != 2 || !reSize.MatchString(st.Args[1]) {
-				return nil, bad("want a name and WxH")
+			if len(st.Args) != 2 && (st.Kind != "client" || len(st.Args) != 3 || !reSize.MatchString(st.Args[2])) ||
+				!reSize.MatchString(st.Args[1]) {
+				return nil, bad("want a name and WxH (a client: and a cell's WxH in pixels)")
 			}
 			if st.Kind == "client" {
 				clients[st.Args[0]] = true

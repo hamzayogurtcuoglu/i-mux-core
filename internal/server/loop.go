@@ -181,13 +181,19 @@ func (s *Server) startOptions() {
 // paneResized resizes a pane's screen and its program's terminal when its layout cell changes
 // size (in the loop).
 func (s *Server) paneResized(p *model.Pane) {
+	xpixel, ypixel := model.DefaultXPixel, model.DefaultYPixel
+	if w := p.Window; w != nil {
+		xpixel, ypixel = w.XPixel, w.YPixel
+	}
 	if p.Term != nil {
 		p.Mu.Lock()
 		p.Term.Resize(p.Sx, p.Sy)
+		p.Term.XPixel, p.Term.YPixel = xpixel, ypixel
 		p.Mu.Unlock()
 	}
 	if p.Proc != nil {
-		_ = p.Proc.Resize(p.Sx, p.Sy)
+		// window_pane_send_resize: the size in pixels from the window's cell.
+		_ = p.Proc.Resize(p.Sx, p.Sy, xpixel, ypixel)
 	}
 	// The pane's mode follows (the mode's resize callback).
 	if r, ok := p.Mode.(interface{ Resize(sx, sy int) }); ok {
@@ -350,6 +356,10 @@ var ErrStopped = errors.New("server: stopped")
 // Spawn starts a program in pane p (in the loop): a screen of the pane's size and a reader.
 func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 	spec.Cols, spec.Rows = p.Sx, p.Sy
+	if w := p.Window; w != nil {
+		// spawn_pane: the pane's size in pixels, from its window's cell.
+		spec.XPixel, spec.YPixel = w.XPixel, w.YPixel
+	}
 	proc, err := s.opts.PTY.Start(spec)
 	var ee *exec.Error
 	var pe *fs.PathError
@@ -367,6 +377,9 @@ func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 		limit = int(w.Session().Options.GetNumber("history-limit"))
 	}
 	p.Term = vt.NewTerminal(p.Sx, p.Sy, limit)
+	if w := p.Window; w != nil {
+		p.Term.XPixel, p.Term.YPixel = w.XPixel, w.YPixel
+	}
 	// window_pane_create: a pane's title starts as the host name.
 	if h, err := os.Hostname(); err == nil {
 		p.Term.Screen.Title = h
@@ -541,11 +554,11 @@ func (s *Server) shutdown() {
 // deadProc is a pane's program that could not run: it ends at once with status 1.
 type deadProc struct{}
 
-func (deadProc) Read([]byte) (int, error)      { return 0, io.EOF }
-func (deadProc) Write([]byte) (int, error)     { return 0, os.ErrClosed }
-func (deadProc) Resize(int, int) error         { return nil }
-func (deadProc) Wait() (pty.ExitStatus, error) { return pty.ExitStatus{Code: 1}, nil }
-func (deadProc) Kill() error                   { return nil }
-func (deadProc) Pid() int                      { return 0 }
-func (deadProc) Fd() int                       { return -1 }
-func (deadProc) Close() error                  { return nil }
+func (deadProc) Read([]byte) (int, error)        { return 0, io.EOF }
+func (deadProc) Write([]byte) (int, error)       { return 0, os.ErrClosed }
+func (deadProc) Resize(int, int, int, int) error { return nil }
+func (deadProc) Wait() (pty.ExitStatus, error)   { return pty.ExitStatus{Code: 1}, nil }
+func (deadProc) Kill() error                     { return nil }
+func (deadProc) Pid() int                        { return 0 }
+func (deadProc) Fd() int                         { return -1 }
+func (deadProc) Close() error                    { return nil }

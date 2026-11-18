@@ -1,0 +1,14 @@
+# Pixel sizes, as tmux's (COMPATIBILITY.md §11): a pane's TIOCGWINSZ holds its size in pixels,
+# from a 16×32 cell, or from the attached terminal's own cell (its pixels over its size).
+size 80x24
+run new-session -d -s a -x 80 -y 24 'faketui -mode resize'
+waittext %0 'pixels) READY'
+run capture-pane -p -t a
+# A terminal with 10×20 pixel cells: the window takes its cell.
+client c 100x30 10x20
+waittext %0 'size: 100x29'
+run capture-pane -p -t a
+resize c 120x40
+waittext %0 'size: 120x39'
+run capture-pane -p -t a
+run kill-server

@@ -52,6 +52,7 @@ const (
 	EventColour                     // OSC 10 or 11: Fg or Bg (-1 when not given)
 	EventPalette                    // OSC 4: Index and Colour
 	EventClipboard                  // OSC 52: Clip and Data
+	EventWinsize                    // CSI 8 ; rows ; cols t (Rows, Cols) or CSI 4 ; h ; w t (YPixel, XPixel)
 )
 
 // Event is something the client terminal sent.
@@ -69,6 +70,11 @@ type Event struct {
 	Colour   int    // EventPalette
 	Clip     byte   // EventClipboard
 	Data     []byte // EventClipboard
+
+	// EventWinsize: the terminal's size in cells (Rows and Cols), or in pixels (YPixel and
+	// XPixel, with Rows and Cols 0).
+	Rows, Cols     int
+	XPixel, YPixel int
 }
 
 type node struct {
@@ -96,6 +102,10 @@ type Parser struct {
 	waitFg    bool
 	waitBg    bool
 	lastMouse Mouse
+
+	// WinsizeQuery is tmux's TTY_WINSIZEQUERY: the server asked the terminal for its size
+	// (CSI 18 t and 14 t), so its answers are read; the pixel answer ends the query.
+	WinsizeQuery bool
 }
 
 // New builds the key tree for a terminal (tmux's tty_keys_build); erase is its VERASE byte, or
@@ -282,6 +292,11 @@ func (p *Parser) next(expired bool) (*Event, int, bool) {
 	}
 	if key, size, r := p.extendedKey(buf); r == matched {
 		return &Event{Kind: EventKey, Key: key}, size, false
+	} else if r == partial && !expired {
+		return nil, 0, true
+	}
+	if ev, size, r := p.winsize(buf); r == matched {
+		return ev, size, false
 	} else if r == partial && !expired {
 		return nil, 0, true
 	}

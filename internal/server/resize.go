@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
+
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
 )
 
@@ -80,6 +82,7 @@ func (s *Server) recalculateSize(w *model.Window) {
 		}
 	}
 	sx, sy, found := 0, 0, false
+	xpixel, ypixel := 0, 0
 	for _, c := range s.attached {
 		if !c.shows(w) {
 			continue
@@ -87,6 +90,7 @@ func (s *Server) recalculateSize(w *model.Window) {
 		if windowSize == windowSizeLatest && n > 1 && c != s.latest[w] {
 			continue
 		}
+		xpixel, ypixel = largestCell(xpixel, ypixel, c)
 		cx, cy := c.tty.Sx, c.tty.Sy-s.statusLineSize(c)
 		switch {
 		case !found:
@@ -106,6 +110,8 @@ func (s *Server) recalculateSize(w *model.Window) {
 	if sx == w.Sx && sy == w.Sy {
 		return
 	}
+	// resize_window: the cell's pixels change with the size (and are told the panes with it).
+	w.SetPixels(xpixel, ypixel)
 	s.tree.ResizeWindow(w, sx, sy)
 	// server_redraw_window: the window's clients are drawn whole.
 	for _, c := range s.attached {
@@ -183,14 +189,15 @@ func (s *Server) SwitchClient(name string, sess *model.Session) error {
 }
 
 // DefaultSize implements commands.Host: a new window of s takes the size the clients showing s
-// give (the smallest, less their status lines), else the session's default-size (tmux's
-// default_window_size with no target client).
-func (s *Server) DefaultSize(sess *model.Session) (sx, sy int) {
+// give (the smallest, less their status lines) and the largest cell they have in pixels, else
+// the session's default-size (tmux's default_window_size with no target client).
+func (s *Server) DefaultSize(sess *model.Session) (sx, sy, xpixel, ypixel int) {
 	found := false
 	for _, c := range s.attached {
 		if c.gone || c.session != sess {
 			continue
 		}
+		xpixel, ypixel = largestCell(xpixel, ypixel, c)
 		cx, cy := c.tty.Sx, c.tty.Sy-s.statusLineSize(c)
 		if !found || cx < sx {
 			sx = cx
@@ -204,9 +211,56 @@ func (s *Server) DefaultSize(sess *model.Session) (sx, sy int) {
 		// default-size, else 80x24.
 		var x, y int
 		if n, err := fmt.Sscanf(sess.Options.GetString("default-size"), "%dx%d", &x, &y); n == 2 && err == nil {
-			return min(max(x, windowMinimum), windowMaximum), min(max(y, windowMinimum), windowMaximum)
+			return min(max(x, windowMinimum), windowMaximum), min(max(y, windowMinimum), windowMaximum), 0, 0
 		}
-		return 80, 24
+		return 80, 24, 0, 0
 	}
-	return min(max(sx, windowMinimum), windowMaximum), min(max(sy, windowMinimum), windowMaximum)
+	return min(max(sx, windowMinimum), windowMaximum), min(max(sy, windowMinimum), windowMaximum), xpixel, ypixel
+}
+
+// ttyResize is tty_resize: the client's size, and its cell's size in pixels, from its
+// terminal's. A terminal that gives no pixel size is asked once (ask: after a resize, when its
+// output is open), and its answers come back as input (winsizeReply).
+func (s *Server) ttyResize(c *attachedClient, size ipc.Size, ask bool) {
+	sx, sy, xpixel, ypixel := size.Cols, size.Rows, 0, 0
+	if sx == 0 {
+		sx = 80
+	} else {
+		xpixel = size.XPixel / sx
+	}
+	if sy == 0 {
+		sy = 24
+	} else {
+		ypixel = size.YPixel / sy
+	}
+	if ask && (xpixel == 0 || ypixel == 0) && c.in.parser != nil && !c.in.parser.WinsizeQuery && c.tty.AskSize() {
+		c.in.parser.WinsizeQuery = true
+	}
+	c.tty.Sx, c.tty.Sy = sx, sy
+	c.xpixel, c.ypixel = xpixel, ypixel
+}
+
+// winsizeReply is tty_keys_winsz's tty_set_size: the terminal's answer to CSI 18 t gives its
+// size, to CSI 14 t its size in pixels, from which a cell's comes.
+func (s *Server) winsizeReply(c *attachedClient, rows, cols, ypixel, xpixel int) {
+	if rows != 0 || cols != 0 {
+		c.tty.Sx, c.tty.Sy = cols, rows
+		return
+	}
+	c.xpixel, c.ypixel = 0, 0
+	if c.tty.Sx != 0 {
+		c.xpixel = xpixel / c.tty.Sx
+	}
+	if c.tty.Sy != 0 {
+		c.ypixel = ypixel / c.tty.Sy
+	}
+	s.invalidate(c)
+}
+
+// largestCell is clients_calculate_size's pixel size: the largest cell of the clients counted.
+func largestCell(xpixel, ypixel int, c *attachedClient) (int, int) {
+	if c.xpixel > xpixel && c.ypixel > ypixel {
+		return c.xpixel, c.ypixel
+	}
+	return xpixel, ypixel
 }

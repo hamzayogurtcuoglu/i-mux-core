@@ -14,6 +14,9 @@ type Spec struct {
 	Dir  string   // its working directory
 	Cols int
 	Rows int
+	// XPixel and YPixel are a cell's size in pixels; the PTY's size in pixels is the cells'
+	// (tmux's ws_xpixel and ws_ypixel), or 0 when they are 0.
+	XPixel, YPixel int
 }
 
 // ExitStatus is how a program ended: with an exit code, or (Unix) killed by a signal, as
@@ -31,8 +34,9 @@ type PTY interface {
 // Proc is a program running on a PTY. Reading gives its output; writing gives it input.
 type Proc interface {
 	io.ReadWriter
-	// Resize sets the PTY's size; the program gets SIGWINCH (Unix).
-	Resize(cols, rows int) error
+	// Resize sets the PTY's size, in cells and (from a cell's size in pixels) in pixels; the
+	// program gets SIGWINCH (Unix).
+	Resize(cols, rows, xpixel, ypixel int) error
 	// Wait waits for the program to end and returns how it ended. It may be called any number
 	// of times, from any goroutine.
 	Wait() (ExitStatus, error)

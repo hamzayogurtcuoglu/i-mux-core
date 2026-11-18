@@ -196,7 +196,7 @@ func (w *world) attach(cols, rows int) *client {
 	w.t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), difftest.WaitTimeout)
 	defer cancel()
-	c, err := w.eng.Attach(ctx, w.env, "", cols, rows)
+	c, err := w.eng.Attach(ctx, w.env, "", cols, rows, 0, 0)
 	if err != nil {
 		w.t.Fatal(err)
 	}

@@ -186,6 +186,16 @@ func (t *TTY) UpdateFeatures(extendedKeys, focusEvents bool) {
 	t.Invalidate()
 }
 
+// AskSize asks a VT100-like terminal for its size in cells and in pixels (CSI 18 t and 14 t),
+// as tty_resize does when the terminal's TIOCGWINSZ gave no pixel size.
+func (t *TTY) AskSize() bool {
+	if t.Term.Flags&TermVT100Like == 0 {
+		return false
+	}
+	t.puts("\033[18t\033[14t")
+	return true
+}
+
 // RepeatRequests asks the terminal for its colours again (tmux's tty_repeat_requests, forced).
 func (t *TTY) RepeatRequests() {
 	if t.started && t.Term.Flags&TermVT100Like != 0 {

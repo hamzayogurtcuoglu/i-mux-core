@@ -290,3 +290,46 @@ func (p *Parser) palette(buf []byte) (*Event, int, int) {
 	}
 	return &Event{Kind: EventPalette, Index: n, Colour: int(c)}, size, matched
 }
+
+// winsize is tty_keys_winsz: the answers to CSI 18 t and CSI 14 t, read only while the server
+// waits for them. tmux reads the digits and semicolons up to t, then the two forms.
+func (p *Parser) winsize(buf []byte) (*Event, int, int) {
+	if !p.WinsizeQuery {
+		return nil, 0, noMatch
+	}
+	if r := prefix(buf, "\033["); r != matched {
+		return nil, 0, r
+	}
+	end := 2
+	for ; end < len(buf) && end != 64; end++ {
+		if buf[end] == 't' {
+			break
+		}
+		if !isDigit(buf[end]) && buf[end] != ';' {
+			break
+		}
+	}
+	if end == len(buf) {
+		return nil, 0, partial
+	}
+	if end == 64 || buf[end] != 't' {
+		return nil, 0, noMatch
+	}
+	f := strings.Split(string(buf[2:end]), ";")
+	if len(f) < 3 {
+		return nil, 0, noMatch
+	}
+	a, err1 := strconv.Atoi(f[1])
+	b, err2 := strconv.Atoi(f[2])
+	if err1 != nil || err2 != nil {
+		return nil, 0, noMatch
+	}
+	switch f[0] {
+	case "8":
+		return &Event{Kind: EventWinsize, Rows: a, Cols: b}, end + 1, matched
+	case "4":
+		p.WinsizeQuery = false
+		return &Event{Kind: EventWinsize, YPixel: a, XPixel: b}, end + 1, matched
+	}
+	return nil, 0, noMatch
+}

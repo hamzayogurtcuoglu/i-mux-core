@@ -40,6 +40,9 @@ func size() (cols, rows int) {
 	return int(info.Window.Right - info.Window.Left + 1), int(info.Window.Bottom - info.Window.Top + 1)
 }
 
+// pixels is the console's size in pixels: a console does not say.
+func pixels() (x, y int) { return 0, 0 }
+
 // onResize polls the console's size: a console program sees resizes as input events, which the
 // raw reader does not separate out.
 func onResize() <-chan os.Signal {

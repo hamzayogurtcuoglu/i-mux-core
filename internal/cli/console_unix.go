@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
+
 	"golang.org/x/sys/unix"
 )
 
@@ -45,15 +47,15 @@ func (c *console) makeRaw() (restore func(), err error) {
 	return func() { _ = unix.IoctlSetTermios(fd, ioctlSetTermios, &saved) }, nil
 }
 
-// size is the terminal's size.
-func (c *console) size() (cols, rows int, err error) {
+// size is the terminal's size, in cells and pixels.
+func (c *console) size() (ipc.Size, error) {
 	ws, err := unix.IoctlGetWinsize(int(c.out.Fd()), unix.TIOCGWINSZ)
 	if err != nil {
 		if ws, err = unix.IoctlGetWinsize(int(c.in.Fd()), unix.TIOCGWINSZ); err != nil {
-			return 0, 0, err
+			return ipc.Size{}, err
 		}
 	}
-	return int(ws.Col), int(ws.Row), nil
+	return ipc.Size{Cols: int(ws.Col), Rows: int(ws.Row), XPixel: int(ws.Xpixel), YPixel: int(ws.Ypixel)}, nil
 }
 
 // resizes delivers a value on each SIGWINCH until stop is called.

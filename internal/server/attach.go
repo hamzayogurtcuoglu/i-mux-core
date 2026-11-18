@@ -30,9 +30,12 @@ type attachedClient struct {
 	env      map[string]string // the client's environment (tmux's c->environ)
 	last     *model.Session    // the session shown before (client_last_session)
 	gone     bool              // detached or exited: nothing more is sent
-	draw     drawState
-	in       inputState
-	format   *format.Client
+	// xpixel and ypixel are a cell of the client's terminal in pixels, 0 when it does not say
+	// (tmux's tty->xpixel and tty->ypixel).
+	xpixel, ypixel int
+	draw           drawState
+	in             inputState
+	format         *format.Client
 
 	// Cached status lines (task C4.2).
 	statusLines []status.Line
@@ -97,6 +100,9 @@ func (s *Server) attach(hello *ipc.Hello, sess *model.Session, queue *ipc.Queue)
 	}
 	c.tty = termout.NewTTY(term, hello.Size.Cols, hello.Size.Rows)
 	c.tty.UTF8 = hello.UTF8
+	// server_client_dispatch_identify's tty_resize: its output is not open yet, so the
+	// terminal is not asked for a pixel size it did not give.
+	s.ttyResize(c, hello.Size, false)
 	c.format = s.formatClient(c)
 	if f, err := ipc.Encode(ipc.TypeAttach, nil); err == nil {
 		_ = queue.Push(f)
@@ -224,7 +230,8 @@ func (s *Server) serveAttached(conn net.Conn, r *ipc.Reader, c *attachedClient) 
 			if f.Decode(&size) == nil {
 				s.post(func() {
 					if !c.gone {
-						c.tty.Sx, c.tty.Sy = size.Cols, size.Rows
+						s.ttyResize(c, size, true)
+						s.send(c)
 						s.popupResized(c)
 						s.updateLatest(c)
 						s.recalculateSizes()

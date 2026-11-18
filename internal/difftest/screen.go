@@ -27,8 +27,9 @@ type Screener interface {
 
 // Attacher is an engine whose clients can stay attached across steps (TASKS.md C2.12).
 type Attacher interface {
-	// Attach attaches a client of cols×rows, called name in the script.
-	Attach(ctx context.Context, env *Env, name string, cols, rows int) (Client, error)
+	// Attach attaches a client of cols×rows, called name in the script, whose terminal's cells
+	// are xpixel×ypixel pixels (0 for a terminal that does not say).
+	Attach(ctx context.Context, env *Env, name string, cols, rows, xpixel, ypixel int) (Client, error)
 }
 
 // Client is an attached client the harness drives.
@@ -58,10 +59,12 @@ type headless struct {
 	ended bool
 	term  *vt.Terminal
 	fed   int
+
+	xpixel, ypixel int // a cell's size in pixels, which resizes keep
 }
 
 // Attach implements Attacher: the program runs attach-session in a PTY the harness owns.
-func (b *Binary) Attach(ctx context.Context, env *Env, _ string, cols, rows int) (Client, error) {
+func (b *Binary) Attach(ctx context.Context, env *Env, _ string, cols, rows, xpixel, ypixel int) (Client, error) {
 	argv := []string{filepath.Base(b.Path), "-S", env.Socket}
 	if env.Config != "" {
 		argv = append(argv, "-f", env.Config)
@@ -71,11 +74,11 @@ func (b *Binary) Attach(ctx context.Context, env *Env, _ string, cols, rows int)
 	if ClientTerminfo != "" {
 		vars = append(vars, "TERMINFO="+ClientTerminfo)
 	}
-	p, err := pty.New().Start(pty.Spec{Path: b.Path, Argv: argv, Env: vars, Dir: env.Dir, Cols: cols, Rows: rows})
+	p, err := pty.New().Start(pty.Spec{Path: b.Path, Argv: argv, Env: vars, Dir: env.Dir, Cols: cols, Rows: rows, XPixel: xpixel, YPixel: ypixel})
 	if err != nil {
 		return nil, err
 	}
-	h := &headless{p: p, term: vt.NewTerminal(cols, rows, 0)}
+	h := &headless{p: p, term: vt.NewTerminal(cols, rows, 0), xpixel: xpixel, ypixel: ypixel}
 	go func() {
 		buf := make([]byte, 32<<10)
 		for {
@@ -152,7 +155,7 @@ func (h *headless) Resize(cols, rows int) error {
 	h.feed()
 	h.term.Resize(cols, rows)
 	h.mu.Unlock()
-	return h.p.Resize(cols, rows)
+	return h.p.Resize(cols, rows, h.xpixel, h.ypixel)
 }
 
 // Type implements Client.
@@ -170,7 +173,7 @@ func (h *headless) Close() {
 
 // Screen implements Screener: a client attaches, and is killed once its screen is taken.
 func (b *Binary) Screen(ctx context.Context, env *Env, cols, rows int) Result {
-	c, err := b.Attach(ctx, env, "", cols, rows)
+	c, err := b.Attach(ctx, env, "", cols, rows, 0, 0)
 	if err != nil {
 		return Result{Code: -1, Stderr: "difftest: attach: " + err.Error()}
 	}

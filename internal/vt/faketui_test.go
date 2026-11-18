@@ -156,7 +156,7 @@ func TestFakeTUIFrame(t *testing.T) {
 		}
 	})
 	// A resize makes it draw again for the new size.
-	if err := p.proc.Resize(60, 15); err != nil {
+	if err := p.proc.Resize(60, 15, 0, 0); err != nil {
 		t.Fatal(err)
 	}
 	p.waitText("size 60x15")
@@ -221,7 +221,7 @@ func TestFakeTUIPaste(t *testing.T) {
 func TestFakeTUIResize(t *testing.T) {
 	p := start(t, nil, "-mode", "resize")
 	p.waitText("size: 80x24")
-	if err := p.proc.Resize(100, 30); err != nil {
+	if err := p.proc.Resize(100, 30, 0, 0); err != nil {
 		t.Fatal(err)
 	}
 	p.waitText("size: 100x30")

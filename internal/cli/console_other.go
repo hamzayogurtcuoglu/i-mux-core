@@ -17,7 +17,7 @@ type console struct{}
 
 func newConsole() *console { return &console{} }
 
-func (*console) size() (int, int, error) { return 0, 0, errors.New("no console") }
+func (*console) size() (ipc.Size, error) { return ipc.Size{}, errors.New("no console") }
 
 func ttyName(*os.File) string { return "" }
 

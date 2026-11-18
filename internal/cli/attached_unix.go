@@ -55,8 +55,8 @@ func runAttached(c net.Conn, r *ipc.Reader, stdout io.Writer) (int, error) {
 	defer stopWinch()
 	go func() {
 		for range winch {
-			if cols, rows, err := con.size(); err == nil {
-				if f, err := ipc.Encode(ipc.TypeResize, &ipc.Size{Cols: cols, Rows: rows}); err == nil {
+			if size, err := con.size(); err == nil {
+				if f, err := ipc.Encode(ipc.TypeResize, &size); err == nil {
 					send(f.Type, f.Payload)
 				}
 			}

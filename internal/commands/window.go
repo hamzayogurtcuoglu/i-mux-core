@@ -51,7 +51,7 @@ func newWindow(it *Item) error {
 			idx = i
 		}
 	}
-	sx, sy := it.Host.DefaultSize(s)
+	sx, sy, xpixel, ypixel := it.Host.DefaultSize(s)
 	wl, err := t.NewWindow(s, idx, int(s.Options.GetNumber("base-index")), sx, sy)
 	if err != nil {
 		if errors.Is(err, model.ErrIndexInUse) {
@@ -60,6 +60,7 @@ func newWindow(it *Item) error {
 		return fmt.Errorf("create window failed: %v", err)
 	}
 	w := wl.Window
+	w.SetPixels(xpixel, ypixel)
 	argv := it.commandArgv(s)
 	if hasName {
 		// A window named when made is not renamed automatically (spawn.c).

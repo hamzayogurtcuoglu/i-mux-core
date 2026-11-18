@@ -187,7 +187,8 @@ func echo(on, label string, decode func(string) string) {
 func resize() {
 	show := func() {
 		cols, rows := size()
-		fmt.Printf("\x1b[H\x1b[2Jsize: %dx%d READY", cols, rows)
+		px, py := pixels()
+		fmt.Printf("\x1b[H\x1b[2Jsize: %dx%d (%dx%d pixels) READY", cols, rows, px, py)
 	}
 	show()
 	resized := onResize()

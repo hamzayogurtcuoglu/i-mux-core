@@ -46,7 +46,7 @@ func (u *Unix) Start(spec Spec) (Proc, error) {
 		return nil, err
 	}
 	defer s.Close()
-	ws := &unix.Winsize{Col: uint16(spec.Cols), Row: uint16(spec.Rows)}
+	ws := winsize(spec.Cols, spec.Rows, spec.XPixel, spec.YPixel)
 	if err := unix.IoctlSetWinsize(fd, unix.TIOCSWINSZ, ws); err != nil {
 		m.Close()
 		return nil, err
@@ -106,8 +106,17 @@ func (p *unixProc) Write(b []byte) (int, error) { return p.master.Write(b) }
 // time removes the deadline); the pane's reader uses it for tmux's ground timer.
 func (p *unixProc) SetReadDeadline(t time.Time) error { return p.master.SetReadDeadline(t) }
 
-func (p *unixProc) Resize(cols, rows int) error {
-	return unix.IoctlSetWinsize(p.fd, unix.TIOCSWINSZ, &unix.Winsize{Col: uint16(cols), Row: uint16(rows)})
+func (p *unixProc) Resize(cols, rows, xpixel, ypixel int) error {
+	return unix.IoctlSetWinsize(p.fd, unix.TIOCSWINSZ, winsize(cols, rows, xpixel, ypixel))
+}
+
+// winsize is a size in cells and, from a cell's size in pixels, in pixels (tmux's spawn and
+// window_pane_send_resize: ws_xpixel is the cell's width times the columns).
+func winsize(cols, rows, xpixel, ypixel int) *unix.Winsize {
+	return &unix.Winsize{
+		Col: uint16(cols), Row: uint16(rows),
+		Xpixel: uint16(xpixel * cols), Ypixel: uint16(ypixel * rows),
+	}
 }
 
 func (p *unixProc) Wait() (ExitStatus, error) {
