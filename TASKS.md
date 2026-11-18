@@ -1441,7 +1441,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   it starts (Phase 7, behind the engine switch), or the target becomes absolute (for example,
   ≤ tmux + 25 ms).
 
-### [ ] C6.5 Soak and leak tests
+### [x] C6.5 Soak and leak tests
 - **Goal:** it runs for days.
 - **Details:**
   - A nightly job: 4 sessions × 4 panes of the fake TUI streaming and redrawing, 2 clients
@@ -1449,12 +1449,16 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   - Track goroutines, fds and RSS over time.
 - **Acceptance:** no races, flat goroutine and fd counts, and RSS stable within history limits.
 - **Depends on:** C6.3.
-- **Status:** built, not yet accepted. `internal/server/soak_test.go` (`-tags soak`, `make soak`)
-  runs it with the server in the test's process, so goroutines, open files and heap can be
-  sampled, and fails when the last quarter of the run is above the first. The nightly job runs
-  it for an hour on Linux and macOS and keeps the samples. On the owner's Mac an 8-minute run
-  (2026-11-17) was clean: 46 goroutines, 28 files and 53–62 MiB of heap from start to end. The
-  task is done once the nightly runs are clean.
+- **Status:** done. `internal/server/soak_test.go` (`-tags soak`, `make soak`) runs it with the
+  server in the test's process, so goroutines, open files, heap, the attached clients and the
+  events waiting for the loop are sampled; it fails when the last quarter of the run is above
+  the first, and stops with every goroutine's stack if the loop does not answer for a minute.
+  The nightly job runs it for an hour on Linux and macOS and keeps the samples. The first macOS
+  run stalled after 50 minutes: frames slower than 16 ms (the race detector) drew every client
+  for every event, and the loop fell behind for good; the server now draws once at the end of
+  its turn. Run 44200318666 (2026-11-18) was then clean on both: 46–47 goroutines, 33 (macOS)
+  and 47–48 (Linux) open files, 2 clients attached, the queue under 25 events, and heap at
+  74–75 MiB (macOS) and 58–81 MiB (Linux, as the histories fill) from start to end.
 
 ### [ ] C6.6 Real terminals: USER
 - **Goal:** confirm on real terminals what CI cannot see.
