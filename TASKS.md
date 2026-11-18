@@ -1505,7 +1505,7 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
 All tasks here change `../i-mux`. They go behind the engine switch, and tmux stays the default.
 i-mux's `make ci` must pass with tmux exactly as before.
 
-### [ ] C7.1 Docs first in i-mux
+### [x] C7.1 Docs first in i-mux
 - **Goal:** i-mux's design records the engine before any code.
 - **Details:**
   - In i-mux's ARCHITECTURE.md: a new decision (the next free D number) for "two engines: tmux
@@ -1514,14 +1514,22 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - AGENTS.md's "No native Windows" rule stays until Phase 9.
 - **Acceptance:** a `docs: …` commit in i-mux.
 - **Depends on:** Gate 6.
+- **Status:** done. i-mux commit 7e54ef8: D83 (two engines, tmux the default, the switch,
+  versions, packaging, fallback) and milestone M88 (T88.1–T88.6 for C7.2–C7.7). AGENTS.md's
+  "No native Windows" rule stays until Phase 9.
 
-### [ ] C7.2 i-mux's e2e harness honours `IMUX_TMUX_BIN`
+### [x] C7.2 i-mux's e2e harness honours `IMUX_TMUX_BIN`
 - **Goal:** run i-mux's suite on either engine without PATH tricks.
 - **Details:**
   - `e2e/harness_test.go` uses `IMUX_TMUX_BIN` when set, else `tmux` on `PATH`, as today.
   - `make e2e-core` builds or locates `imux-core` and runs the suite with it.
 - **Acceptance:** `make e2e` is unchanged, and `make e2e-core` passes.
 - **Depends on:** C7.1.
+- **Status:** done. i-mux commit d4c17c5 (T88.1): the harness resolves its engine as imux
+  does (`IMUX_TMUX_BIN`, else tmux on PATH), `TestTmuxAvailable` checks that engine, and
+  `make e2e-core` runs the suite on `IMUX_CORE_BIN` or `../i-mux-core/bin/imux-core`. i-mux's
+  `make ci` passes in full with tmux, and `make e2e-core` passes on i-mux-core (TestScheduler
+  is flaky by time of day on both engines, recorded there too).
 
 ### [ ] C7.3 Engine detection and versions
 - **Goal:** i-mux knows which engine it talks to, and its feature level.
