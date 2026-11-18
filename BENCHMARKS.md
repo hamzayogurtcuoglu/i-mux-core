@@ -14,17 +14,48 @@ writes this table. CI runs it on its Linux and macOS runners and keeps BENCHMARK
 artifact.
 
 <!-- bench:start -->
-Measured by `scripts/bench.sh` on Darwin arm64, go1.27.3, on 2026-11-17.
+Measured by `scripts/bench.sh` on Darwin arm64, go1.27.3, on 2026-11-18.
 
 | What | tmux 3.8 | i-mux-core | Target | Met |
 | --- | --- | --- | --- | --- |
-| Idle CPU (10 sessions × 4 panes, one client, 10 s) | 0.00% | 0.10% | ≤ 0.5% of a core | yes |
-| Key to screen latency (p99 of 300 keys) | 0.52 ms | 0.87 ms | ≤ tmux + 2 ms | yes |
-| Throughput (100 MB into a 200×50 pane) | 4.21 s | 1.66 s | ≤ 1.5× tmux | yes |
-| Command round trip (p50 of 200) | 5.22 ms | 4.99 ms | ≤ tmux + 1 ms | yes |
-| Memory per pane (history-limit 50000, filled) | 24.7 MiB | 43.8 MiB | ≤ 2× tmux | yes |
-| i-mux startup to the sidebar (median of 5) | 0.25 s | 0.24 s | ≤ tmux + 10% | yes |
+| Idle CPU (10 sessions × 4 panes, one client, 10 s) | 0.00% | 0.00% | ≤ 0.5% of a core | yes |
+| Key to screen latency (p99 of 300 keys, in turns) | 0.47 ms | 1.02 ms | ≤ tmux + 2 ms | yes |
+| Throughput (100 MB into a 200×50 pane) | 4.18 s | 1.63 s | ≤ 1.5× tmux | yes |
+| Command round trip (p50 of 200) | 5.29 ms | 5.04 ms | ≤ tmux + 1 ms | yes |
+| Program start alone (-V, p50 of 200) | 4.79 ms | 4.59 ms | none (shows the round trip's share) | — |
+| Memory per pane (history-limit 50000, filled) | 25.1 MiB | 32.3 MiB | ≤ 2× tmux | yes |
+| i-mux startup to the sidebar (median of 5, in turns) | 253.95 ms | 240.09 ms | ≤ tmux + 10% | yes |
 <!-- bench:end -->
+
+### On the CI runners
+
+CI run 44204870252 (commit `d0f14ce`), every target met on both runners. On the Linux runner
+i-mux's startup is at the edge of its target, and missed it in most of the runs before this
+one: TASKS.md C6.4 says why and what is left to decide.
+
+GitHub's ubuntu-latest runner, measured by `scripts/bench.sh` on Linux x86_64, go1.27.0 on 2026-11-18:
+
+| What | tmux 3.8 | i-mux-core | Target | Met |
+| --- | --- | --- | --- | --- |
+| Idle CPU (10 sessions × 4 panes, one client, 10 s) | 0.00% | 0.00% | ≤ 0.5% of a core | yes |
+| Key to screen latency (p99 of 300 keys, in turns) | 0.29 ms | 0.69 ms | ≤ tmux + 2 ms | yes |
+| Throughput (100 MB into a 200×50 pane) | 2.81 s | 1.62 s | ≤ 1.5× tmux | yes |
+| Command round trip (p50 of 200) | 1.15 ms | 1.42 ms | ≤ tmux + 1 ms | yes |
+| Program start alone (-V, p50 of 200) | 0.80 ms | 1.13 ms | none (shows the round trip's share) | — |
+| Memory per pane (history-limit 50000, filled) | 21.6 MiB | 28.7 MiB | ≤ 2× tmux | yes |
+| i-mux startup to the sidebar (median of 5, in turns) | 63.49 ms | 69.60 ms | ≤ tmux + 10% | yes |
+
+GitHub's macos-latest runner, measured by `scripts/bench.sh` on Darwin arm64, go1.27.0 on 2026-11-18:
+
+| What | tmux 3.8 | i-mux-core | Target | Met |
+| --- | --- | --- | --- | --- |
+| Idle CPU (10 sessions × 4 panes, one client, 10 s) | 0.00% | 0.00% | ≤ 0.5% of a core | yes |
+| Key to screen latency (p99 of 300 keys, in turns) | 1.06 ms | 2.63 ms | ≤ tmux + 2 ms | yes |
+| Throughput (100 MB into a 200×50 pane) | 8.01 s | 3.28 s | ≤ 1.5× tmux | yes |
+| Command round trip (p50 of 200) | 6.28 ms | 5.01 ms | ≤ tmux + 1 ms | yes |
+| Program start alone (-V, p50 of 200) | 5.86 ms | 6.83 ms | none (shows the round trip's share) | — |
+| Memory per pane (history-limit 50000, filled) | 25.2 MiB | 32.1 MiB | ≤ 2× tmux | yes |
+| i-mux startup to the sidebar (median of 5, in turns) | 382.01 ms | 392.33 ms | ≤ tmux + 10% | yes |
 
 ## Emulator (C1.13)
 

@@ -1425,8 +1425,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   its time). On the owner's Mac every target is met. On the CI runners (2026-11-18) idle CPU,
   throughput, the command round trip and memory per pane (1.2–1.5× tmux's, since cells are
   packed as tmux packs them) are met on both; key latency, now sampled in turns with tmux, is
-  met once the status timer stopped drawing with the status line off. i-mux's startup is not
-  met on Linux: 64 ms on tmux, 80 ms on imux-core (macOS: within the runner's noise). Why:
+  met once the status timer stopped drawing with the status line off. i-mux's startup is at the
+  edge on Linux: CI run 44204870252 met every target on both runners (63.5 ms against 69.6 ms;
+  BENCHMARKS.md has its tables), but most runs before it missed it, for example 64 ms on tmux
+  and 80 ms on imux-core (macOS: within the runner's noise). Why:
   - i-mux runs about 20 engine commands, each a new process, before its first frame. An
     imux-core process starts 0.35–0.45 ms later than tmux's on the Linux runner: that is Go's
     runtime (the package start-up is now lazy; `-V` is within 0.13 ms of a Go program that
