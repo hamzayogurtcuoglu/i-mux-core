@@ -1529,7 +1529,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   does (`IMUX_TMUX_BIN`, else tmux on PATH), `TestTmuxAvailable` checks that engine, and
   `make e2e-core` runs the suite on `IMUX_CORE_BIN` or `../i-mux-core/bin/imux-core`. i-mux's
   `make ci` passes in full with tmux, and `make e2e-core` passes on i-mux-core (TestScheduler
-  is flaky by time of day on both engines, recorded there too).
+  failed on both engines for causes in the test itself, fixed in i-mux 838b4a5; see C7.4).
 
 ### [x] C7.3 Engine detection and versions
 - **Goal:** i-mux knows which engine it talks to, and its feature level.
@@ -1546,7 +1546,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   (0.0.0 until the engine's first release); the doctor e2e asserts the line on i-mux-core and
   its absence on tmux, so `make e2e` and `make e2e-core` cover both engines.
 
-### [ ] C7.4 The engine switch
+### [x] C7.4 The engine switch
 - **Goal:** users can choose the engine, and tmux remains the default.
 - **Details:**
   - Config `[engine] backend = "tmux" | "core"`, with default `tmux` on macOS and Linux.
@@ -1560,6 +1560,14 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - e2e: with the default, i-mux behaves exactly as before (the whole suite); with `core`, the
     suite passes.
 - **Depends on:** C7.3.
+- **Status:** done. i-mux commit 3d221c0 (T88.3): `[engine] backend`, default tmux, an invalid
+  value warns and means tmux; `tmux.New` resolves `IMUX_TMUX_BIN`, else with `core` the
+  sibling `imux-core`, else the one on `PATH`; the sockets stay apart by design (`tmux-<uid>`
+  vs `imux-core-<uid>`, §7). Settings → "Engine (beta)"; a switch while sessions run is
+  refused, and the Settings row offers to close them (`__engine switch --yes`). Unit tests for
+  the order, e2e `TestEngineSwitch`; `make ci` passes in full and `make e2e-core` passes.
+  i-mux commit 838b4a5 fixed TestScheduler: it failed from 22:00 local time (the next run's
+  date cut the line it waited for) and on a race between the Run panel and the watcher.
 
 ### [ ] C7.5 Packaging and updates
 - **Goal:** users who opt in get the engine with no extra steps.
