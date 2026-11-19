@@ -1658,7 +1658,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   26200 through WSL (`scripts/wsl-windows-test.sh`, which runs a package's tests on the Windows
   that hosts WSL); CI's `windows-latest` job runs them too.
 
-### [ ] C8.2 ConPTY's output in the emulator
+### [x] C8.2 ConPTY's output in the emulator
 - **Goal:** what users see on Windows matches what they see on macOS and Linux.
 - **Details:**
   - Run the VT fixture suite through ConPTY: a helper child writes each fixture's bytes, and
@@ -1669,6 +1669,15 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** the fixture comparison runs in Windows CI, and every difference is either fixed
   or recorded.
 - **Depends on:** C8.1.
+- **Status:** done. `internal/vt/fixture_conpty_windows_test.go`: the test binary is the
+  helper, writing each fixture's bytes raw (VT processing, wrap at the end of a line, no newline
+  auto return) into a pseudo console of the fixture's size; the emulator reads what ConPTY gives,
+  through the fixture's resizes, and its visible screen (rows as text, the cursor) is compared
+  with tmux's. On build 26200, 43 of 54 match; the 11 others are the console host's own handling
+  (K12, K13), listed in the test, which fails on any other difference. Nothing was the
+  emulator's to fix: ConPTY sends its own rendering, so what differs is decided inside the
+  console host. The modes, history and representations the console host keeps are K11. The
+  test skips builds older than 26100 (K10).
 
 ### [x] C8.3 IPC and security on Windows
 - **Goal:** only the user can reach their server on Windows too (E5, E13).
