@@ -1,4 +1,4 @@
-//go:build !darwin && !linux
+//go:build !darwin && !linux && !windows
 
 package cli
 
@@ -26,3 +26,6 @@ func runAttached(net.Conn, *ipc.Reader, io.Writer) (int, error) {
 }
 
 func eraseChar(*os.File) (int, bool) { return 0, false }
+
+// consoleUTF8: only a terminal's locale says.
+func consoleUTF8() bool { return false }

@@ -99,3 +99,6 @@ func eraseChar(f *os.File) (int, bool) {
 	}
 	return int(tio.Cc[unix.VERASE]), true
 }
+
+// consoleUTF8: on Unix only the locale says a client is UTF-8.
+func consoleUTF8() bool { return false }

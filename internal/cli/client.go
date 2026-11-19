@@ -99,7 +99,7 @@ func hello(g globals) *ipc.Hello {
 		ClientVersion: version.Version,
 		Argv:          os.Args,
 		Env:           map[string]string{},
-		UTF8:          g.utf8 || utf8Locale(os.Getenv),
+		UTF8:          g.utf8 || utf8Locale(os.Getenv) || consoleUTF8(),
 		Pid:           os.Getpid(),
 		StdinTTY:      isTerminal(os.Stdin),
 		StdoutTTY:     isTerminal(os.Stdout),
@@ -109,8 +109,18 @@ func hello(g globals) *ipc.Hello {
 		// What an attached client needs: its terminal's name, size and capabilities (E15).
 		h.TTYName = ttyName(os.Stdin)
 		h.Size, _ = newConsole().size()
-		if ti, err := termout.Lookup(os.Getenv("TERM"), termout.SearchDirs(os.Getenv)); err == nil {
+		dirs := termout.SearchDirs(os.Getenv)
+		if ti, err := termout.Lookup(os.Getenv("TERM"), dirs); err == nil {
 			h.Terminfo = ti.Capabilities()
+		} else if termout.NoDatabase(dirs) {
+			// No terminfo on this system (Windows): the built-in xterm-256color (E15), and TERM
+			// says so when it was not set.
+			if ti, err := termout.Builtin(); err == nil {
+				h.Terminfo = ti.Capabilities()
+				if os.Getenv("TERM") == "" {
+					h.Env["TERM"] = termout.BuiltinName
+				}
+			}
 		}
 		if e, ok := eraseChar(os.Stdin); ok {
 			h.Erase = &e

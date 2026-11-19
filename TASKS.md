@@ -1716,7 +1716,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   starting one server at once, exit with the last session and when a pane's program ends, no
   server, `-L` names, kill-server; Windows 11 build 26200 through WSL.
 
-### [ ] C8.5 The attached client on Windows
+### [x] C8.5 The attached client on Windows
 - **Goal:** attaching from Windows Terminal (and conhost) works and restores the console.
 - **Details:**
   - Console modes per ARCHITECTURE.md §6; UTF-8 code pages (65001) set, then restored.
@@ -1727,6 +1727,19 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** engine tests through a ConPTY-hosted client (the client runs inside a ConPTY
   the test owns, so its output can be read): attach, keys, resize, detach, and restored modes.
 - **Depends on:** C8.4.
+- **Status:** done. `internal/cli/console_windows.go` and `attached_windows.go`: VT input
+  (`ENABLE_VIRTUAL_TERMINAL_INPUT`, with window events, nothing processed, no quick edit) and VT
+  output (`ENABLE_VIRTUAL_TERMINAL_PROCESSING`, `DISABLE_NEWLINE_AUTO_RETURN`), UTF-8 code pages,
+  all put back on every way out; input read as console records, keys as the characters of their
+  VT sequences (UTF-16 to UTF-8, surrogate pairs kept together), `WINDOW_BUFFER_SIZE_EVENT`
+  sending the window's size; Ctrl+C and Ctrl+Break are keys, and closing the console ends the
+  client cleanly (a console control handler). A console client is a UTF-8 client, and is named
+  `console-<pid>` (a console has no device path). With no terminfo on the system, the client
+  describes its terminal with the built-in xterm-256color (E15, `internal/termout/builtin.go`,
+  ncurses' compiled entry embedded). `TestWindowsAttach` runs the client in a pseudo console the
+  test owns, between two runs of a helper that prints the console's modes and code pages: the
+  first frame, keys to the pane, Ctrl+C leaving the client attached, a resize, detach, and the
+  modes as before; Windows 11 build 26200 through WSL.
 
 ### [x] C8.6 Process information on Windows
 - **Goal:** window names and paths are useful on Windows.

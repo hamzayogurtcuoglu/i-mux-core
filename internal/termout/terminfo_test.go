@@ -87,3 +87,17 @@ func FuzzParseTerminfo(f *testing.F) {
 		}
 	})
 }
+
+// The built-in xterm-256color (E15) is ncurses' entry, as the system's.
+func TestBuiltin(t *testing.T) {
+	ti, err := Builtin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ti.Numbers["colors"] != 256 || ti.Strings["cup"] == "" || !ti.Bools["am"] {
+		t.Errorf("built-in: colors %d, cup %q, am %v", ti.Numbers["colors"], ti.Strings["cup"], ti.Bools["am"])
+	}
+	if !NoDatabase([]string{t.TempDir() + "/none"}) || NoDatabase([]string{t.TempDir()}) {
+		t.Error("NoDatabase")
+	}
+}

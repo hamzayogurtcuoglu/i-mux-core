@@ -111,6 +111,8 @@ All notable changes to i-mux-core are listed here. The format follows
 - i-mux's look end to end: sidebar, splits, tabs, agent bar and themes render as on tmux.
 - The engine's end-to-end scenarios (`make e2e`): 36 scenarios against imux-core alone.
 - i-mux's e2e suite on imux-core (`scripts/imux-e2e.sh`), reported in `PARITY.md`.
+- Windows: attaching from Windows Terminal or a console, with Ctrl+C a key and the console
+  restored after; the built-in xterm-256color where there is no terminfo.
 - Windows: the server listens on a named pipe for its user only, starts with no console, and
   runs shell commands in cmd.exe and panes in PowerShell.
 - Windows: panes run programs in ConPTY, each in a job object that ends its whole tree.
