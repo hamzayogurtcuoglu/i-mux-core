@@ -25,8 +25,10 @@ func (s *Server) RunJob(spec commands.JobSpec, done func(out []byte, status pty.
 		}
 		cmd = exec.Command(spec.Argv[0], spec.Argv[1:]...)
 	} else {
-		cmd = exec.Command(spec.Shell, "-c", spec.Command)
-		cmd.Args[0] = shellArgv0(spec.Shell)
+		argv, line := commands.ShellCommand(spec.Shell, spec.Command)
+		cmd = exec.Command(spec.Shell, argv[1:]...)
+		cmd.Args[0] = argv[0]
+		setCmdLine(cmd, line)
 	}
 	cmd.Dir = spec.Dir
 	cmd.Env = spec.Env
@@ -53,16 +55,6 @@ func (s *Server) RunJob(spec commands.JobSpec, done func(out []byte, status pty.
 		}
 		s.post(func() { done(out.Bytes(), st, nil) })
 	}()
-}
-
-// shellArgv0 is shell_argv0 for a command run with -c: the shell's own name.
-func shellArgv0(shell string) string {
-	for i := len(shell) - 1; i >= 0; i-- {
-		if shell[i] == '/' {
-			return shell[i+1:]
-		}
-	}
-	return shell
 }
 
 // After implements commands.Host.

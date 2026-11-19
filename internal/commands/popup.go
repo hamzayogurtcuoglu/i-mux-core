@@ -18,7 +18,6 @@ package commands
 
 import (
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -399,7 +398,8 @@ func (it *Item) popupProc(s *model.Session, cwd string) pty.Spec {
 	switch {
 	case hasCmd:
 		env.set("SHELL", sh)
-		spec.Path, spec.Argv = sh, []string{filepath.Base(sh), "-c", cmd}
+		spec.Path = sh
+		spec.Argv, spec.CmdLine = ShellCommand(sh, cmd)
 	case len(args) <= 1:
 		spec.Path, spec.Argv = sh, []string{sh}
 	default:

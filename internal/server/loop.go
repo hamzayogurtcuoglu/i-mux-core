@@ -160,7 +160,7 @@ func (s *Server) startOptions() {
 	}
 	shell, _ := getenv("SHELL")
 	if !commands.CheckShell(shell) {
-		shell = "/bin/sh"
+		shell = commands.DefaultShell()
 	}
 	g.Session.SetString("default-shell", false, shell)
 	ed, ok := getenv("VISUAL")

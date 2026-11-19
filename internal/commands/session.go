@@ -409,8 +409,8 @@ func (it *Item) getenv(name string) string {
 	return ""
 }
 
-// shell is the session's default-shell when it is a suitable shell, else /bin/sh (tmux's
-// spawn.c).
+// shell is the session's default-shell when it is a suitable shell, else the system's
+// (DefaultShell; tmux's spawn.c).
 func (it *Item) shell(s *model.Session) string {
 	oo := it.Host.Tree().Options.Session
 	if s != nil {
@@ -419,12 +419,13 @@ func (it *Item) shell(s *model.Session) string {
 	if sh := oo.GetString("default-shell"); CheckShell(sh) {
 		return sh
 	}
-	return "/bin/sh"
+	return DefaultShell()
 }
 
 // CheckShell is tmux's checkshell: an absolute path to an executable that is not the engine.
 func CheckShell(sh string) bool {
-	return sh != "" && filepath.IsAbs(sh) && isExecutable(sh) == nil && filepath.Base(sh) != "imux-core"
+	base := strings.TrimSuffix(strings.ToLower(filepath.Base(sh)), ".exe")
+	return sh != "" && filepath.IsAbs(sh) && isExecutable(sh) == nil && base != "imux-core"
 }
 
 // spawnSpec is how tmux's spawn.c runs a pane's program: several words with execvp, one word
@@ -442,9 +443,10 @@ func (it *Item) spawnSpec(s *model.Session, p *model.Pane, argv []string, cwd st
 	spec := pty.Spec{Dir: cwd}
 	switch len(argv) {
 	case 0:
-		spec.Path, spec.Argv = sh, []string{"-" + filepath.Base(sh)}
+		spec.Path, spec.Argv = sh, loginArgv(sh)
 	case 1:
-		spec.Path, spec.Argv = sh, []string{filepath.Base(sh), "-c", argv[0]}
+		spec.Path = sh
+		spec.Argv, spec.CmdLine = ShellCommand(sh, argv[0])
 	default:
 		spec.Argv = append([]string(nil), argv...)
 	}
@@ -462,18 +464,6 @@ func defaultWindowName(argv []string, shell string) string {
 		words[i] = Escape(a)
 	}
 	return format.ParseWindowName(strings.Join(words, " "))
-}
-
-// isExecutable is tmux's access(X_OK) check on the shell.
-func isExecutable(p string) error {
-	fi, err := os.Stat(p)
-	if err != nil {
-		return err
-	}
-	if fi.IsDir() || fi.Mode().Perm()&0o111 == 0 {
-		return errors.New("not executable")
-	}
-	return nil
 }
 
 func isDir(p string) bool {

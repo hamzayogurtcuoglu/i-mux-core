@@ -14,6 +14,9 @@ type Spec struct {
 	Dir  string   // its working directory
 	Cols int
 	Rows int
+	// CmdLine, on Windows, is the program's command line as it is given, instead of Argv joined
+	// with Windows' quoting (cmd.exe /s /c needs its command unquoted). Unix ignores it.
+	CmdLine string
 	// XPixel and YPixel are a cell's size in pixels; the PTY's size in pixels is the cells'
 	// (tmux's ws_xpixel and ws_ypixel), or 0 when they are 0.
 	XPixel, YPixel int

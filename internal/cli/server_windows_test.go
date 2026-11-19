@@ -229,3 +229,39 @@ func TestWindowsKillServer(t *testing.T) {
 	w.must("kill-server")
 	w.waitNoServer()
 }
+
+// Shells on Windows (TASKS.md C8.7): run-shell and if-shell in cmd.exe /d /s /c, the argv form,
+// and panes in PowerShell (or cmd.exe) when default-shell names none.
+func TestWindowsShells(t *testing.T) {
+	w := newWorld(t)
+	w.session("a")
+	sh := strings.ToLower(strings.TrimSpace(w.must("show-options", "-gv", "default-shell")))
+	if !strings.HasSuffix(sh, `\pwsh.exe`) && !strings.HasSuffix(sh, `\powershell.exe`) && !strings.HasSuffix(sh, `\cmd.exe`) {
+		t.Errorf("default-shell %q", sh)
+	}
+	for _, c := range []struct{ cmd, want string }{
+		{"echo one&& echo two", "one\ntwo\n"},
+		{`echo "a b"`, "\"a b\"\n"},
+		{`["cmd.exe","/d","/c","echo","argv"]`, "argv\n"},
+	} {
+		if got := strings.ReplaceAll(w.must("run-shell", c.cmd), "\r", ""); got != c.want {
+			t.Errorf("run-shell %q: %q, want %q", c.cmd, got, c.want)
+		}
+	}
+	// A job knows its server, as on Unix: TMUX is the socket, the server's pid and the session.
+	if got := strings.TrimSpace(w.must("run-shell", "echo %TMUX%")); !strings.HasPrefix(got, w.socket+",") {
+		t.Errorf("TMUX in a job: %q", got)
+	}
+	w.must("if-shell", "exit 0", "set -g @yes 1", "set -g @yes 0")
+	w.must("if-shell", "exit 3", "set -g @no 1", "set -g @no 0")
+	if got := strings.TrimSpace(w.must("display-message", "-p", "#{@yes}#{@no}")); got != "10" {
+		t.Errorf("if-shell: %q, want 10", got)
+	}
+	// One word: the default shell runs it.
+	w.must("new-session", "-d", "-s", "p", `Write-Output ("pane-" + (40+2)); Start-Sleep 300`)
+	if !strings.HasSuffix(sh, `\cmd.exe`) {
+		w.eventually("the pane's output", func() bool {
+			return strings.Contains(w.run("capture-pane", "-p", "-t", "p").out, "pane-42")
+		})
+	}
+}

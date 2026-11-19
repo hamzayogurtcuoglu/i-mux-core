@@ -1738,7 +1738,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   expected name. Document exactly what is shown.
 - **Depends on:** C8.1.
 
-### [ ] C8.7 Shells and jobs on Windows
+### [x] C8.7 Shells and jobs on Windows
 - **Goal:** `run-shell`, `if-shell` and the default shell work on Windows per E14.
 - **Details:**
   - Shell commands of `run-shell` and `if-shell` in `%COMSPEC% /d /s /c`; the argv form (X1)
@@ -1747,6 +1747,17 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - `TMUX` and `TMUX_PANE` in jobs and panes, in a form i-mux parses on Windows (C9.3).
 - **Acceptance:** engine tests of each `run-shell` and `if-shell` form on Windows.
 - **Depends on:** C8.4, C0.8.
+- **Status:** done. `internal/commands/shell_windows.go` (and `shell_unix.go`, Unix as before):
+  jobs run in `%COMSPEC% /d /s /c "…"`, given as the command line itself (`pty.Spec.CmdLine`,
+  `SysProcAttr.CmdLine`), since Windows' quoting of an argument would change what `/s` reads;
+  the argv form looks programs up with `PATH` and `PATHEXT`; `default-shell` is `pwsh`, else
+  Windows PowerShell, else `cmd.exe` (PowerShell runs one word with `-Command`, and starts with
+  `-NoLogo` for none); a shell must have an extension `PATHEXT` names. Jobs start with no
+  console window. `TMUX` is `<socket path>,<pid>,<session>` as on Unix (a Windows path has no
+  comma). A window named from a Windows path takes the program's name without `.exe`, as
+  `/bin/sh` gives `sh`. `TestWindowsShells` (cmd.exe's `&&` and quotes, the argv form, `TMUX`
+  in a job, if-shell both ways, a PowerShell pane) and the package tests, which now expect each
+  system's shell, pass on Windows 11 build 26200 through WSL.
 
 ### [ ] C8.8 Engine e2e on Windows
 - **Goal:** the engine's own scenarios pass on Windows.

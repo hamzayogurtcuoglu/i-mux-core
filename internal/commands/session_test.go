@@ -144,7 +144,9 @@ func TestNewSession(t *testing.T) {
 		t.Errorf("window %q %dx%d", w.Name, w.Sx, w.Sy)
 	}
 	spec := h.specs[0]
-	if spec.Path != "/bin/sh" || !slices.Equal(spec.Argv, []string{"sh", "-c", "exec sleep 9"}) || spec.Dir != testCwd {
+	sh := DefaultShell()
+	argv, line := ShellCommand(sh, "exec sleep 9")
+	if spec.Path != sh || !slices.Equal(spec.Argv, argv) || spec.CmdLine != line || spec.Dir != testCwd {
 		t.Errorf("spec %+v", spec)
 	}
 	env := strings.Join(spec.Env, "\n")
@@ -159,10 +161,10 @@ func TestNewSession(t *testing.T) {
 
 	// No command: a login shell. Several words: run as they are.
 	run(h, "new", "-d", "-s", "b")
-	if spec := h.specs[1]; spec.Path != "/bin/sh" || !slices.Equal(spec.Argv, []string{"-sh"}) {
+	if spec := h.specs[1]; spec.Path != sh || !slices.Equal(spec.Argv, loginArgv(sh)) {
 		t.Errorf("login shell %+v", spec)
 	}
-	if name := h.tree.SessionByName("b").Current.Window.Name; name != "sh" {
+	if name := h.tree.SessionByName("b").Current.Window.Name; name != format.ParseWindowName(sh) || name == "" {
 		t.Errorf("window name %q", name)
 	}
 	other := t.TempDir()

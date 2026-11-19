@@ -251,6 +251,8 @@ func ParseWindowName(in string) string {
 	}
 	if strings.HasPrefix(name, "/") {
 		name = basename(name)
+	} else if base, ok := programPath(name); ok {
+		name = base
 	}
 	clean, ok := vt.CleanName(name, false)
 	if !ok {

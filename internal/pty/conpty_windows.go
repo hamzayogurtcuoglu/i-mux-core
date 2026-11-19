@@ -132,7 +132,11 @@ func (p *conProc) spawn(path string, spec Spec) error {
 	if err != nil {
 		return err
 	}
-	cmdline, err := windows.UTF16PtrFromString(windows.ComposeCommandLine(spec.Argv))
+	line := spec.CmdLine
+	if line == "" {
+		line = windows.ComposeCommandLine(spec.Argv)
+	}
+	cmdline, err := windows.UTF16PtrFromString(line)
 	if err != nil {
 		return err
 	}

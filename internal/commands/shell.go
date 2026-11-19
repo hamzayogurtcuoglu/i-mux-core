@@ -32,9 +32,6 @@ import (
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/target"
 )
 
-// shellPath is _PATH_BSHELL: run-shell and if-shell run their commands with it.
-const shellPath = "/bin/sh"
-
 // argvForm is the argv form of X1: the command's text is a JSON array of strings, or an
 // object with "argv" and "quiet". ok is false for an ordinary shell command.
 func argvForm(s string) (argv []string, quiet, ok bool) {
@@ -80,14 +77,14 @@ func (it *Item) jobDir(dir string) string {
 	return "/"
 }
 
-// jobSpec is the job for a command line: the argv form, or /bin/sh -c.
+// jobSpec is the job for a command line: the argv form, or the job shell's (JobShell).
 func (it *Item) jobSpec(cmd string, argv []string, s *model.Session, dir string, stderr bool) JobSpec {
 	dir = it.jobDir(dir)
 	spec := JobSpec{Dir: dir, Env: it.jobEnv(s, dir), ShowStderr: stderr}
 	if argv != nil {
 		spec.Argv = argv
 	} else {
-		spec.Shell, spec.Command = shellPath, cmd
+		spec.Shell, spec.Command = JobShell(), cmd
 	}
 	return spec
 }
