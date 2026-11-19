@@ -1670,7 +1670,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   or recorded.
 - **Depends on:** C8.1.
 
-### [ ] C8.3 IPC and security on Windows
+### [x] C8.3 IPC and security on Windows
 - **Goal:** only the user can reach their server on Windows too (E5, E13).
 - **Details:**
   - The listener per E13:
@@ -1684,6 +1684,15 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - If CI allows creating a second local user, a test that it is refused.
   - A short security review written in ARCHITECTURE.md §7.
 - **Depends on:** C8.1.
+- **Status:** done. `internal/ipc/pipe_windows.go`: the socket path under
+  `%LOCALAPPDATA%\i-mux-core` (its DACL created and checked), the named pipe from the path's
+  hash with the protected DACL, `PIPE_REJECT_REMOTE_CLIENTS` and `FILE_FLAG_FIRST_PIPE_INSTANCE`,
+  overlapped so Go's poller serves it (deadlines work); every client's token user checked, and
+  the client checks the server's. `pipe_windows_test.go` reads the DACLs back, refuses a
+  directory Everyone may use, refuses another user's client and server (injected identities),
+  a second server on a name, and checks the round trip, two clients, a missing server and
+  Close. No second local user is created (not on CI runners, and not here). Checked on Windows
+  11 build 26200 through WSL. The review is in ARCHITECTURE.md §7.
 
 ### [ ] C8.4 The server process on Windows
 - **Goal:** the server starts, lives and ends correctly, with no stray windows.

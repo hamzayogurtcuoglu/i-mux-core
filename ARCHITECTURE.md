@@ -386,6 +386,23 @@ The server runs every command it receives as its user, so **only that user may c
   server, or a squatter) fails the start. Clients open the pipe with `SECURITY_IDENTIFICATION`,
   so the server cannot act as them. A pipe goes with its server: there is no stale endpoint to
   remove, only the lock file beside the path.
+- The client checks the server too (`GetNamedPipeServerProcessId`, its token user): a pipe that
+  another user created first under the name gets no commands and no environment from it.
+
+**Windows review (C8.3):** who could reach a server, and what stops them.
+- *Another local user:* the pipe's DACL lets only the owner and SYSTEM open it, and a client
+  that gets in anyway (a changed DACL, an inherited handle) is checked by its process's token
+  user and disconnected unanswered.
+- *Another machine:* `PIPE_REJECT_REMOTE_CLIENTS`; SMB access to pipes never reaches the
+  server.
+- *A squatter on the name:* the server's first instance needs `FILE_FLAG_FIRST_PIPE_INSTANCE`,
+  so a taken name fails the start, and clients refuse a server that is not their user's.
+- *The server acting as its client:* clients open the pipe at `SECURITY_IDENTIFICATION`.
+- *The socket directory:* created with the protected DACL and refused when its owner or DACL
+  lets anyone else in, as `0700` is required on Unix.
+- What stays as on Unix: SYSTEM and the user's own processes (including ones at a lower
+  integrity level of the same user) can connect; the engine does not separate them, as tmux
+  does not separate the user's own processes.
 
 **Everywhere:**
 - No TCP, UDP or other network listener, ever.
