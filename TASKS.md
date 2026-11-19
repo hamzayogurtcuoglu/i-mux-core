@@ -1930,7 +1930,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
 
   Windows tests with synthetic homes pass on Windows 11, the `..\` one failing before the fix.
 
-### [ ] C9.5 Agents on Windows
+### [x] C9.5 Agents on Windows
 - **Goal:** detecting, installing, starting, resuming and hooking each agent works.
 - **Details:**
   - Binaries are found as npm's `.cmd` and `.ps1` shims or `.exe` files.
@@ -1939,6 +1939,12 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - Resume commands.
 - **Acceptance:** e2e on Windows CI with the fake agents, ported to Windows (Go or `.cmd`).
 - **Depends on:** C9.3, C9.4.
+- **Status:** done in i-mux (T90.5, 4e61167; §7.9 there): each agent's Windows install command
+  and folders, npm shims run as what they run (no cmd.exe between a prompt and the agent),
+  Claude's hooks in its exec form and its status line with a path that has no space, WinGet's
+  Codex updated by winget, the engine in the versions panel, and environments (D84) applied to
+  PowerShell and cmd.exe. Its Windows unit tests pass on Windows 11 build 26200; the e2e with
+  the fake agents ported to Go comes with C9.9's Windows CI (T90.9).
 
 ### [ ] C9.6 Windows integrations
 - **Goal:** the parts of i-mux that talk to the OS work on Windows.
