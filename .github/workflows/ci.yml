@@ -102,6 +102,23 @@ jobs:
       - name: End-to-end scenarios
         run: make e2e
 
+  e2e-windows:
+    # The engine's scenarios on Windows (TASKS.md C8.8): their command lines run in Git for
+    # Windows' sh, which the runner has; four at a time, as on the other runners.
+    name: Engine e2e scenarios (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: End-to-end scenarios
+        shell: bash
+        run: |
+          go build -o bin/imux-core.exe ./cmd/imux-core
+          IMUX_CORE_BIN="$PWD/bin/imux-core.exe" go test -count=1 -tags e2e -parallel 4 ./e2e/...
+
   imux-e2e:
     # i-mux's own e2e suite on imux-core (TASKS.md C6.2), at a pinned i-mux commit. Every
     # test passes (C6.3), so it blocks; PARITY.md is kept as an artifact.

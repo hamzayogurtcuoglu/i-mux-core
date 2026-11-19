@@ -29,12 +29,21 @@ func TestMain(m *testing.M) {
 	if dir, err := filepath.Abs("../testdata/term/terminfo"); err == nil {
 		difftest.ClientTerminfo = dir
 	}
+	if why := suiteSkip(); why != "" {
+		fmt.Fprintln(os.Stderr, "e2e: skipped:", why)
+		os.Exit(0)
+	}
+	// The fake TUI: IMUX_FAKETUI names a build of it (where there is no Go to build one).
+	if ft := os.Getenv("IMUX_FAKETUI"); ft != "" {
+		difftest.ToolsDir = filepath.Dir(ft)
+		os.Exit(m.Run())
+	}
 	tools, err := os.MkdirTemp("", "imux-e2e-tools-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	name := "faketui"
+	name := "faketui" + exeSuffix
 	if out, err := exec.Command("go", "build", "-o", filepath.Join(tools, name), "../testdata/faketui").CombinedOutput(); err != nil {
 		fmt.Fprintf(os.Stderr, "e2e: faketui: %v: %s\n", err, out)
 		os.Exit(1)

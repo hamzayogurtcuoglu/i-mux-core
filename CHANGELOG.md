@@ -116,6 +116,9 @@ All notable changes to i-mux-core are listed here. The format follows
 - Windows: the server listens on a named pipe for its user only, starts with no console, and
   runs shell commands in cmd.exe and panes in PowerShell.
 - Windows: panes run programs in ConPTY, each in a job object that ends its whole tree.
+- Windows: the engine's e2e scenarios run too, none skipped — the clients attach from consoles
+  hosted in ConPTY, the POSIX command lines in Git for Windows' sh (`IMUX_E2E_SH` names
+  another), and CI runs them blocking.
 - Pixel sizes as tmux's: panes are told their size in pixels from their window's cell (16×32,
   or the attached terminal's own), and a terminal that gives none is asked for it.
 - Parity: every test of i-mux's e2e suite passes on imux-core, and CI runs it blocking.

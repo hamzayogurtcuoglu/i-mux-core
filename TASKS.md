@@ -1788,7 +1788,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   in a job, if-shell both ways, a PowerShell pane) and the package tests, which now expect each
   system's shell, pass on Windows 11 build 26200 through WSL.
 
-### [ ] C8.8 Engine e2e on Windows
+### [x] C8.8 Engine e2e on Windows
 - **Goal:** the engine's own scenarios pass on Windows.
 - **Details:**
   - Run the C6.1 suite on `windows-latest`.
@@ -1796,6 +1796,15 @@ i-mux's `make ci` must pass with tmux exactly as before.
     suite's README.
 - **Acceptance:** green on Windows CI, and blocking.
 - **Depends on:** C8.5, C8.6, C8.7.
+- **Status:** done. Every scenario runs on Windows, none is skipped (e2e/doc.go): the clients
+  attach from consoles hosted in ConPTY, and the scenarios' POSIX command lines run in Git for
+  Windows' sh (`IMUX_E2E_SH` names another; with no sh the suite says why and skips as a
+  whole). A missing server is a missing endpoint, not a left socket. The double-click scenario
+  waits for its result rather than polling copy mode (its 0.3 s can be missed where commands
+  start slowly), and a detach scenario waits for `cat` before sending keys. Green on Windows 11
+  build 26200 through WSL (`scripts/wsl-windows-test.sh`); GitHub's blocking `e2e-windows` job
+  runs the same suite (`-parallel 4`, for Windows' slower starts) and is *not yet seen* until
+  the owner pushes.
 
 ### [ ] C8.9 Windows Terminal check: USER
 - **Goal:** confirm the real experience.

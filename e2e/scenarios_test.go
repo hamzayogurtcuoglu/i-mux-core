@@ -313,11 +313,16 @@ func TestDoubleClickCopiesTheWord(t *testing.T) {
 	c := w.attach(80, 24)
 	c.waitText("gamma")
 	c.typ("\x1b[<0;9;1M\x1b[<0;9;1m\x1b[<0;9;1M\x1b[<0;9;1m")
-	w.waitFormat("%0", "#{pane_in_mode}", "1")
-	w.waitFormat("%0", "#{pane_in_mode}", "0")
-	if got := w.ok("show-buffer"); got != "beta" {
-		t.Fatalf("buffer: %q", got)
+	// The pane is in copy mode for the binding's 0.3 s only, which a poll can miss where a
+	// command takes long to start (Windows): its result is waited for instead.
+	deadline := time.Now().Add(difftest.WaitTimeout)
+	for w.run("show-buffer").Stdout != "beta" {
+		if time.Now().After(deadline) {
+			t.Fatalf("buffer: %q", w.run("show-buffer").Stdout)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
+	w.waitFormat("%0", "#{pane_in_mode}", "0")
 }
 
 // The mouse.
@@ -407,6 +412,7 @@ func TestDetachOneOfTwoClients(t *testing.T) {
 	c1.typ("\x02d")
 	c1.waitText("[detached")
 	w.waitFormat("a", "#{session_attached}", "1")
+	w.waitFormat("%0", "#{pane_current_command}", "cat") // keys sent before cat reads may be lost
 	w.ok("send-keys", "-t", "%0", "still attached", "Enter")
 	c2.waitText("still attached")
 }
@@ -438,14 +444,14 @@ func TestServerExitsWithItsLastSession(t *testing.T) {
 	w := newWorld(t)
 	w.ok("new-session", "-d", "-s", "a", "exec cat")
 	w.ok("kill-session", "-t", "a")
-	w.fails("no server running", "list-sessions")
+	w.fails(noServer, "list-sessions")
 }
 
 func TestNewServerAfterTheLastOneExits(t *testing.T) {
 	w := newWorld(t)
 	w.ok("new-session", "-d", "-s", "a", "exec cat")
 	w.ok("kill-server")
-	w.fails("no server running", "has-session", "-t", "a")
+	w.fails(noServer, "has-session", "-t", "a")
 	w.ok("new-session", "-d", "-s", "again", "exec cat")
 	if got := w.ok("list-sessions", "-F", "#{session_name}"); got != "again\n" {
 		t.Fatalf("sessions: %q", got)

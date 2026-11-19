@@ -38,14 +38,13 @@ var WaitTimeout = 10 * time.Second
 // there.
 var ToolsDir = ""
 
-// FixedEnv is the environment every engine runs in, besides HOME and TMUX_TMPDIR.
-var FixedEnv = []string{
+// FixedEnv is the environment every engine runs in, besides HOME and TMUX_TMPDIR (the system's
+// part is in env_unix.go and env_windows.go).
+var FixedEnv = append([]string{
 	"TERM=xterm-256color",
 	"LANG=C.UTF-8",
 	"TZ=UTC",
-	"PATH=/usr/bin:/bin",
-	"SHELL=/bin/sh",
-}
+}, systemEnv()...)
 
 // NewEnv makes a run's directory, home and socket. The directory is short (under /tmp on Unix),
 // as socket paths are limited to about 100 bytes.
