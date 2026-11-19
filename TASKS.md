@@ -1837,7 +1837,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   Gate 8's sign-off (C8.9 waits for the owner) because the owner asked for every remaining task
   to be done.
 
-### [ ] C9.2 i-mux builds for Windows
+### [x] C9.2 i-mux builds for Windows
 - **Goal:** `GOOS=windows go build ./...` and `go vet` succeed, with no behaviour change on
   macOS or Linux.
 - **Details:** audit and replace the POSIX-only uses:
@@ -1857,6 +1857,25 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - Lint runs for `GOOS=windows` in CI.
   - All existing tests pass on macOS and Linux.
 - **Depends on:** C9.1.
+- **Status:** done. i-mux commits c4fd3cf (D85 says how) and a10297b (T90.2). The new package
+  `internal/sysx` holds what differs:
+  - signals between imux's processes (SIGUSR1 and SIGTERM as named events, SIGWINCH from the
+    console's size);
+  - `LockFileEx` on a byte past the data;
+  - exec as a waited-for child whose exit code is passed on;
+  - process groups, and detached children (out of the pane's job when the job allows it);
+  - `PATHEXT` for what runs;
+  - the console's raw mode, size and input.
+
+  The home is `%USERPROFILE%`, and the engine is core whatever `[engine] backend` says, with no
+  engine row in Settings. The Windows build, vet and lint are clean; `make lint-all` and i-mux's
+  new `lint-windows` CI job check them (the e2e tests join with C9.9). `make ci` passes with tmux
+  3.8, except T89.7's own e2e test, which failed on main before this task. The `sysx` tests pass
+  on Windows 11 too, and `imux.exe` starts there. Found for C9.5 and C9.9, in this engine:
+  - a pane's job allows no breakaway, so an imux daemon started from a pane (the watcher, the
+    web preview) ends with the pane, where on Unix `setsid` keeps it;
+  - K8: ConPTY consumes a pane's mouse-mode request, so the sidebar's clicks would not reach
+    it.
 
 ### [ ] C9.3 Command strings without a POSIX shell
 - **Goal:** every command line i-mux generates works on Windows.
