@@ -1986,7 +1986,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   `imux.exe` and `imux-core.exe` replaced, `*.old` deleted on the next start, the running-engine
   message, and rollback) pass on Linux and on Windows 11 build 26200.
 
-### [ ] C9.8 Installer
+### [x] C9.8 Installer
 - **Goal:** a Windows user installs i-mux once, from a familiar starting point.
 - **Details:**
   - A per-user installer, needing no admin:
@@ -2003,6 +2003,17 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** the installer is built in CI. A Windows CI job installs it silently, runs
   `imux doctor`, and uninstalls cleanly, with nothing left behind.
 - **Depends on:** C9.7.
+- **Status:** done in i-mux (T90.8, e765c21 and e74fc6d; §7.11 there): `scripts/installer.nsi`
+  and `scripts/build-installer.sh` cross-build `imux_<version>_windows_{amd64,arm64}_setup.exe`
+  on Linux with `makensis` and render `packaging/winget/hamzayogurtcuoglu.i-mux.yaml`;
+  `install.ps1` installs both binaries from the release zip (or `-FromSource`), adds
+  `%LOCALAPPDATA%\Programs\i-mux` to the user's `PATH` and offers the Nerd Font; CHANGELOG
+  explains the SmartScreen prompt until a certificate is configured. Checked on Windows 11 build
+  26200: the cross-built NSIS installer installs silently (`/S`), puts both binaries in
+  `%LOCALAPPDATA%\Programs\i-mux`, adds the folder to `HKCU\Environment\Path`, creates the Start
+  menu entry (`i-mux.lnk` → `wt.exe`), registers the Apps & features uninstaller, `imux doctor
+  --ci` passes, and `uninstall.exe /S` removes everything cleanly; `TestInstallPS1Windows` passes
+  on Windows 11 as well. CI's `release-snapshot` and `windows-installer` jobs run the same check.
 
 ### [ ] C9.9 Windows CI for i-mux
 - **Goal:** i-mux on Windows cannot regress unnoticed.
