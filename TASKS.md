@@ -1907,7 +1907,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   run what an agent or the user set up move to C9.5 (Claude's status line, installs), C9.6
   (clipboard, browser) and C9.7 (the update).
 
-### [ ] C9.4 Paths and agents' homes
+### [x] C9.4 Paths and agents' homes
 - **Goal:** i-mux finds its own files and each agent's files on Windows.
 - **Details:**
   - `~/.imux` under `%USERPROFILE%`.
@@ -1917,6 +1917,18 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - Path separators in session names, in git paths and in the sidebar.
 - **Acceptance:** unit tests with synthetic Windows-style homes, using no real files.
 - **Depends on:** C9.2.
+- **Status:** done. i-mux commits 91b0d7a (its ARCHITECTURE.md §7.8) and 0ce4dfe (T90.4).
+  - Every agent keeps its home under `%USERPROFILE%` with the same overrides, checked against
+    each agent's docs or source and recorded in §7.8. Claude names a project folder as on Unix
+    (`C:\Users\me\proj` is `C--Users-me-proj`); OpenCode keeps XDG's folders. So C9.2's
+    `%USERPROFILE%` home was all the resolution needed.
+  - A file name can no longer leave its folder through `..\`, or name a drive: before this, on
+    Windows `..\out` was made outside it.
+  - The folder picker, the `~` shortening, pane titles and the search use the system's
+    separator; git's paths stay `/`.
+  - A session's name comes from its folder lower-cased on Windows, whose paths ignore case.
+
+  Windows tests with synthetic homes pass on Windows 11, the `..\` one failing before the fix.
 
 ### [ ] C9.5 Agents on Windows
 - **Goal:** detecting, installing, starting, resuming and hooking each agent works.
