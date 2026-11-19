@@ -536,6 +536,18 @@ func buildStringVars() {
 			if p.Proc == nil || p.Dead {
 				return "", false
 			}
+			if platform.CwdFromScreen {
+				// K1: the last OSC 7 or OSC 9;9 path, else where the pane started.
+				cwd := p.Cwd
+				if p.Term != nil {
+					p.Mu.Lock()
+					if c := p.Term.Screen.Cwd; c != "" {
+						cwd = c
+					}
+					p.Mu.Unlock()
+				}
+				return cwd, cwd != ""
+			}
 			cwd := platform.CurrentPath(p.Proc.Fd())
 			return cwd, cwd != ""
 		}),

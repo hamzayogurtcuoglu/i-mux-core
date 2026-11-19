@@ -237,9 +237,9 @@ func (p *conProc) Wait() (ExitStatus, error) {
 
 func (p *conProc) Pid() int { return p.pid }
 
-// Fd implements Proc: a pseudo console has no descriptor (process information on Windows comes
-// from the job, C8.6).
-func (*conProc) Fd() int { return -1 }
+// Fd implements Proc: a pseudo console has no descriptor, so it is the job's handle, from which
+// platform.ForegroundCommand reads what runs in the pane (C8.6).
+func (p *conProc) Fd() int { return int(p.job) }
 
 // Kill ends the program and everything it started (the job, K4). It does not wait.
 func (p *conProc) Kill() error {

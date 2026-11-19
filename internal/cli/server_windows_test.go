@@ -265,3 +265,31 @@ func TestWindowsShells(t *testing.T) {
 		})
 	}
 }
+
+// Process information on Windows (TASKS.md C8.6): the command is the newest live process in the
+// pane's job, without .exe; the path is the start directory until the program says another with
+// OSC 9;9 (or OSC 7).
+func TestWindowsPaneProcessInfo(t *testing.T) {
+	w := newWorld(t)
+	start := t.TempDir()
+	w.must("new-session", "-d", "-s", "a", "-c", start, "powershell.exe", "-NoLogo", "-NoProfile", "-Command",
+		"Start-Sleep 2; ping.exe -n 300 127.0.0.1")
+	format := func(f string) string {
+		return strings.TrimSpace(w.must("display-message", "-p", "-t", "a", f))
+	}
+	if got := format("#{pane_current_command}"); !strings.EqualFold(got, "powershell") {
+		t.Errorf("before ping: %q, want powershell", got)
+	}
+	w.eventually("ping as the pane's command", func() bool {
+		return strings.EqualFold(format("#{pane_current_command}"), "ping")
+	})
+	if got := format("#{pane_current_path}"); !strings.EqualFold(got, start) {
+		t.Errorf("pane_current_path %q, want the start directory %q", got, start)
+	}
+
+	w.must("new-session", "-d", "-s", "b", "-c", start, "powershell.exe", "-NoLogo", "-NoProfile", "-Command",
+		`[Console]::Write([char]27 + ']9;9;' + [char]34 + 'C:\Windows' + [char]34 + [char]7); Start-Sleep 300`)
+	w.eventually("the OSC 9;9 path", func() bool {
+		return strings.TrimSpace(w.must("display-message", "-p", "-t", "b", "#{pane_current_path}")) == `C:\Windows`
+	})
+}

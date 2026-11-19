@@ -47,7 +47,8 @@ type Proc interface {
 	Kill() error
 	// Pid is the program's process id.
 	Pid() int
-	// Fd is the PTY master's descriptor, for platform.ForegroundCommand and CurrentPath.
+	// Fd is the PTY master's descriptor, for platform.ForegroundCommand and CurrentPath; on
+	// Windows, the job object's handle, which the same functions read.
 	Fd() int
 	// Close releases the PTY. A Read blocked in another goroutine returns.
 	Close() error

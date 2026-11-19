@@ -24,3 +24,6 @@ func CurrentPath(fd int) string {
 	}
 	return processCwd(pgrp, fd)
 }
+
+// CwdFromScreen is false: #{pane_current_path} is the foreground process's directory.
+const CwdFromScreen = false

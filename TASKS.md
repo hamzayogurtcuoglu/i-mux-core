@@ -1728,7 +1728,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   the test owns, so its output can be read): attach, keys, resize, detach, and restored modes.
 - **Depends on:** C8.4.
 
-### [ ] C8.6 Process information on Windows
+### [x] C8.6 Process information on Windows
 - **Goal:** window names and paths are useful on Windows.
 - **Details:**
   - `pane_current_command`: the newest live process in the pane's job, by image name without
@@ -1737,6 +1737,13 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** tests with `pwsh` running `Start-Sleep` show `Start-Sleep`'s host or the
   expected name. Document exactly what is shown.
 - **Depends on:** C8.1.
+- **Status:** done. `internal/platform/procinfo_windows.go`: a pane's `Fd` on Windows is its
+  job's handle; `pane_current_command` is the image name, without `.exe` and in the case it has
+  on disk, of the newest live process in the job (by creation time): a PowerShell pane shows
+  `powershell` (or `pwsh`) while it runs a cmdlet such as `Start-Sleep`, which is no process of
+  its own, and `PING` while it runs `ping.exe`. `pane_current_path` is the last OSC 7 or OSC 9;9
+  path, else the start directory (K1). `TestWindowsPaneProcessInfo` checks both, on Windows 11
+  build 26200 through WSL.
 
 ### [x] C8.7 Shells and jobs on Windows
 - **Goal:** `run-shell`, `if-shell` and the default shell work on Windows per E14.
