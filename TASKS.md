@@ -1614,6 +1614,9 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - An issue template "Engine (beta)" asks for the terminal, OS, and `imux doctor` output.
 - **Acceptance:** the owner approves and tags the release.
 - **Depends on:** C7.6.
+- **Status:** prepared. i-mux commit a35e4ef (T88.6) has the notes (CHANGELOG, README and
+  README.tr: how to try the engine and how to go back) and the "Engine (beta)" issue form; the
+  release waits for C7.6's green run and the owner's tag.
 
 **Gate 7:**
 - i-mux ships with both engines.
