@@ -378,6 +378,14 @@ The server runs every command it receives as its user, so **only that user may c
   against the server's; another is closed at once.
 - A client whose server dies reads "The pipe has been ended", which it reports as a lost
   server.
+- The socket path keeps tmux's meaning (`-L`, `-S`, `#{socket_path}`): `-L name` is
+  `%LOCALAPPDATA%\i-mux-core\name` (`TMUX_TMPDIR` in its place when set), a directory created
+  with the same protected DACL. A path is not a pipe, so the server listens on
+  `\\.\pipe\imux-core-<hash>`, the hash of the path's absolute, lower-cased form; the first
+  instance is created with `FILE_FLAG_FIRST_PIPE_INSTANCE`, so a name already taken (another
+  server, or a squatter) fails the start. Clients open the pipe with `SECURITY_IDENTIFICATION`,
+  so the server cannot act as them. A pipe goes with its server: there is no stale endpoint to
+  remove, only the lock file beside the path.
 
 **Everywhere:**
 - No TCP, UDP or other network listener, ever.
