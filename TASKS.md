@@ -1694,7 +1694,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   Close. No second local user is created (not on CI runners, and not here). Checked on Windows
   11 build 26200 through WSL. The review is in ARCHITECTURE.md §7.
 
-### [ ] C8.4 The server process on Windows
+### [x] C8.4 The server process on Windows
 - **Goal:** the server starts, lives and ends correctly, with no stray windows.
 - **Details:**
   - Detached start: no console, no flashing window, and a new process group.
@@ -1704,6 +1704,17 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** the engine tests for start, reuse, last-session exit and stale endpoint pass on
   Windows.
 - **Depends on:** C8.3.
+- **Status:** done. `internal/cli/start_windows.go`: the client connects through the named
+  pipe and, when none listens, starts `imux-core __server` under a lock file locked with
+  `LockFileEx`; the server starts with no console (`DETACHED_PROCESS`, so no window) in a process
+  group of its own, out of the client's job when the job allows it, and says it is ready on an
+  inherited pipe; with `IMUX_CORE_LOG` set its own output goes to
+  `%LOCALAPPDATA%\i-mux-core\logs\server-<time>.log`. A pipe goes with its server, so there is
+  no stale endpoint: a client with no server says `error connecting to <path> (No such file or
+  directory)`, as a Unix client with no socket does. Panes start in ConPTY windows of their own
+  (C8.1), never a visible console. `server_windows_test.go`: start and reuse, six clients
+  starting one server at once, exit with the last session and when a pane's program ends, no
+  server, `-L` names, kill-server; Windows 11 build 26200 through WSL.
 
 ### [ ] C8.5 The attached client on Windows
 - **Goal:** attaching from Windows Terminal (and conhost) works and restores the console.
