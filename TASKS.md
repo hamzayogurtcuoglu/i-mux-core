@@ -1627,7 +1627,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
 
 ## Phase 8: i-mux-core on Windows
 
-### [ ] C8.1 ConPTY
+### [x] C8.1 ConPTY
 - **Goal:** panes run programs on Windows.
 - **Details:**
   - `pty_windows.go` per E12:
@@ -1647,6 +1647,16 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - kill ends grandchildren;
   - the handle count returns to its start value.
 - **Depends on:** Gate 6, C0.7.
+- **Status:** done. `internal/pty/conpty_windows.go` (E12): a pseudo console per program,
+  created with no flags; the program started suspended, put in a job object that kills the tree
+  when it closes, then resumed; `PATH`/`PATHEXT` lookup, the argv joined as Windows parses it,
+  the environment block and directory; the pseudo console closed once the program ends, so its
+  output ends after the rest is read. `conpty_windows_test.go` runs `cmd.exe`, a PowerShell
+  script (Windows PowerShell: `pwsh` is not on every machine) and the fake TUI, with input,
+  a resize, exit codes, a kill that ends a grandchild, and no handle left per program (the
+  count moves only as Go's runtime adds threads for blocking reads). Checked on Windows 11 build
+  26200 through WSL (`scripts/wsl-windows-test.sh`, which runs a package's tests on the Windows
+  that hosts WSL); CI's `windows-latest` job runs them too.
 
 ### [ ] C8.2 ConPTY's output in the emulator
 - **Goal:** what users see on Windows matches what they see on macOS and Linux.
