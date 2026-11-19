@@ -1946,7 +1946,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   PowerShell and cmd.exe. Its Windows unit tests pass on Windows 11 build 26200; the e2e with
   the fake agents ported to Go comes with C9.9's Windows CI (T90.9).
 
-### [ ] C9.6 Windows integrations
+### [x] C9.6 Windows integrations
 - **Goal:** the parts of i-mux that talk to the OS work on Windows.
 - **Details:**
   - Opening URLs and files (`ShellExecute`).
@@ -1958,6 +1958,12 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - Git: Git for Windows is required, and `imux doctor` checks for it.
 - **Acceptance:** unit tests with fakes, and Windows CI e2e where the OS allows.
 - **Depends on:** C9.2.
+- **Status:** done in i-mux (T90.6, 511e023; §7.10 there): URLs, files and Reveal through
+  Explorer and the browser's app window, the clipboard and the image paste through PowerShell,
+  the Recycle Bin, a toast through WinRT, the Nerd Font for the user with Windows Terminal's and
+  VS Code's settings, micro's Windows zips and VS Code's `code.cmd`, and doctor's git check. Unit
+  tests with fakes run everywhere, and the Windows ones pass on Windows 11 build 26200; Windows
+  CI's e2e comes with C9.9 (T90.9).
 
 ### [ ] C9.7 Self-update on Windows
 - **Goal:** Settings → Update i-mux works on Windows, with no installer run again.
