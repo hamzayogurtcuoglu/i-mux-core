@@ -1877,7 +1877,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - K8: ConPTY consumes a pane's mouse-mode request, so the sidebar's clicks would not reach
     it.
 
-### [ ] C9.3 Command strings without a POSIX shell
+### [x] C9.3 Command strings without a POSIX shell
 - **Goal:** every command line i-mux generates works on Windows.
 - **Details:**
   - Change `UICommand`, `Silent`, `ShQuote` and `ShJoin`, the `run-shell` strings in the
@@ -1891,6 +1891,21 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - Unit tests of the generated config and commands for both platforms.
   - The macOS and Linux output is byte-identical to before (golden test).
 - **Depends on:** C9.2.
+- **Status:** done. i-mux commits 81057dd (its ARCHITECTURE.md §9.2a) and 51eded1 (T90.3).
+  Where no POSIX sh runs (Windows, or `IMUX_ARGV_FORM=1`):
+  - i-mux's own commands take X1's quiet argv form; a command whose output shows, the plain one;
+  - popups' and panes' programs go as separate arguments;
+  - the handoff preview pages itself instead of piping into `less`, a menu's answer file is
+    pruned instead of removed with `rm -f`, and the watcher sends no reap nudge;
+  - the shell an agent exits to is this engine's choice (pwsh, Windows PowerShell or cmd.exe);
+  - `TMUX` is read from the right, since a profile's path may hold a comma (`TMUX_PANE` is the
+    same `%N`).
+
+  macOS and Linux keep their lines byte for byte (the sh-form goldens), and a golden holds the
+  argv form. i-mux's `make e2e-core-argv` runs its whole e2e suite on this engine in the argv
+  form, on Linux, and passes; under tmux the same run fails, as it must. The `sh -c` uses that
+  run what an agent or the user set up move to C9.5 (Claude's status line, installs), C9.6
+  (clipboard, browser) and C9.7 (the update).
 
 ### [ ] C9.4 Paths and agents' homes
 - **Goal:** i-mux finds its own files and each agent's files on Windows.
