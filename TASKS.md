@@ -1821,7 +1821,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
 
 ## Phase 9: i-mux on Windows (i-mux repository)
 
-### [ ] C9.1 Docs first
+### [x] C9.1 Docs first
 - **Goal:** i-mux's design allows native Windows, with i-mux-core as the engine there.
 - **Details:**
   - i-mux's ARCHITECTURE.md: amend the "No native Windows" non-goal (D60) with a new decision.
@@ -1830,6 +1830,12 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - i-mux's TASKS.md: a milestone for C9.2–C9.10.
 - **Acceptance:** a `docs: …` commit in i-mux.
 - **Depends on:** Gate 8.
+- **Status:** done. i-mux commit 437ddf4: D85 (native Windows on this engine, the only engine
+  there; `golang.org/x/sys/windows` allowed in i-mux's Windows-only files, since the engine
+  already brings it) and milestone M90 (T90.1–T90.10 for C9.1–C9.10); AGENTS.md's rule,
+  CONTRIBUTING's dependency rule and the check-before-push skill follow. Phase 9 started before
+  Gate 8's sign-off (C8.9 waits for the owner) because the owner asked for every remaining task
+  to be done.
 
 ### [ ] C9.2 i-mux builds for Windows
 - **Goal:** `GOOS=windows go build ./...` and `go vet` succeed, with no behaviour change on
