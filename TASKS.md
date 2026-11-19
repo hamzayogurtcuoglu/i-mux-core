@@ -1965,7 +1965,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   tests with fakes run everywhere, and the Windows ones pass on Windows 11 build 26200; Windows
   CI's e2e comes with C9.9 (T90.9).
 
-### [ ] C9.7 Self-update on Windows
+### [x] C9.7 Self-update on Windows
 - **Goal:** Settings → Update i-mux works on Windows, with no installer run again.
 - **Details:**
   - Download and verify both `imux.exe` and `imux-core.exe`.
@@ -1976,6 +1976,15 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** an update e2e on Windows CI with a local release fixture: both replaced, the
   old files cleaned up on the next start, and the rollback tested.
 - **Depends on:** C9.2.
+- **Status:** done in i-mux (T90.7, 3efb772 and ac040b9): GoReleaser ships
+  `imux_<version>_windows_<arch>.zip` with `imux.exe` and `imux-core.exe` in `checksums.txt`;
+  `update.Install` downloads and checks the zip, stages each binary to `<name>.new`, renames the
+  current executable to `<name>.old` and puts `<name>.new` in place, rolling back both if any step
+  fails, and `setup()` runs `update.CleanOld()` on each start to remove `*.old` files no longer
+  held open by a running process while telling the user when an engine server keeps its old binary
+  until its sessions end. `TestInstallArchiveAndRollback` and `TestSelfUpdateEndToEnd` (running
+  `imux.exe` and `imux-core.exe` replaced, `*.old` deleted on the next start, the running-engine
+  message, and rollback) pass on Linux and on Windows 11 build 26200.
 
 ### [ ] C9.8 Installer
 - **Goal:** a Windows user installs i-mux once, from a familiar starting point.
