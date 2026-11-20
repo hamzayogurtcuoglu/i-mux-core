@@ -1407,7 +1407,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     choice, and a menu its command opened was closed; `e2e`'s `TestMenuClosesBeforeItsItemRuns`.
   Under the full suite's load, two i-mux tests with timing limits of their own
   (`TestHandoffPrintLargeSession`, `TestSessionPicker`'s p95) each failed once and passed alone
-  and in later runs; CI runs the suite at commit 88903cc, blocking.
+  and in later runs; CI runs the suite at commit 88903cc, blocking. Moved to i-mux 4e4c95c on
+  2026-11-20: at 88903cc i-mux's own `TestScheduler` reads the clock and fails from 22:00 local
+  time on either engine (fixed in i-mux 838b4a5), and the later commit has M91's CI fixes.
 
 ### [x] C6.4 Performance
 - **Goal:** meet ARCHITECTURE.md §10.
