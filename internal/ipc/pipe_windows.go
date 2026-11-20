@@ -26,10 +26,22 @@ import (
 // pipeBuffer is each pipe instance's buffer size, in and out.
 const pipeBuffer = 64 << 10
 
-// accessDACL is the protected DACL of the directory and the pipe: full access for the user and
-// SYSTEM, nothing inherited.
+// accessDACL is the security of the directory and the pipe: owned by the user, and a protected
+// DACL with full access for the user and SYSTEM, nothing inherited. The owner is set because an
+// elevated administrator's objects are otherwise owned by BUILTIN\Administrators (E13).
 func accessDACL(user *windows.SID) string {
-	return "D:P(A;;GA;;;" + user.String() + ")(A;;GA;;;SY)"
+	return "O:" + user.String() + "D:P(A;;GA;;;" + user.String() + ")(A;;GA;;;SY)"
+}
+
+// elevatedAdmin reports whether this process runs as an elevated administrator: its token has
+// BUILTIN\Administrators enabled (a filtered, non-elevated token has it for deny only).
+var elevatedAdmin = func() bool {
+	admins, err := windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid)
+	if err != nil {
+		return false
+	}
+	ok, err := windows.Token(0).IsMember(admins)
+	return err == nil && ok
 }
 
 // CurrentUser is this process's token user.
@@ -122,7 +134,7 @@ func securedFor(sd *windows.SECURITY_DESCRIPTOR, user *windows.SID) (bool, error
 	if err != nil {
 		return false, err
 	}
-	if !windows.EqualSid(owner, user) && !windows.EqualSid(owner, system) {
+	if !windows.EqualSid(owner, user) && !windows.EqualSid(owner, system) && !adminOwned(owner) {
 		return false, nil
 	}
 	dacl, _, err := sd.DACL()
@@ -143,6 +155,14 @@ func securedFor(sd *windows.SECURITY_DESCRIPTOR, user *windows.SID) (bool, error
 		}
 	}
 	return true, nil
+}
+
+// adminOwned reports whether owner is BUILTIN\Administrators and this process an elevated
+// administrator, who has full control of what that group owns anyway (an object an older,
+// elevated run created, E13).
+func adminOwned(owner *windows.SID) bool {
+	admins, err := windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid)
+	return err == nil && windows.EqualSid(owner, admins) && elevatedAdmin()
 }
 
 // SocketPath returns the socket path for -L name (or "default") in the socket directory.

@@ -117,6 +117,11 @@ func TestPipeDACL(t *testing.T) {
 	if !strings.Contains(sd.String(), "D:P") {
 		t.Errorf("the pipe's DACL is not protected: %s", sd)
 	}
+	// Owned by the user, even when this test runs elevated (GitHub's runners do): an
+	// administrator's objects are otherwise owned by BUILTIN\Administrators (E13).
+	if owner, _, err := sd.Owner(); err != nil || !windows.EqualSid(owner, user) {
+		t.Errorf("the pipe's owner: %v %v, want the user", owner, err)
+	}
 	dir, err := SocketDir(t.TempDir(), 0)
 	if err != nil {
 		t.Fatal(err)
@@ -268,5 +273,34 @@ func TestPipeOtherUsersServerRefused(t *testing.T) {
 		t.Fatal("dialed another user's server")
 	} else if !errors.Is(err, errNotOwnServer) {
 		t.Fatalf("dial: %v", err)
+	}
+}
+
+// An object owned by BUILTIN\Administrators (left by an elevated run) is the user's only for an
+// elevated administrator (E13).
+func TestAdminOwned(t *testing.T) {
+	user, err := CurrentUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sd, err := windows.SecurityDescriptorFromString("O:BAD:P(A;;GA;;;" + user.String() + ")(A;;GA;;;SY)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := elevatedAdmin
+	t.Cleanup(func() { elevatedAdmin = old })
+	for _, elevated := range []bool{false, true} {
+		elevatedAdmin = func() bool { return elevated }
+		if ok, err := securedFor(sd, user); err != nil || ok != elevated {
+			t.Errorf("elevated %v: %v %v", elevated, ok, err)
+		}
+	}
+	other, err := windows.SecurityDescriptorFromString("O:BUD:P(A;;GA;;;" + user.String() + ")")
+	if err != nil {
+		t.Fatal(err)
+	}
+	elevatedAdmin = func() bool { return true }
+	if ok, _ := securedFor(other, user); ok {
+		t.Error("an object owned by BUILTIN\\Users passed")
 	}
 }

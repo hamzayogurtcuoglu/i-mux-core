@@ -1698,6 +1698,11 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - If CI allows creating a second local user, a test that it is refused.
   - A short security review written in ARCHITECTURE.md §7.
 - **Depends on:** C8.1.
+- **Regression (2026-11-20):** GitHub's Windows runners run elevated since 2026-11-19, and an
+  elevated administrator's pipe and socket directory were owned by BUILTIN\Administrators,
+  which the check refused ("unsafe permissions", also for a user in an elevated terminal).
+  The owner is now set to the user (E13); `TestPipeDACL` checks it and `TestAdminOwned` the
+  rule for objects an elevated run left.
 - **Status:** done. `internal/ipc/pipe_windows.go`: the socket path under
   `%LOCALAPPDATA%\i-mux-core` (its DACL created and checked), the named pipe from the path's
   hash with the protected DACL, `PIPE_REJECT_REMOTE_CLIENTS` and `FILE_FLAG_FIRST_PIPE_INSTANCE`,
