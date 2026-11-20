@@ -137,6 +137,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Install tmux (the installer's tests expect it)
+        run: sudo apt-get update -q && sudo apt-get install -y -q tmux
       - name: Run the suite
         run: ./scripts/imux-e2e.sh i-mux
       - name: Upload PARITY.md
@@ -156,7 +158,8 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      IMUX_COMMIT: 4e4c95ce9fa3965241559350cd8b08f602199e5c
+      # A fixed i-mux, so the startup measures the engine (TASKS.md C6.4).
+      IMUX_COMMIT: 88903cca6c2b14affa6892b3c640eb0fdfada6c8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
