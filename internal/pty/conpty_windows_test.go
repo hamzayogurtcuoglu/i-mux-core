@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 	"unsafe"
@@ -112,6 +113,62 @@ func TestConPTYExitCode(t *testing.T) {
 	collect(p)
 	if st, err := p.Wait(); err != nil || st.Code != 3 {
 		t.Fatalf("status %+v, %v; want code 3", st, err)
+	}
+}
+
+func TestConPTYBreakawayChild(t *testing.T) {
+	mode := os.Getenv("IMUX_TEST_BREAKAWAY")
+	marker := os.Getenv("IMUX_TEST_BREAKAWAY_MARKER")
+	switch mode {
+	case "writer":
+		time.Sleep(time.Second)
+		if err := os.WriteFile(marker, []byte("alive"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return
+	case "starter":
+		self, err := os.Executable()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command(self, "-test.run=^TestConPTYBreakawayChild$")
+		cmd.Env = append(os.Environ(), "IMUX_TEST_BREAKAWAY=writer")
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			CreationFlags: windows.CREATE_NEW_PROCESS_GROUP | windows.CREATE_NO_WINDOW | windows.CREATE_BREAKAWAY_FROM_JOB,
+			HideWindow:    true,
+		}
+		if err := cmd.Start(); err != nil {
+			t.Fatal(err)
+		}
+		_ = cmd.Process.Release()
+		return
+	case "":
+		// The outer test.
+	default:
+		t.Fatalf("bad mode %q", mode)
+	}
+	marker = filepath.Join(t.TempDir(), "alive")
+	t.Setenv("IMUX_TEST_BREAKAWAY", "starter")
+	t.Setenv("IMUX_TEST_BREAKAWAY_MARKER", marker)
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := start(t, self, "-test.run=^TestConPTYBreakawayChild$")
+	collect(p)
+	if _, err := p.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	_ = p.Close() // closes the pane job, killing non-breakaway children
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		if b, err := os.ReadFile(marker); err == nil && string(b) == "alive" {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the breakaway child died with the pane job")
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 

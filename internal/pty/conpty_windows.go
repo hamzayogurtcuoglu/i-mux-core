@@ -122,7 +122,11 @@ func (p *conProc) spawn(path string, spec Spec) error {
 	}
 	p.job = job
 	info := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}
-	info.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+	// Pane programs die with the pane, but a child that explicitly asks for
+	// CREATE_BREAKAWAY_FROM_JOB (i-mux's detached watcher / scheduler) may
+	// outlive that pane. Otherwise Windows kills the detached child when the
+	// popup pane exits, before it records a finished run.
+	info.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | windows.JOB_OBJECT_LIMIT_BREAKAWAY_OK
 	if _, err := windows.SetInformationJobObject(job, windows.JobObjectExtendedLimitInformation,
 		uintptr(unsafe.Pointer(&info)), uint32(unsafe.Sizeof(info))); err != nil {
 		return fmt.Errorf("SetInformationJobObject: %w", err)
