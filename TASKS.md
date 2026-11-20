@@ -1410,6 +1410,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   and in later runs; CI runs the suite at commit 88903cc, blocking. Moved to i-mux 4e4c95c on
   2026-11-20: at 88903cc i-mux's own `TestScheduler` reads the clock and fails from 22:00 local
   time on either engine (fixed in i-mux 838b4a5), and the later commit has M91's CI fixes.
+  Its tests since D83 tell the engine by its name, so the script also gives the engine's own
+  path in `IMUX_TMUX_BIN`, as i-mux's `make e2e-core` does (the "tmux" link stays for older
+  commits).
 
 ### [x] C6.4 Performance
 - **Goal:** meet ARCHITECTURE.md §10.
@@ -1799,6 +1802,13 @@ i-mux's `make ci` must pass with tmux exactly as before.
   `/bin/sh` gives `sh`. `TestWindowsShells` (cmd.exe's `&&` and quotes, the argv form, `TMUX`
   in a job, if-shell both ways, a PowerShell pane) and the package tests, which now expect each
   system's shell, pass on Windows 11 build 26200 through WSL.
+- **Open (2026-11-20):** since the pane job allows breakaway (bf61fad, for i-mux's detached
+  watcher), what Git for Windows' sh starts is outside the job: the current command finds it
+  (E12), but `Kill` does not end it. And on GitHub's Windows image of 2026-11-16 (it runs
+  elevated) `TestWindowsAttach` (the pane's output does not show), `TestWindowsConcurrentStart`
+  (a lock file left) and `TestWindowsPaneProcessInfo` (PowerShell's ping not seen, although it
+  is in the job) fail, and `TestClickSelectsAPane` did once; causes not found yet. The owner's
+  Windows 11 (build 26200) passed them all.
 
 ### [x] C8.8 Engine e2e on Windows
 - **Goal:** the engine's own scenarios pass on Windows.
