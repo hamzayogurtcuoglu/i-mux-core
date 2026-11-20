@@ -315,12 +315,7 @@ type Listener interface { /* Listen, Dial, PeerUser */ }
 ### Windows (Phase 8)
 
 - **PTY (E12):** ConPTY (`CreatePseudoConsole`) with no flags, and the child in a **job object**
-  so `Kill` ends its whole tree. A child does not always stay in its parent's job: on GitHub's
-  Windows image of 2026-11-16, a program that a pane's PowerShell or sh starts is not listed in
-  the pane's job. So the pane's processes are its job's and their descendants, found by parent
-  pid in a process snapshot (a child created before its parent is not one, against pid reuse),
-  and `#{pane_current_command}` is the newest of them. `Kill` still ends the job only: i-mux's
-  detached children (its watcher) leave the job on purpose and must outlive the pane. The spike's evidence (C0.7) on build 26100
+  so `Kill` ends its whole tree. The spike's evidence (C0.7) on build 26100
   (`spikes/conpty/EVIDENCE-26100.md`):
   - every flag is accepted, and `PSEUDOCONSOLE_PASSTHROUGH_MODE` changes nothing on build
     26100, so none is used;
