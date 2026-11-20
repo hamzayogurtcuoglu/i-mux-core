@@ -373,7 +373,11 @@ The server runs every command it receives as its user, so **only that user may c
 
 **Windows (E13):**
 - The pipe is created with a protected DACL that allows only the current user's SID and SYSTEM
-  (no inherited ACEs) and with `PIPE_REJECT_REMOTE_CLIENTS`.
+  (no inherited ACEs) and with `PIPE_REJECT_REMOTE_CLIENTS`. Its owner is set to the user's SID
+  too: an elevated administrator's objects would otherwise be owned by BUILTIN\Administrators
+  (GitHub's Windows runners run so since 2026-11-19). An object that an elevated run left owned
+  by Administrators passes the check only for a process that is an elevated administrator
+  itself, which has full control of it anyway.
 - Every connection's client process (`GetNamedPipeClientProcessId`) has its token SID checked
   against the server's; another is closed at once.
 - A client whose server dies reads "The pipe has been ended", which it reports as a lost
