@@ -1410,9 +1410,11 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   and in later runs; CI runs the suite at commit 88903cc, blocking. Moved to i-mux 4e4c95c on
   2026-11-20: at 88903cc i-mux's own `TestScheduler` reads the clock and fails from 22:00 local
   time on either engine (fixed in i-mux 838b4a5), and the later commit has M91's CI fixes.
-  Its tests since D83 tell the engine by its name, so the script also gives the engine's own
-  path in `IMUX_TMUX_BIN`, as i-mux's `make e2e-core` does (the "tmux" link stays for older
-  commits).
+  Its tests since D83 tell the engine by its name, so the script gives the engine's own path in
+  `IMUX_TMUX_BIN`, as i-mux's `make e2e-core` does, and no longer links it as "tmux" (the
+  installer's tests took it for tmux); the job installs the runner's tmux for those tests, as
+  i-mux's `e2e-core` job does. The startup bench (C6.4) stays at 88903cc: it measures the engine
+  against a fixed i-mux.
 
 ### [x] C6.4 Performance
 - **Goal:** meet ARCHITECTURE.md §10.
@@ -1443,7 +1445,12 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
     15–20 ms), on either engine. Slower process starts make imux-core lose the race more often.
 
   The engine alone cannot close this, so the owner decided (2026-11-18) to make the target
-  absolute: i-mux's startup may take at most tmux + 25 ms (ARCHITECTURE.md §10). With it every
+  absolute: i-mux's startup may take at most tmux + 25 ms (ARCHITECTURE.md §10). The bench
+  checked tmux + 10% until 7c10026 (2026-11-20): the decision had changed the docs only.
+  Measured at i-mux 4e4c95c (2026-11-20, CI run 44812958235) i-mux's own startup is past it on
+  both runners (131.6 against 105.0 ms on Linux, 360.2 against 294.9 ms on macOS): newer i-mux
+  makes more engine calls while it starts. That is for i-mux to look at before C10.3; the
+  bench keeps measuring at 88903cc. With it every
   measured run passes, the ones above included. i-mux may still make fewer engine calls while it
   starts, in Phase 7 behind the engine switch; nothing requires it.
 
