@@ -1,7 +1,8 @@
 #!/bin/sh
-# Runs i-mux's e2e suite on i-mux-core (TASKS.md C6.2): imux-core is built and linked as
-# "tmux" first on PATH, where i-mux's harness and i-mux look for tmux; i-mux (../i-mux,
-# unchanged) is built for the suite; the results become PARITY.md.
+# Runs i-mux's e2e suite on i-mux-core (TASKS.md C6.2): imux-core is built, given by its own
+# path in IMUX_TMUX_BIN (i-mux's tests since D83 tell the engine by its name) and linked as
+# "tmux" first on PATH for older i-mux commits; i-mux (../i-mux, unchanged) is built for the
+# suite; the results become PARITY.md.
 #
 #   scripts/imux-e2e.sh [path to i-mux]      (default: ../i-mux)
 #
@@ -23,7 +24,7 @@ ln -s "$cache/imux-core" "$bin/tmux"
 
 echo "imux-e2e: running i-mux's e2e suite on imux-core (log: $cache/e2e.json)"
 status=0
-(cd "$imux" && PATH="$bin:$PATH" IMUX_E2E_BIN="$cache/imux" \
+(cd "$imux" && PATH="$bin:$PATH" IMUX_E2E_BIN="$cache/imux" IMUX_TMUX_BIN="$cache/imux-core" \
 	go test -tags e2e -count=1 -json -timeout 60m ./e2e/... >"$cache/e2e.json" 2>"$cache/e2e.stderr") || status=$?
 echo "imux-e2e: the suite exited with $status"
 
