@@ -315,7 +315,12 @@ type Listener interface { /* Listen, Dial, PeerUser */ }
 ### Windows (Phase 8)
 
 - **PTY (E12):** ConPTY (`CreatePseudoConsole`) with no flags, and the child in a **job object**
-  so `Kill` ends its whole tree. The spike's evidence (C0.7) on build 26100
+  so `Kill` ends its whole tree. The job allows breakaway, for i-mux's detached watcher, and
+  with that a program that Git for Windows' sh starts is not in the job (one that PowerShell
+  starts is): `#{pane_current_command}` is the newest of the job's processes and their
+  descendants, found by parent pid in a process snapshot (a child created before its parent is
+  not one, against pid reuse). `Kill` still ends the job only, so the watcher outlives the pane;
+  what sh started outside the job outlives it too (open, TASKS.md C8.7). The spike's evidence (C0.7) on build 26100
   (`spikes/conpty/EVIDENCE-26100.md`):
   - every flag is accepted, and `PSEUDOCONSOLE_PASSTHROUGH_MODE` changes nothing on build
     26100, so none is used;
