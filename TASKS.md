@@ -1606,6 +1606,11 @@ i-mux's `make ci` must pass with tmux exactly as before.
   `e2e-core` job on Linux and macOS; `make e2e-core` now defaults to `bin/imux-core`, built
   by `make build` from the pin. Locally green on macOS and on Linux (golang:1.27, non-root,
   with `less` installed as GitHub's runners have it). Ticked once the job is green there.
+  The runs up to 2026-11-19 were red for reasons outside the engine, all fixed in i-mux's M91
+  (not yet pushed): the watcher's pid race (T91.1, also seen in `e2e-core`), tmux 3.6's menu
+  bug on Ubuntu 26.04 with CI's tmux now pinned to 3.8 (T91.2), and a macOS theme test that
+  raced tmux's 5 s terminal-query timeout (T91.3). `make ci` is green on macOS and the e2e
+  suite on Linux with the pinned tmux; waiting for the owner's push and its run.
 
 ### [ ] C7.7 Beta release: USER
 - **Goal:** real users try the engine on macOS and Linux.
