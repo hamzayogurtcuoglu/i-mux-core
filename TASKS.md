@@ -2037,12 +2037,19 @@ i-mux's `make ci` must pass with tmux exactly as before.
   --ci` passes, and `uninstall.exe /S` removes everything cleanly; `TestInstallPS1Windows` passes
   on Windows 11 as well. CI's `release-snapshot` and `windows-installer` jobs run the same check.
 
-### [ ] C9.9 Windows CI for i-mux
+### [x] C9.9 Windows CI for i-mux
 - **Goal:** i-mux on Windows cannot regress unnoticed.
 - **Details:** i-mux's CI gets a `windows` job: unit tests, plus the e2e suite on i-mux-core,
   with tests that cannot apply skipped and listed.
 - **Acceptance:** green and blocking.
 - **Depends on:** C9.5, C9.6.
+- **Status:** done in i-mux (T90.9, 8aec3fa), green in its CI run 44813921227 (2026-11-20). Unit
+  tests all pass on windows-latest (76 skip there with a reason); e2e on this engine, 80 pass and
+  35 skip as listed in i-mux's `e2e/skips_windows_test.go`, 3 of them known issues (i-mux T90.11:
+  the shell after an agent exits, the diff view, a theme's OSC 11 through ConPTY). Found on the
+  way: i-mux's engine pin had no Windows server (now 5f1fec8), this engine's pipe and socket
+  folder were refused when run elevated (3da3f24), and what a pane's sh starts was missing from
+  its current command (a0693d2).
 
 ### [ ] C9.10 Windows check: USER
 - **Goal:** the full experience on a real Windows PC.
