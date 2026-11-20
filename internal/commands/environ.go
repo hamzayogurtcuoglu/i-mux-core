@@ -143,7 +143,7 @@ func (it *Item) paneEnv(s *model.Session, p *model.Pane, extra []string, shell, 
 		}
 	}
 	if v, ok := env.m["PATH"]; !ok || v == nil {
-		env.set("PATH", "/usr/bin:/bin")
+		env.set("PATH", DefaultPath())
 	}
 	env.set("SHELL", shell)
 	env.set("PWD", dir)

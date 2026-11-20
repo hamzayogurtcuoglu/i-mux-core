@@ -22,6 +22,19 @@ func JobShell() string {
 	return filepath.Join(systemRoot(), "System32", "cmd.exe")
 }
 
+// DefaultPath is the server's real Windows PATH when a command-line client
+// and its session give no PATH (paneEnv). It keeps Git and the user's tool
+// folders; /usr/bin:/bin is not a Windows path.
+func DefaultPath() string {
+	if p := os.Getenv("PATH"); p != "" {
+		return p
+	}
+	return strings.Join([]string{
+		filepath.Join(systemRoot(), "System32"),
+		filepath.Join(systemRoot(), "System32", "WindowsPowerShell", "v1.0"),
+	}, string(os.PathListSeparator))
+}
+
 func systemRoot() string {
 	if r := os.Getenv("SystemRoot"); r != "" {
 		return r

@@ -13,6 +13,10 @@ import (
 // JobShell is _PATH_BSHELL: run-shell and if-shell run their commands with it.
 func JobShell() string { return "/bin/sh" }
 
+// DefaultPath is the path when a command-line client and its session give no
+// PATH (paneEnv): tmux's Unix search path.
+func DefaultPath() string { return "/usr/bin:/bin" }
+
 // DefaultShell is the shell when default-shell and SHELL give none that can run.
 func DefaultShell() string { return "/bin/sh" }
 

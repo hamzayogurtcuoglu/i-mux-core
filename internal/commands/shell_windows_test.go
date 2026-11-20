@@ -8,6 +8,10 @@ import (
 )
 
 func TestShellCommandWindows(t *testing.T) {
+	t.Setenv("PATH", `C:\Windows\System32;C:\Program Files\Git\cmd`)
+	if got := DefaultPath(); got != `C:\Windows\System32;C:\Program Files\Git\cmd` {
+		t.Errorf("DefaultPath = %q", got)
+	}
 	argv, line := ShellCommand(`C:\Windows\System32\cmd.exe`, `echo "a b"& exit 2`)
 	if !slices.Equal(argv, []string{"cmd.exe", "/d", "/s", "/c", `echo "a b"& exit 2`}) ||
 		line != `"C:\Windows\System32\cmd.exe" /d /s /c "echo "a b"& exit 2"` {
