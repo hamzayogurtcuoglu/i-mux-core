@@ -738,7 +738,9 @@ func main() {
 	if imuxBin != "" {
 		measures = append(measures, measure{
 			name: "startup", what: "i-mux startup to the sidebar (median of 5, in turns)",
-			target: "≤ tmux + 10%", inTurns: imuxStartup, meets: times(1.1),
+			// Absolute, as decided for C6.4 (ARCHITECTURE.md §10): ~20 engine processes start
+			// before the first frame, each a little later than tmux's C.
+			target: "≤ tmux + 25 ms", inTurns: imuxStartup, meets: within(25),
 		})
 	}
 	want := map[string]bool{}
