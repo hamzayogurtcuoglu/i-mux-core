@@ -27,7 +27,7 @@ func ForegroundCommand(job int) string {
 	if job <= 0 {
 		return ""
 	}
-	pids := Tree(windows.Handle(job))
+	pids := jobProcesses(windows.Handle(job))
 	newest, name := int64(-1), ""
 	for _, pid := range pids {
 		created, image, ok := processInfo(pid)
@@ -85,62 +85,4 @@ func processInfo(pid uint32) (created int64, name string, ok bool) {
 		base = base[:len(base)-4]
 	}
 	return c.Nanoseconds(), base, base != ""
-}
-
-// Tree lists a pane's processes: those in its job and their descendants (E12). A child does not
-// always stay in its parent's job (on GitHub's Windows image of 2026-11-16 a program that a
-// pane's shell starts is not listed in the pane's job), so descendants are found by parent pid
-// in a process snapshot; a process created before its parent is not its child (a reused pid).
-func Tree(job windows.Handle) []uint32 {
-	roots := jobProcesses(job)
-	if len(roots) == 0 {
-		return nil
-	}
-	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
-	if err != nil {
-		return roots
-	}
-	defer func() { _ = windows.CloseHandle(snap) }()
-	children := map[uint32][]uint32{}
-	var e windows.ProcessEntry32
-	e.Size = uint32(unsafe.Sizeof(e))
-	for err := windows.Process32First(snap, &e); err == nil; err = windows.Process32Next(snap, &e) {
-		if e.ProcessID != 0 && e.ProcessID != e.ParentProcessID {
-			children[e.ParentProcessID] = append(children[e.ParentProcessID], e.ProcessID)
-		}
-	}
-	seen := map[uint32]bool{}
-	var out []uint32
-	var walk func(pid uint32, created int64)
-	walk = func(pid uint32, created int64) {
-		if seen[pid] {
-			return
-		}
-		seen[pid] = true
-		out = append(out, pid)
-		for _, c := range children[pid] {
-			if t, ok := createdAt(c); ok && t >= created {
-				walk(c, t)
-			}
-		}
-	}
-	for _, r := range roots {
-		t, _ := createdAt(r)
-		walk(r, t)
-	}
-	return out
-}
-
-// createdAt is a process's creation time.
-func createdAt(pid uint32) (int64, bool) {
-	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
-	if err != nil {
-		return 0, false
-	}
-	defer func() { _ = windows.CloseHandle(h) }()
-	var c, e, k, u windows.Filetime
-	if windows.GetProcessTimes(h, &c, &e, &k, &u) != nil {
-		return 0, false
-	}
-	return c.Nanoseconds(), true
 }
