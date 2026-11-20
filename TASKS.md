@@ -1447,10 +1447,13 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   The engine alone cannot close this, so the owner decided (2026-11-18) to make the target
   absolute: i-mux's startup may take at most tmux + 25 ms (ARCHITECTURE.md §10). The bench
   checked tmux + 10% until 7c10026 (2026-11-20): the decision had changed the docs only.
-  Measured at i-mux 4e4c95c (2026-11-20, CI run 44812958235) i-mux's own startup is past it on
-  both runners (131.6 against 105.0 ms on Linux, 360.2 against 294.9 ms on macOS): newer i-mux
-  makes more engine calls while it starts. That is for i-mux to look at before C10.3; the
-  bench keeps measuring at 88903cc. With it every
+  Open (2026-11-20): on the Linux runner's new image (Ubuntu 26.04, since 2026-11-19) the target
+  is missed at i-mux 88903cc too, 138.2 against 105.0 ms (CI run 44816384536; on 24.04 the gap
+  was 5–7 ms), though in an Ubuntu 26.04 container on the owner's Mac the gap is 9 ms, the same
+  for the engine of 2026-11-18 and of today: the runner's image, not an engine change, and not
+  understood yet. Newer i-mux (4e4c95c) starts slower on both engines and past the target on
+  macOS too (360.2 against 294.9 ms), so the bench keeps measuring at 88903cc. Both are to be
+  settled before C10.3, whose criteria include the benchmarks. With it every
   measured run passes, the ones above included. i-mux may still make fewer engine calls while it
   starts, in Phase 7 behind the engine switch; nothing requires it.
 
