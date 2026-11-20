@@ -1594,7 +1594,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   reaches a program in one write, as under tmux) and i-mux 5b52495 (TestScheduler's
   every-5-min row at 23:55).
 
-### [ ] C7.6 CI for both engines
+### [x] C7.6 CI for both engines
 - **Goal:** neither engine can regress unnoticed.
 - **Details:**
   - i-mux's CI gets an `e2e-core` job: it builds i-mux-core at the pinned version (i-mux's
@@ -1609,8 +1609,8 @@ i-mux's `make ci` must pass with tmux exactly as before.
   The runs up to 2026-11-19 were red for reasons outside the engine, all fixed in i-mux's M91
   (not yet pushed): the watcher's pid race (T91.1, also seen in `e2e-core`), tmux 3.6's menu
   bug on Ubuntu 26.04 with CI's tmux now pinned to 3.8 (T91.2), and a macOS theme test that
-  raced tmux's 5 s terminal-query timeout (T91.3). `make ci` is green on macOS and the e2e
-  suite on Linux with the pinned tmux; waiting for the owner's push and its run.
+  raced tmux's 5 s terminal-query timeout (T91.3). Done: i-mux's CI run 44798964523 (commit
+  d980168, 2026-11-20) is green on every job, `e2e-core` on Linux and macOS included.
 
 ### [ ] C7.7 Beta release: USER
 - **Goal:** real users try the engine on macOS and Linux.
