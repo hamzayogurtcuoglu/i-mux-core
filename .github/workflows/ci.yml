@@ -125,7 +125,7 @@ jobs:
     name: i-mux's e2e suite on imux-core
     runs-on: ubuntu-latest
     env:
-      IMUX_COMMIT: 88903cca6c2b14affa6892b3c640eb0fdfada6c8
+      IMUX_COMMIT: 4e4c95ce9fa3965241559350cd8b08f602199e5c
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -156,7 +156,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      IMUX_COMMIT: 88903cca6c2b14affa6892b3c640eb0fdfada6c8
+      IMUX_COMMIT: 4e4c95ce9fa3965241559350cd8b08f602199e5c
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
