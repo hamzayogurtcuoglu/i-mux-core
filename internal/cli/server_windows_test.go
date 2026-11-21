@@ -57,7 +57,13 @@ func newWorld(t *testing.T) *world {
 	t.Helper()
 	dir := t.TempDir()
 	env := []string{"TMUX_TMPDIR=" + dir, "USERPROFILE=" + dir, "HOME=" + dir, "LANG=C"}
-	for _, k := range []string{"SystemRoot", "SystemDrive", "COMSPEC", "PATH", "PATHEXT", "LOCALAPPDATA", "TEMP", "TMP", "USERNAME"} {
+	// PSModuleAnalysisCachePath too: GitHub's Windows image names a ready module analysis cache
+	// in it, and without it Windows PowerShell 5.1 builds one first, so a PowerShell pane printed
+	// nothing for over 20 s (found by bisecting the runner's variables, 2026-11-21).
+	for _, k := range []string{
+		"SystemRoot", "SystemDrive", "COMSPEC", "PATH", "PATHEXT", "LOCALAPPDATA", "TEMP", "TMP", "USERNAME",
+		"PSModuleAnalysisCachePath",
+	} {
 		env = append(env, k+"="+os.Getenv(k))
 	}
 	w := &world{t: t, dir: dir, socket: filepath.Join(dir, "s"), env: env}

@@ -119,10 +119,15 @@ func TestWindowsAttach(t *testing.T) {
 	// Detach: the client says so and ends; the console's modes are as they were.
 	w.must("detach-client")
 	c.wait(t, "[detached (from session a)]")
-	w.eventually("the modes after the client", func() bool {
-		return len(regexp.MustCompile(`MODES [^E]*END`).FindAllString(c.text(), -1)) == 2
-	})
-	if after := regexp.MustCompile(`MODES [^E]*END`).FindAllString(c.text(), -1)[1]; after != before {
+	// The modes the helper prints after the client: what follows the detach message (ConPTY may
+	// send the screen from before the client again, its first MODES line with it).
+	modes := regexp.MustCompile(`MODES [^E]*END`)
+	afterDetach := func() string {
+		tx := c.text()
+		return modes.FindString(tx[strings.LastIndex(tx, "[detached (from session a)]"):])
+	}
+	w.eventually("the modes after the client", func() bool { return afterDetach() != "" })
+	if after := afterDetach(); after != before {
 		t.Errorf("the console's modes: %s before, %s after", before, after)
 	}
 }
