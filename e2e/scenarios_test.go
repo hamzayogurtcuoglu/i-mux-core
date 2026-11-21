@@ -334,6 +334,7 @@ func TestClickSelectsAPane(t *testing.T) {
 	w.ok("split-window", "-h", "-t", "a", "exec cat")
 	c := w.attach(80, 24)
 	w.waitFormat("a", "#{session_attached}", "1")
+	c.waitMouse()
 	c.click(0, 10, 10)
 	w.waitFormat("a", "#{pane_id}", "%0")
 	clickWait()
@@ -359,8 +360,7 @@ func TestBorderDragResizes(t *testing.T) {
 	w.ok("split-window", "-h", "-l", "40", "-t", "a", "exec cat")
 	c := w.attach(80, 24)
 	w.waitFormat("a", "#{session_attached}", "1")
-	// The client has asked its terminal for the mouse: ConPTY passes the mouse on only then.
-	c.waitOutput("\x1b[?1006h", 10*time.Second)
+	c.waitMouse()
 	c.typ("\x1b[<0;40;5M\x1b[<32;45;5M\x1b[<32;50;5M\x1b[<0;50;5m")
 	w.waitFormat("%0", "#{pane_width}", "49")
 }

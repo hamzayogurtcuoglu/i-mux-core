@@ -275,6 +275,11 @@ func (c *client) click(b, x, y int) {
 	c.typ(fmt.Sprintf("\x1b[<%d;%d;%dM\x1b[<%d;%d;%dm", b, x, y, b, x, y))
 }
 
+// waitMouse waits until the client has asked its terminal for the mouse (SGR mode): ConPTY, the
+// terminal on Windows, passes mouse input on only from then (it failed there when a test
+// clicked as soon as the client had attached).
+func (c *client) waitMouse() { c.waitOutput("\x1b[?1006h", 10*time.Second) }
+
 // clickWait waits out the click timeout, so the next press starts a new click sequence.
 func clickWait() { time.Sleep(400 * time.Millisecond) }
 
