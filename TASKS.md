@@ -1642,7 +1642,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   raced tmux's 5 s terminal-query timeout (T91.3). Done: i-mux's CI run 44798964523 (commit
   d980168, 2026-11-20) is green on every job, `e2e-core` on Linux and macOS included.
 
-### [ ] C7.7 Beta release: USER
+### [x] C7.7 Beta release: USER
 - **Goal:** real users try the engine on macOS and Linux.
 - **Details:**
   - Release notes explain the switch and how to go back.
@@ -1652,6 +1652,11 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Status:** prepared. i-mux commit a35e4ef (T88.6) has the notes (CHANGELOG, README and
   README.tr: how to try the engine and how to go back) and the "Engine (beta)" issue form; the
   release waits for C7.6's green run and the owner's tag.
+- **Done (2026-11-21):** i-mux v0.66.0, released on the owner's word; by then i-mux ran on this
+  engine only (its D87), so the release ships it to everyone rather than as an opt-in beta. Its
+  release run 44899047814 installed it with the one-line installer and ran `imux doctor --ci`
+  on macOS (Apple Silicon and Intel), Ubuntu (x64 and ARM), Debian, Ubuntu 22.04, Fedora,
+  Alpine and Arch, all without tmux; the Homebrew formula waits for the tap's token (i-mux T7.4).
 
 **Gate 7:**
 - i-mux ships with both engines.
