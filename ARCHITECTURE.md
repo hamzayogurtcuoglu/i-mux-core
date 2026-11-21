@@ -544,7 +544,7 @@ moment falls on both:
 | What | How it is measured | Target |
 | --- | --- | --- |
 | Idle CPU | 10 sessions × 4 panes of `cat` and one attached client, nothing happening, for 10 s; the server's CPU time | ≤ 0.5% of a core: no wakeups beyond the status clock and timers |
-| Latency from a key to the screen | A key typed into an attached client's terminal, echoed by the pane's program (`cat` in raw mode), until the echo reaches that terminal, at 50 ms between keys, 300 keys, in turns with tmux (p99) | ≤ tmux + 2 ms |
+| Latency from a key to the screen | A key typed into an attached client's terminal, echoed by the pane's program (`cat` in raw mode), until the echo reaches that terminal, at 50 ms between keys, 300 keys, in turns with tmux (p99), in 3 rounds whose median p99 counts, so that a shared runner's hiccup in one round does not decide it | ≤ tmux + 2 ms |
 | Throughput | `cat` of a 100 MB file of 80-column lines, a third coloured, into a 200×50 pane an attached client shows, until `cat` ends | ≤ 1.5× tmux's time |
 | One command round trip | `display-message -p '#{pane_id}'` from a new client process, 200 times (p50) | ≤ tmux + 1 ms |
 | Memory per pane | The server's resident memory growth for each of 4 panes filled past `history-limit 50000` with that text | ≤ 2× tmux's |

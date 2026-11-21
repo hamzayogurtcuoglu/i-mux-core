@@ -1461,7 +1461,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   the engine's time is now tmux's median plus the median difference within each pair, taken
   back to back, so the load cancels out of the comparison. And it runs first: last, after the
   100 MB throughput and the filled histories, i-mux-core came out 27 ms behind on the Linux runner
-  where, measured alone in the same job, both engines reached the sidebar at 128 ms. With it every
+  where, measured alone in the same job, both engines reached the sidebar at 128 ms. Key
+  latency's p99 of 300 keys is the third worst: on the macOS runner it missed now and then (4.12
+  against 1.25 ms) and met in the runs around it (1.61 against 1.59), so it is taken in 3 rounds
+  and the median round's p99 counts. With it every
   measured run passes, the ones above included. i-mux may still make fewer engine calls while it
   starts, in Phase 7 behind the engine switch; nothing requires it.
 
