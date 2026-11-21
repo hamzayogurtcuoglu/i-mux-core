@@ -560,7 +560,7 @@ func printTrace(name, logPath string, start, shown time.Time) {
 func imuxStartup(te, ce engine) (result, result) {
 	engines := []engine{te, ce}
 	secs := make([][]float64, 2)
-	n := 9
+	n := 15
 	if quick {
 		n = 2
 	}
@@ -759,7 +759,7 @@ func main() {
 		// First, on a quiet machine: after the throughput and the filled histories the engine
 		// came out 27 ms behind where, measured alone, both reached the sidebar together.
 		measures = append([]measure{{
-			name: "startup", what: "i-mux startup to the sidebar (9 pairs in turns: tmux's median, i-mux-core's as tmux's plus the median difference)",
+			name: "startup", what: "i-mux startup to the sidebar (15 pairs in turns: tmux's median, i-mux-core's as tmux's plus the median difference)",
 			// Absolute, as decided for C6.4 (ARCHITECTURE.md §10): ~20 engine processes start
 			// before the first frame, each a little later than tmux's C.
 			target: "≤ tmux + 25 ms", inTurns: imuxStartup, meets: within(25),
