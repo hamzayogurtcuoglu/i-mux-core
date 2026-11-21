@@ -117,9 +117,12 @@ func getLock(path string) (f *os.File, waited bool) {
 	if !errors.Is(err, windows.ERROR_LOCK_VIOLATION) {
 		return f, false
 	}
-	// Wait for the other client, then connect again.
+	// Wait for the other client, then connect again. Its removal of the file failed while this
+	// client held it open (Windows deletes no file open elsewhere), so the last client to close
+	// it removes it; a removal fails while any client has it open, so it takes no lock away.
 	_ = windows.LockFileEx(h, windows.LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, new(windows.Overlapped))
 	_ = f.Close()
+	_ = os.Remove(path)
 	return nil, true
 }
 
