@@ -1459,7 +1459,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   then 9 samples in turns (2026-11-21). On the macOS runner the times themselves then still
   moved between runs (179 ms on tmux in one, 414 in the next), its load changing as it measured:
   the engine's time is now tmux's median plus the median difference within each pair, taken
-  back to back, so the load cancels out of the comparison. With it every
+  back to back, so the load cancels out of the comparison. And it runs first: last, after the
+  100 MB throughput and the filled histories, i-mux-core came out 27 ms behind on the Linux runner
+  where, measured alone in the same job, both engines reached the sidebar at 128 ms. With it every
   measured run passes, the ones above included. i-mux may still make fewer engine calls while it
   starts, in Phase 7 behind the engine switch; nothing requires it.
 
