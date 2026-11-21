@@ -572,8 +572,15 @@ func imuxStartup(te, ce engine) (result, result) {
 			imuxOnce(e, true)
 		}
 	}
-	// In ms: at a tenth of a second, 10% is below the seconds' second decimal.
-	return result{percentile(secs[0], 0.5) * 1000, "ms"}, result{percentile(secs[1], 0.5) * 1000, "ms"}
+	// In ms. The engine's time is tmux's median plus the median difference within each pair:
+	// the two runs of a pair are back to back, so a runner whose load changes while it measures
+	// (macOS: 179 ms on tmux in one run, 414 in the next) moves both alike (TASKS.md C6.4).
+	diffs := make([]float64, n)
+	for i := range n {
+		diffs[i] = secs[1][i] - secs[0][i]
+	}
+	t := percentile(secs[0], 0.5)
+	return result{t * 1000, "ms"}, result{(t + percentile(diffs, 0.5)) * 1000, "ms"}
 }
 
 // imuxOnce runs i-mux once and returns the seconds until the sidebar shows; traced, every
@@ -742,7 +749,7 @@ func main() {
 	}
 	if imuxBin != "" {
 		measures = append(measures, measure{
-			name: "startup", what: "i-mux startup to the sidebar (median of 9, in turns)",
+			name: "startup", what: "i-mux startup to the sidebar (9 pairs in turns: tmux's median, i-mux-core's as tmux's plus the median difference)",
 			// Absolute, as decided for C6.4 (ARCHITECTURE.md §10): ~20 engine processes start
 			// before the first frame, each a little later than tmux's C.
 			target: "≤ tmux + 25 ms", inTurns: imuxStartup, meets: within(25),
