@@ -313,19 +313,27 @@ func latency(te, ce engine) (result, result) {
 		}
 	}()
 	time.Sleep(time.Second)
-	n := 300
+	n, rounds := 300, 3
 	if quick {
-		n = 60
+		n, rounds = 60, 1
 	}
-	ms := make([][]float64, 2)
-	for i := range n {
-		for k := range 2 {
-			at := (i + k) % 2
-			ms[at] = append(ms[at], runs[at].key())
-			time.Sleep(25 * time.Millisecond)
+	// p99 of 300 keys is the third worst, so a shared runner's hiccup can decide it: each
+	// engine's p99 is the median of its rounds' (TASKS.md C6.4).
+	p99 := make([][]float64, 2)
+	for range rounds {
+		ms := make([][]float64, 2)
+		for i := range n {
+			for k := range 2 {
+				at := (i + k) % 2
+				ms[at] = append(ms[at], runs[at].key())
+				time.Sleep(25 * time.Millisecond)
+			}
+		}
+		for at := range 2 {
+			p99[at] = append(p99[at], percentile(ms[at], 0.99))
 		}
 	}
-	return result{percentile(ms[0], 0.99), "ms"}, result{percentile(ms[1], 0.99), "ms"}
+	return result{percentile(p99[0], 0.5), "ms"}, result{percentile(p99[1], 0.5), "ms"}
 }
 
 // writeText writes size bytes of 80-column lines, a third of them in colour, to path.
@@ -727,7 +735,7 @@ func main() {
 			run: idleCPU, meets: func(_, c result) bool { return c.value <= 0.5 },
 		},
 		{
-			name: "latency", what: "Key to screen latency (p99 of 300 keys, in turns)", target: "≤ tmux + 2 ms",
+			name: "latency", what: "Key to screen latency (p99 of 300 keys, in turns; median of 3 rounds)", target: "≤ tmux + 2 ms",
 			inTurns: latency, meets: within(2),
 		},
 		{
