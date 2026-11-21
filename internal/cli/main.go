@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/cmdlang"
@@ -37,6 +38,11 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		return code
 	}
 	if server {
+		// At most 2 threads at once unless the environment says (E17): more let the server
+		// contend for a small machine's CPUs with the programs it serves.
+		if os.Getenv("GOMAXPROCS") == "" {
+			runtime.GOMAXPROCS(min(2, runtime.NumCPU()))
+		}
 		return runServer(g, stderr)
 	}
 	path, err := g.resolveSocket()
