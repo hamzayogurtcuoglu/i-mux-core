@@ -18,11 +18,14 @@ import (
 // helloTimeout bounds how long a connection may take to say Hello and send its command.
 var helloTimeout = 10 * time.Second
 
-// Serve accepts clients on l until the server ends; then it closes l. Run must be running.
+// Serve accepts clients on l until the server is going: l closes then, before the panes'
+// programs have ended, so a client that comes meanwhile finds no server, as with tmux, rather
+// than one that closes on it. Run must be running.
 func (s *Server) Serve(l net.Listener) {
 	go func() {
-		<-s.done
+		<-s.closing
 		_ = l.Close()
+		<-s.done
 		s.connMu.Lock()
 		for c := range s.conns {
 			// Their reads end; a Result being written still goes out.

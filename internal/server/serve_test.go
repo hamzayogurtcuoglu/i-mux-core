@@ -3,6 +3,7 @@
 package server
 
 import (
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/pty"
 )
 
 // The server's clients on its socket (TASKS.md C2.3).
@@ -213,3 +215,53 @@ func TestConnectedClientKeepsServer(t *testing.T) {
 		t.Fatalf("new-session on a server whose last session went: %+v", res)
 	}
 }
+
+// TestNoClientWhileGoing: once the server is going, its socket takes no client, even while the
+// panes' programs still end: a client finds no server, as with tmux, not one that closes on it
+// ("server exited unexpectedly"). The pane's output here ends only when the test says, so the
+// server stays going for as long as the check takes.
+func TestNoClientWhileGoing(t *testing.T) {
+	release := make(chan struct{})
+	s := startServer(t, Options{PTY: slowPTY{release}})
+	l, path := listen(t)
+	go s.Serve(l)
+	newPane(t, s, "a", sh("true"))
+	c, r := dial(t, path, ipc.ProtocolVersion)
+	command(t, c, r, "kill-server")
+	deadline := time.Now().Add(time.Second)
+	for {
+		c2, err := ipc.Dial(path)
+		if err != nil {
+			break
+		}
+		c2.Close()
+		if time.Now().After(deadline) {
+			close(release)
+			t.Fatal("a client was taken while the server was going")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if ended(s, 100*time.Millisecond) {
+		t.Fatal("the server ended before its pane's output did")
+	}
+	close(release)
+	if !ended(s, 5*time.Second) {
+		t.Fatal("the server did not end")
+	}
+}
+
+// slowPTY's programs give no output, and their output ends only once release is closed.
+type slowPTY struct{ release chan struct{} }
+
+func (p slowPTY) Start(pty.Spec) (pty.Proc, error) { return slowProc(p), nil }
+
+type slowProc struct{ release chan struct{} }
+
+func (p slowProc) Read([]byte) (int, error)        { <-p.release; return 0, io.EOF }
+func (p slowProc) Write(b []byte) (int, error)     { return len(b), nil }
+func (p slowProc) Resize(int, int, int, int) error { return nil }
+func (p slowProc) Wait() (pty.ExitStatus, error)   { <-p.release; return pty.ExitStatus{}, nil }
+func (p slowProc) Kill() error                     { return nil }
+func (p slowProc) Pid() int                        { return 1 }
+func (p slowProc) Fd() int                         { return -1 }
+func (p slowProc) Close() error                    { return nil }

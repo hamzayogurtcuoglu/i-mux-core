@@ -56,6 +56,10 @@ type Server struct {
 	events chan func()
 	stop   chan struct{}
 	done   chan struct{}
+	// closing is closed once the server is going (tmux's server_loop has ended): no client is
+	// taken from then on, while the panes' programs end (closeOnce guards it).
+	closing   chan struct{}
+	closeOnce sync.Once
 
 	readers sync.WaitGroup
 	panes   map[*model.Pane]*paneState
@@ -127,6 +131,7 @@ func New(o Options) *Server {
 		events:        make(chan func(), 256),
 		stop:          make(chan struct{}),
 		done:          make(chan struct{}),
+		closing:       make(chan struct{}),
 		panes:         map[*model.Pane]*paneState{},
 		menus:         map[*model.Window]*menu{},
 		buffers:       buffers.New(),
@@ -231,12 +236,14 @@ func (s *Server) Run() {
 				break
 			}
 			if s.exiting {
+				s.closeOnce.Do(func() { close(s.closing) })
 				s.shutdown()
 				s.finish()
 				return
 			}
 			s.drawDirty()
 		case <-s.stop:
+			s.closeOnce.Do(func() { close(s.closing) })
 			s.shutdown()
 			s.finish()
 			return
