@@ -125,7 +125,7 @@ jobs:
     name: i-mux's e2e suite on imux-core
     runs-on: ubuntu-latest
     env:
-      IMUX_COMMIT: 4e4c95ce9fa3965241559350cd8b08f602199e5c
+      IMUX_COMMIT: e048380801da7cb525a7512f9ddc9bf88dcc2099
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -137,8 +137,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Install tmux (the installer's tests expect it)
-        run: sudo apt-get update -q && sudo apt-get install -y -q tmux
       - name: Run the suite
         run: ./scripts/imux-e2e.sh i-mux
       - name: Upload PARITY.md

@@ -1411,9 +1411,9 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   2026-11-20: at 88903cc i-mux's own `TestScheduler` reads the clock and fails from 22:00 local
   time on either engine (fixed in i-mux 838b4a5), and the later commit has M91's CI fixes.
   Its tests since D83 tell the engine by its name, so the script gives the engine's own path in
-  `IMUX_TMUX_BIN`, as i-mux's `make e2e-core` does, and no longer links it as "tmux" (the
-  installer's tests took it for tmux); the job installs the runner's tmux for those tests, as
-  i-mux's `e2e-core` job does. The startup bench (C6.4) stays at 88903cc: it measures the engine
+  `IMUX_TMUX_BIN`, as i-mux's `make e2e` does, and no longer links it as "tmux". Since i-mux
+  runs on this engine only (its D87, 2026-11-21), CI runs the suite at i-mux e048380, with no tmux
+  installed. The startup bench (C6.4) stays at 88903cc: it measures the engine
   against a fixed i-mux.
 
 ### [x] C6.4 Performance
