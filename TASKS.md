@@ -1464,7 +1464,11 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   where, measured alone in the same job, both engines reached the sidebar at 128 ms. Key
   latency's p99 of 300 keys is the third worst: on the macOS runner it missed now and then (4.12
   against 1.25 ms) and met in the runs around it (1.61 against 1.59), so it is taken in 3 rounds
-  and the median round's p99 counts. With it every
+  and the median round's p99 counts. With these and the server's 2 threads (E17), CI run
+  44877391905 met every target on both runners. i-mux's startup on the Linux runner still
+  depends on the machine it gets: the engine's gap was 10, 11, 18 and 27 ms in five runs of
+  2026-11-21, so it can miss tmux + 25 ms now and then; fewer engine calls while i-mux starts
+  (above) would leave room. With it every
   measured run passes, the ones above included. i-mux may still make fewer engine calls while it
   starts, in Phase 7 behind the engine switch; nothing requires it.
 
