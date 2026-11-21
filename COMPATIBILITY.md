@@ -223,7 +223,12 @@ Checked against tmux 3.8 in `testdata/diff/keys.txt`:
 
 Checked against tmux 3.8 in `testdata/diff/shell.txt`:
 
-- A command waits for its job (the rest of the list, and the client, wait) unless `-b`.
+- A command waits for its job (the rest of the list, and the client, wait) unless `-b`. A key
+  binding's commands go through the client's queue, as tmux's per-client cmdq: while they
+  wait, the client's next keys wait too and run in order (`testdata/diff/keyqueue.txt`; until
+  2026-11-21 the next key's binding ran at once, and i-mux's H and L swaps crossed). A key for
+  a popup, a menu, the command prompt or a message goes at once, as tmux handles those before
+  its queue.
   `-d` waits that many seconds (fractions too) before running; with no command it only
   waits. What `run-shell -C` and `if-shell` pick runs right after them, before the next
   command, with the same current target.
