@@ -1456,7 +1456,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   settled before C10.3, whose criteria include the benchmarks. Five samples of each engine,
   taken cold on a fresh runner, moved the median a lot (one CI job measured 109 against 103 ms
   and, minutes later, 138 against 105), so the measure takes one warm-up run of each engine and
-  then 9 samples in turns (2026-11-21). With it every
+  then 9 samples in turns (2026-11-21). On the macOS runner the times themselves then still
+  moved between runs (179 ms on tmux in one, 414 in the next), its load changing as it measured:
+  the engine's time is now tmux's median plus the median difference within each pair, taken
+  back to back, so the load cancels out of the comparison. With it every
   measured run passes, the ones above included. i-mux may still make fewer engine calls while it
   starts, in Phase 7 behind the engine switch; nothing requires it.
 
