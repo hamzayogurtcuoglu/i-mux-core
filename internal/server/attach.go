@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/format"
+	"github.com/hamzayogurtcuoglu/i-mux-core/internal/input"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/ipc"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/keys"
 	"github.com/hamzayogurtcuoglu/i-mux-core/internal/model"
@@ -50,6 +51,12 @@ type attachedClient struct {
 	popup *popup
 	// The command prompt on its status line (task C4.10).
 	prompt *prompt
+
+	// bindingWaits is set while a key binding's commands wait (a run-shell without -b), and
+	// heldKeys are the keys the client sent meanwhile: as in tmux, whose key callbacks go
+	// through the client's command queue, they run after it, in order (C3.10).
+	bindingWaits bool
+	heldKeys     []input.Event
 
 	// The key table the client is in (tmux's keytable), when it was set (its
 	// activity_time), and the repeat state (CLIENT_REPEAT, last_key, repeat_timer).

@@ -1,0 +1,14 @@
+# A key binding's commands go through the client's command queue (tmux's cmdq per client): a
+# run-shell without -b holds the client's next keys until its job ends, so two keys pressed
+# together run in order (i-mux swaps panes with H and L this way).
+size 60x10
+run new-session -d -s a -n w 'exec cat'
+client c 60x10
+run set -g @order ''
+run bind -n F2 set -ga @order 2
+type c '\x1bOQ'
+wait '#{@order}' == 2
+run set -g @order '' ; bind -n F1 'run-shell "sleep 0.5" ; set -ga @order 1'
+type c '\x1bOP\x1bOQ'
+wait '#{@order}' == 12
+run display -p '#{@order}'

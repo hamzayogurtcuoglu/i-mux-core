@@ -249,11 +249,27 @@ func (s *Server) runBinding(c *attachedClient, bd *keys.Binding, m *target.Mouse
 	if m == nil || !ok {
 		st = target.State{S: sess, WL: sess.Current, Idx: -1, W: sess.Current.Window, P: sess.Current.Window.Active}
 	}
+	c.bindingWaits = true
 	commands.RunList(s, &commands.Client{Name: c.name, Session: sess, Env: c.env}, list, &st, m, func(res commands.Result) {
 		s.showResult(c, res)
 		s.recalculateSizes()
 		s.redrawAll()
+		c.bindingWaits = false
+		s.releaseKeys(c)
 	})
+}
+
+// releaseKeys runs the keys a client sent while its binding waited, in order, until one of
+// them waits in turn (cmdq's next items).
+func (s *Server) releaseKeys(c *attachedClient) {
+	for len(c.heldKeys) > 0 && !c.bindingWaits && !c.gone {
+		ev := c.heldKeys[0]
+		c.heldKeys = c.heldKeys[1:]
+		s.inputKey(c, &ev)
+	}
+	if c.gone {
+		c.heldKeys = nil
+	}
 }
 
 // showResult shows what commands run for an attached client printed on its message line:

@@ -134,6 +134,13 @@ func (s *Server) inputEvent(c *attachedClient, ev *input.Event) {
 	case input.EventWinsize:
 		s.winsizeReply(c, ev.Rows, ev.Cols, ev.YPixel, ev.XPixel)
 	case input.EventKey:
+		// While a binding waits the key waits too, unless an overlay, a menu, the command
+		// prompt or a message takes it: those go at once (server_client_handle_key: "the
+		// queue might be blocked so they need to be processed immediately").
+		if c.bindingWaits && c.popup == nil && s.windowMenu(c) == nil && c.prompt == nil && c.message == nil {
+			c.heldKeys = append(c.heldKeys, *ev)
+			return
+		}
 		s.inputKey(c, ev)
 	}
 }
