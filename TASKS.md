@@ -1453,7 +1453,10 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   for the engine of 2026-11-18 and of today: the runner's image, not an engine change, and not
   understood yet. Newer i-mux (4e4c95c) starts slower on both engines and past the target on
   macOS too (360.2 against 294.9 ms), so the bench keeps measuring at 88903cc. Both are to be
-  settled before C10.3, whose criteria include the benchmarks. With it every
+  settled before C10.3, whose criteria include the benchmarks. Five samples of each engine,
+  taken cold on a fresh runner, moved the median a lot (one CI job measured 109 against 103 ms
+  and, minutes later, 138 against 105), so the measure takes one warm-up run of each engine and
+  then 9 samples in turns (2026-11-21). With it every
   measured run passes, the ones above included. i-mux may still make fewer engine calls while it
   starts, in Phase 7 behind the engine switch; nothing requires it.
 
