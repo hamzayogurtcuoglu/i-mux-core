@@ -1467,8 +1467,8 @@ This is the full plan, phase by phase. Read [AGENTS.md](AGENTS.md) for how to wo
   and the median round's p99 counts. With these and the server's 2 threads (E17), CI run
   44877391905 met every target on both runners. i-mux's startup on the Linux runner still
   depends on the machine it gets: the engine's gap was 10, 11, 18 and 27 ms in four runs of
-  2026-11-21, so it can miss tmux + 25 ms now and then; fewer engine calls while i-mux starts
-  (above) would leave room. With it every
+  2026-11-21, so it can miss tmux + 25 ms now and then; the measure takes 15 pairs since, for
+  a steadier median, and fewer engine calls while i-mux starts (above) would leave room. With it every
   measured run passes, the ones above included. i-mux may still make fewer engine calls while it
   starts, in Phase 7 behind the engine switch; nothing requires it.
 

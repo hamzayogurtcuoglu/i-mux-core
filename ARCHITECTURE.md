@@ -548,7 +548,7 @@ moment falls on both:
 | Throughput | `cat` of a 100 MB file of 80-column lines, a third coloured, into a 200×50 pane an attached client shows, until `cat` ends | ≤ 1.5× tmux's time |
 | One command round trip | `display-message -p '#{pane_id}'` from a new client process, 200 times (p50) | ≤ tmux + 1 ms |
 | Memory per pane | The server's resident memory growth for each of 4 panes filled past `history-limit 50000` with that text | ≤ 2× tmux's |
-| i-mux startup to its first frame | `imux claude` in a project in a 160×40 terminal, with i-mux's fake agents, until the sidebar shows, in turns with tmux, after one warm-up run of each: 9 pairs, i-mux-core's time is tmux's median plus the median of the pairs' differences, so that a runner's changing load cancels out | ≤ tmux + 25 ms |
+| i-mux startup to its first frame | `imux claude` in a project in a 160×40 terminal, with i-mux's fake agents, until the sidebar shows, in turns with tmux, after one warm-up run of each: 15 pairs, i-mux-core's time is tmux's median plus the median of the pairs' differences, so that a runner's changing load cancels out | ≤ tmux + 25 ms |
 
 The startup target is an absolute margin, wider than the others, by the owner's decision of
 2026-11-18: i-mux starts with about twenty engine commands, each a new process, and Go's runtime
