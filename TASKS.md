@@ -1814,11 +1814,15 @@ i-mux's `make ci` must pass with tmux exactly as before.
   system's shell, pass on Windows 11 build 26200 through WSL.
 - **Open (2026-11-20):** since the pane job allows breakaway (bf61fad, for i-mux's detached
   watcher), what Git for Windows' sh starts is outside the job: the current command finds it
-  (E12), but `Kill` does not end it. And on GitHub's Windows image of 2026-11-16 (it runs
-  elevated) `TestWindowsAttach` (the pane's output does not show), `TestWindowsConcurrentStart`
-  (a lock file left) and `TestWindowsPaneProcessInfo` (PowerShell's ping not seen, although it
-  is in the job) fail, and `TestClickSelectsAPane` did once; causes not found yet. The owner's
-  Windows 11 (build 26200) passed them all.
+  (E12), but `Kill` does not end it.
+- **Settled (2026-11-21):** on GitHub's Windows image of 2026-11-16 three tests failed that the
+  owner's Windows 11 passed. `TestWindowsAttach` and `TestWindowsPaneProcessInfo`: the tests'
+  environment lacked `PSModuleAnalysisCachePath`, which names the image's ready module cache, and
+  Windows PowerShell 5.1 built one first, printing nothing for over 20 s (found by bisecting the
+  runner's variables); the attach test also took a MODES line that ConPTY sent again with the
+  old screen for the helper's second. `TestWindowsConcurrentStart`: the client that started the
+  server could not remove the lock file while waiting clients held it open (Windows deletes no
+  file open elsewhere), so now the last client to close it removes it.
 
 ### [x] C8.8 Engine e2e on Windows
 - **Goal:** the engine's own scenarios pass on Windows.
