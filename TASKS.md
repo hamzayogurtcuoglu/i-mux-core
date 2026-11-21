@@ -2102,11 +2102,13 @@ i-mux's `make ci` must pass with tmux exactly as before.
 
 ## Phase 10: Rollout
 
-### [ ] C10.1 Beta period on macOS and Linux
+### [x] C10.1 Beta period on macOS and Linux (dropped by the owner)
 - **Goal:** gather real-world reports before any default changes.
 - **Details:** track engine issues; every fix gets a difftest or engine test.
 - **Acceptance:** at least two releases with the opt-in engine and no open serious engine bugs.
 - **Depends on:** Gate 7.
+- **Status:** dropped (2026-11-21): the owner decided that i-mux runs on this engine only, at once,
+  without a beta period with tmux beside it (i-mux's D87, M92).
 
 ### [ ] C10.2 Windows public release: USER
 - **Goal:** announce Windows support.
@@ -2117,7 +2119,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** the owner approves and tags.
 - **Depends on:** Gate 9.
 
-### [ ] C10.3 The default switch on macOS and Linux: USER
+### [x] C10.3 The default switch on macOS and Linux: USER
 - **Goal:** one engine everywhere, so everything really is the same.
 - **Details:** the criteria:
   - C10.1 is done;
@@ -2129,8 +2131,13 @@ i-mux's `make ci` must pass with tmux exactly as before.
   how to go back.
 - **Acceptance:** the owner approves and tags.
 - **Depends on:** C10.1.
+- **Status:** done further than planned (2026-11-21): the owner decided that this engine is not
+  only i-mux's default but its only engine, on every system, tmux installed or not (i-mux's D87,
+  M92); an `[engine] backend = "tmux"` left in a config is ignored with a warning. At that point
+  every i-mux e2e test passed on this engine on Linux, macOS and Windows, and the benchmarks
+  were met (C6.4). The release that ships it is i-mux's next.
 
-### [ ] C10.4 Keep the fallback
+### [x] C10.4 Keep the fallback (dropped by the owner)
 - **Goal:** users always have a way back.
 - **Details:**
   - `backend = "tmux"` stays supported and tested in CI on macOS and Linux.
@@ -2138,6 +2145,9 @@ i-mux's `make ci` must pass with tmux exactly as before.
   - Any decision to drop tmux support is a separate one, for the owner, much later.
 - **Acceptance:** CI keeps both engines' e2e jobs.
 - **Depends on:** C10.3.
+- **Status:** dropped (2026-11-21): the owner decided to remove tmux from i-mux (D87). The
+  differential tests here keep comparing this engine with tmux 3.8, which stays its reference
+  for behaviour; i-mux itself no longer runs on tmux or tests on it.
 
 ---
 
