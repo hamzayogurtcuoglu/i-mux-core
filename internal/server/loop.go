@@ -396,6 +396,7 @@ func (s *Server) Spawn(p *model.Pane, spec pty.Spec) error {
 		go s.post(func() { s.renamePane(p, name) })
 	}
 	p.Term.Screen.DisallowSetTitle = p.Options.GetNumber("allow-set-title") == 0
+	s.applyPaneStyles(p)
 	p.Term.ClipboardMode = s.clipboardMode()
 	p.Term.SetClipboard = func(clip string, b []byte) {
 		// Called from the pane's reader with the pane locked: the loop applies it later.

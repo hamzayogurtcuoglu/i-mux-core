@@ -292,7 +292,9 @@ func (in *input) osc9(p string) {
 func (in *input) osc10(p string, bel bool) {
 	pal := &in.t.Palette
 	if p == "?" {
-		c := pal.Fg
+		// input_osc_10: the pane's default colour (window-style's when the
+		// program set none), else the client terminal's.
+		c, _ := pal.Defaults(false)
 		if c.IsDefault() {
 			c = pal.ClientFg
 		}
@@ -307,7 +309,7 @@ func (in *input) osc10(p string, bel bool) {
 func (in *input) osc11(p string, bel bool) {
 	pal := &in.t.Palette
 	if p == "?" {
-		c := pal.Bg
+		_, c := pal.Defaults(false)
 		if c.IsDefault() {
 			c = pal.ClientBg
 		}

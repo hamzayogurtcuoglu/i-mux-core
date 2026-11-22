@@ -100,7 +100,13 @@ func (s *Server) OptionChanged(name string) {
 	case "allow-set-title", "":
 		for _, p := range s.tree.Panes() {
 			s.applyPaneOptions(p)
+			s.applyPaneStyles(p)
 		}
+	case "window-style", "window-active-style", "pane-colours":
+		for _, p := range s.tree.Panes() {
+			s.applyPaneStyles(p)
+		}
+		s.updatePaneColours()
 	case "set-clipboard":
 		mode := s.clipboardMode()
 		for _, p := range s.tree.Panes() {

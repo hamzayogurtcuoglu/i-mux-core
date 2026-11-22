@@ -788,7 +788,8 @@ func resolve(gc *vt.Cell, defFg, defBg vt.Color, pal *vt.Palette, v *View) {
 // wide character that does not fit is blank, and padding at the start (a wide character cut
 // off) is blank in the colour of the character it belongs to.
 func paneLine(out []vt.Cell, p *model.Pane, s *vt.Screen, px, py int, links *linkTable, v *View) {
-	screenLine(out, s, px, py, p.Term.Palette.Fg, p.Term.Palette.Bg, &p.Term.Palette, links, v)
+	fg, bg := p.Term.Palette.Defaults(p.Window != nil && p.Window.Active == p)
+	screenLine(out, s, px, py, fg, bg, &p.Term.Palette, links, v)
 }
 
 // screenLine is tty_draw_line for line py of a screen from column px, with the default

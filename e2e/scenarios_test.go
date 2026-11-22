@@ -413,6 +413,25 @@ func TestMouseReachesAProgramThatAskedForIt(t *testing.T) {
 	w.waitFile("ev.out", "1b5b3c303b31313b364d1b5b3c303b31313b366d")
 }
 
+// A theme: window-style and pane-colours colour what a pane draws in the default colours and
+// in its 16 colours, in panes that already run, as tmux does (on Windows the panes run under
+// ConPTY and nothing else gives them the theme).
+func TestWindowStyleColoursRunningPanes(t *testing.T) {
+	w := newWorld(t)
+	w.ok("new-session", "-d", "-s", "a", `printf 'plain \033[31mred\033[m\n'; exec cat`)
+	w.waitCapture("%0", "plain red")
+	c := w.attach(80, 24)
+	c.waitText("plain red")
+	if strings.Contains(c.output(), "48;5;17") {
+		t.Fatal("window-style's background before it was set")
+	}
+	w.ok("set-option", "-g", "window-style", "fg=colour189,bg=colour17")
+	w.ok("set-option", "-g", "pane-colours[1]", "colour160")
+	c.waitOutput("48;5;17", 10*time.Second)
+	c.waitOutput("38;5;189", 10*time.Second)
+	c.waitOutput("38;5;160", 10*time.Second)
+}
+
 // Two clients.
 
 func TestTwoClientsSeeTheSameOutput(t *testing.T) {

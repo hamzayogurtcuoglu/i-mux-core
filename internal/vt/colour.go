@@ -190,12 +190,18 @@ type Palette struct {
 	ClientPalette  [256]Color
 	palette        *[256]Color
 	defaultPalette *[256]Color
+	// WindowFg and WindowBg are window-style's colours, ActiveFg and ActiveBg
+	// window-active-style's (tmux's cached_gc and cached_active_gc):
+	// ColorDefault when the style sets none.
+	WindowFg, WindowBg, ActiveFg, ActiveBg Color
 }
 
 // Init initializes p to default colours (tmux's colour_palette_init).
 func (p *Palette) Init() {
 	p.Fg = ColorDefault
 	p.Bg = ColorDefault
+	p.WindowFg, p.WindowBg = ColorDefault, ColorDefault
+	p.ActiveFg, p.ActiveBg = ColorDefault, ColorDefault
 	p.ClientFg = -1
 	p.ClientBg = -1
 	for i := range p.ClientPalette {
@@ -258,6 +264,29 @@ func (p *Palette) Set(n int, c Color) bool {
 	}
 	p.palette[n] = c
 	return true
+}
+
+// Defaults are the colours a cell in the default colours takes, as tmux's
+// tty_default_colours gives them: the program's own (OSC 10 and 11) first,
+// then window-active-style's for the active pane, then window-style's.
+func (p *Palette) Defaults(active bool) (fg, bg Color) {
+	pick := func(own, win, act Color) Color {
+		switch {
+		case !own.IsDefault():
+			return own
+		case active && !act.IsDefault():
+			return act
+		}
+		return win
+	}
+	return pick(p.Fg, p.WindowFg, p.ActiveFg), pick(p.Bg, p.WindowBg, p.ActiveBg)
+}
+
+// ClearDefaults forgets the pane-colours entries, before they are set again.
+func (p *Palette) ClearDefaults() {
+	if p != nil {
+		p.defaultPalette = nil
+	}
 }
 
 // SetDefault sets a default palette entry (from pane-colours).

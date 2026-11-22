@@ -459,8 +459,9 @@ func (s *Server) updatePaneColours() {
 		case light && !dark:
 			theme = vt.ThemeLight
 		default:
-			b := int(p.Term.Palette.Bg)
-			if p.Term.Palette.Bg.IsDefault() {
+			_, pb := p.Term.Palette.Defaults(false)
+			b := int(pb)
+			if pb.IsDefault() {
 				b = bg
 			}
 			theme = themeOf(b)
