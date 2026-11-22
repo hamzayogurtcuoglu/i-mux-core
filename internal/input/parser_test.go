@@ -202,6 +202,26 @@ func TestMouse(t *testing.T) {
 	}
 }
 
+// The Windows console (conhost) ends a motion with no button held with m, as xterm ends a
+// release: it is a motion still (as xterm's M), so a -M menu neither chooses nor closes when
+// the mouse moves over it. A real release stays one.
+func TestConsoleMotionIsNotARelease(t *testing.T) {
+	p := newParser(t)
+	p.StopWaiting()
+	evs := p.Feed([]byte("\x1b[<35;10;5m\x1b[<35;11;5M\x1b[<32;11;5m\x1b[<0;12;6m"))
+	if len(evs) != 4 {
+		t.Fatalf("events %+v", evs)
+	}
+	for i, want := range []int{35, 35, 32} {
+		if m := evs[i].Mouse; m.B != want || m.SGRB != want || m.SGRType != 'M' {
+			t.Errorf("motion %d: %+v", i, m)
+		}
+	}
+	if m := evs[3].Mouse; m.B != 3 || m.SGRType != 'm' {
+		t.Errorf("release %+v", m)
+	}
+}
+
 // The terminal's replies are taken out of the input: each once, and keys around them stay.
 func TestReplies(t *testing.T) {
 	p := newParser(t)

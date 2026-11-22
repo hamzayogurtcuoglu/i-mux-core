@@ -461,6 +461,8 @@ func (p *Parser) extendedKey(buf []byte) (k.Key, int, int) {
 const (
 	mouseBtnOff = 32
 	mousePosOff = 33
+	// mouseMotion is MOUSE_MASK_DRAG: a report of the mouse moving.
+	mouseMotion = 32
 )
 
 // mouse is tty_keys_mouse: X10 (CSI M b x y) and SGR (CSI < b ; x ; y M/m) reports.
@@ -521,6 +523,12 @@ func (p *Parser) mouse(buf []byte) (Mouse, int, int) {
 		y--
 		b = sgrB
 		sgrType = ch
+		// A motion is never a release: the Windows console (conhost) ends a motion with no
+		// button held (ESC [ < 35 ; x ; y m) the way xterm ends a release. Read as one, it
+		// chose or closed a -M menu as soon as the mouse moved over it; take it as xterm's M.
+		if sgrType == 'm' && sgrB&mouseMotion != 0 && sgrB&64 == 0 {
+			sgrType = 'M'
+		}
 		if sgrType == 'm' {
 			b = 3
 		}

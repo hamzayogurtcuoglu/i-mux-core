@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -241,6 +242,39 @@ func TestMenuClosesBeforeItsItemRuns(t *testing.T) {
 	if out := plain(c.output()[mark:]); strings.Contains(out, "First row") {
 		t.Fatalf("the menu was drawn again after its choice: %q", out)
 	}
+}
+
+// The mouse moving over a -M -O menu (i-mux's menus) neither closes it nor chooses: the Windows
+// console reports that motion as ESC [ < 35 ; x ; y m, xterm's release form, and the menu took
+// it as a release and closed.
+func TestMenuStaysOpenUnderAMovingMouse(t *testing.T) {
+	w := newWorld(t)
+	w.ok("new-session", "-d", "-s", "a", "exec cat")
+	c := w.attach(80, 24)
+	w.waitFormat("a", "#{session_attached}", "1")
+	w.ok("display-menu", "-M", "-O", "-c", w.clientName(), "-x", "C", "-y", "C", "Pick me", "p", "set -g @picked yes", "Other", "o", "set -g @picked no")
+	c.waitText("Pick me")
+	c.waitOutput("\x1b[?1003h", 10*time.Second)
+	x, y := -1, -1
+	for i, l := range c.lines() {
+		if j := strings.Index(l, "Pick me"); j >= 0 {
+			x, y = j+1, i+1
+		}
+	}
+	if x < 0 {
+		t.Fatalf("no item on screen:\n%s", c.text())
+	}
+	for _, dx := range []int{0, 1, 2} {
+		c.typ(fmt.Sprintf("\x1b[<35;%d;%dm", x+dx, y)) // the console's motion
+		c.typ(fmt.Sprintf("\x1b[<35;%d;%dM", x+dx, y)) // xterm's
+	}
+	time.Sleep(300 * time.Millisecond) // a closed menu would be gone by now
+	c.waitText("Pick me")
+	if got := w.format("", "#{@picked}"); got != "" {
+		t.Fatalf("the motion chose an item: @picked %q", got)
+	}
+	c.typ("o")
+	w.waitFormat("", "#{@picked}", "no")
 }
 
 func TestMenuEscapeCloses(t *testing.T) {
