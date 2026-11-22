@@ -406,7 +406,11 @@ i-mux's contract and give nothing.
 `message-style message-command-style mode-style pane-border-style pane-active-border-style
 popup-style popup-border-style menu-style menu-selected-style menu-border-style window-style
 window-active-style pane-colours`. They are set with `set -g` and unset with `set -gu`.
-`pane-colours` is an array of `#rrggbb` colours (`pane-colours[N]`).
+`pane-colours` is an array of `#rrggbb` colours (`pane-colours[N]`). As in tmux, a pane's cells
+in the default colours take `window-active-style`'s colours in the active pane and
+`window-style`'s elsewhere, unless the pane's program set its own (OSC 10/11), and
+`pane-colours` replaces the palette's entries; panes already running follow a change at once
+(C8.10).
 
 ## 6. Hooks
 
@@ -511,6 +515,10 @@ mouse) work with copy mode (C4.8, `testdata/diff/copymode.txt`), and the floatin
 binding's commands, so a press and its release read together reach a menu the press opens only
 after the release; the engine runs the binding at once, so that release closes the menu as a
 later one would on tmux.
+
+An SGR motion report that ends in `m` (`ESC [ < 35 ; x ; y m`, how the Windows console reports
+the mouse moving with no button held) is a motion, as if it ended in `M`, not a release: tmux
+reads it as a release, but no terminal tmux supports sends it (C8.10).
 
 Not yet: scrollbars and floating panes (the engine has neither), ranges on pane border status
 lines (`ControlN`), `mouse_word`, `mouse_line` and `mouse_hyperlink`.

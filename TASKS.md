@@ -1869,6 +1869,32 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** the owner signs off, or files issues.
 - **Depends on:** C8.8.
 
+### [ ] C8.10 Fixes from the first days on Windows
+- **Goal:** what i-mux's first Windows user ran into (2026-11-22, Windows 11, i-mux attached
+  in a classic console window, conhost) works as on macOS and Linux.
+- **Details:**
+  - **A moving mouse closed menus.** The Windows console ends a motion report with no button
+    held as `ESC [ < 35 ; x ; y m`, the form xterm keeps for a release. The parser read it as
+    a release, so a `-M -O` menu (i-mux's) closed, or ran the item picked with the keys, as
+    soon as the mouse moved over it. A motion (bit 32, not the wheel) is never a release: it
+    is read as xterm's `M`. Terminals that follow xterm never send it, so nothing changes
+    for them.
+  - **Panes kept the terminal's colours under a theme.** `window-style`,
+    `window-active-style` and `pane-colours` were stored but never drawn: a pane's cells in
+    the default colours took only the program's own OSC 10/11. Now they colour the pane as
+    tmux's `tty_default_colours` and `colour_palette_from_option` do: the program's OSC 10/11
+    first, then `window-active-style` for the active pane, then `window-style`; `pane-colours`
+    replaces palette entries; OSC 10/11 queries are answered with them. They are read when
+    a pane starts and again when one of them is set, in panes already running.
+  - **A pane switch stalled the loop.** `#{pane_current_command}` on Windows takes a snapshot
+    of every process on the system (some 8 ms), and the loop asks it for every frame's pane
+    borders and window names. A job's answer is reused for 250 ms.
+- **Acceptance:** parser test (`TestConsoleMotionIsNotARelease`), render test
+  (`TestWindowStyleColours`), platform test (`TestForegroundCommandIsReused`) and e2e
+  scenarios (`TestMenuStaysOpenUnderAMovingMouse`, `TestWindowStyleColoursRunningPanes`), the
+  render and e2e ones failing before their fix.
+- **Depends on:** C8.8.
+
 **Gate 8:**
 - The engine passes its own e2e suite on Windows.
 - The owner has signed off C8.9.
