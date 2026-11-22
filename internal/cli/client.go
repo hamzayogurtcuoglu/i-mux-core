@@ -23,7 +23,7 @@ func runClient(g globals, path string, cmds [][]string, stdout, stderr io.Writer
 		return 1
 	}
 	defer c.Close()
-	code, err := command(c, path, g, cmds, stdout, stderr)
+	code, err := command(c, path, g, cmds, hello(g, true), stdout, stderr)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
@@ -31,8 +31,10 @@ func runClient(g globals, path string, cmds [][]string, stdout, stderr io.Writer
 	return code
 }
 
-func command(c net.Conn, path string, g globals, cmds [][]string, stdout, stderr io.Writer) (int, error) {
-	if err := send(c, ipc.TypeHello, hello(g)); err != nil {
+// command says h, sends cmds and prints their result; a client whose Hello has no terminal is
+// never attached.
+func command(c net.Conn, path string, g globals, cmds [][]string, h *ipc.Hello, stdout, stderr io.Writer) (int, error) {
+	if err := send(c, ipc.TypeHello, h); err != nil {
 		return 1, lostServer(err)
 	}
 	if err := send(c, ipc.TypeCommand, &ipc.Command{Commands: cmds}); err != nil {
@@ -52,6 +54,9 @@ func command(c net.Conn, path string, g globals, cmds [][]string, stdout, stderr
 			}
 			return 1, &ipc.MismatchError{Socket: path, Client: ipc.ProtocolVersion, Server: v.Server}
 		case ipc.TypeAttach:
+			if !h.StdinTTY {
+				return 1, errNoTerminal
+			}
 			return runAttached(c, r, stdout)
 		case ipc.TypeResult:
 			var res ipc.Result
@@ -93,16 +98,25 @@ func utf8Locale(getenv func(string) string) bool {
 // lostServer is the error when the server goes away mid-command.
 func lostServer(error) error { return fmt.Errorf("server exited unexpectedly") }
 
-func hello(g globals) *ipc.Hello {
+// errNoTerminal is what a client without a terminal says when the server would attach it.
+var errNoTerminal = fmt.Errorf("open terminal failed: not a terminal")
+
+// hello is the client's Hello. With tty, stdin and stdout say whether there is a terminal, as
+// the binary's client; without, there is none: a client inside another program's process
+// (E18), whose stdin and stdout are that program's.
+func hello(g globals, tty bool) *ipc.Hello {
 	h := &ipc.Hello{
 		Protocol:      ipc.ProtocolVersion,
 		ClientVersion: version.Version,
 		Argv:          os.Args,
 		Env:           map[string]string{},
-		UTF8:          g.utf8 || utf8Locale(os.Getenv) || consoleUTF8(),
+		UTF8:          g.utf8 || utf8Locale(os.Getenv),
 		Pid:           os.Getpid(),
-		StdinTTY:      isTerminal(os.Stdin),
-		StdoutTTY:     isTerminal(os.Stdout),
+	}
+	if tty {
+		h.UTF8 = h.UTF8 || consoleUTF8()
+		h.StdinTTY = isTerminal(os.Stdin)
+		h.StdoutTTY = isTerminal(os.Stdout)
 	}
 	h.Cwd, _ = os.Getwd()
 	if h.StdinTTY {

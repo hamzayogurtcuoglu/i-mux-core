@@ -2182,7 +2182,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
 
 ## Phase 11: Speed where starting a process is slow
 
-### [ ] C11.1 Commands inside the caller's process
+### [x] C11.1 Commands inside the caller's process
 - **Goal:** i-mux asks the engine without starting an `imux-core` process for every query (E18).
 - **Details:**
   - `engine.Command(ctx, args, stdout, stderr) (code int, handled bool)`: the global flags as
@@ -2196,6 +2196,11 @@ i-mux's `make ci` must pass with tmux exactly as before.
     line that starts one is not handled; a cancelled context ends a waiting command.
   - Runs on Linux, macOS and Windows CI.
 - **Depends on:** none.
+- **Status:** done. `cli.Command` (`internal/cli/inproc.go`) behind `engine.Command`; the Hello
+  of a client without a terminal says no tty and leaves the console's UTF-8 out, and a server
+  that would attach it gets "open terminal failed: not a terminal". `inproc_test.go` compares
+  the in-process and binary output, errors and exit codes, and checks that no server starts,
+  that a context ends a waiting `wait-for`, and 32 concurrent commands.
 
 ---
 
