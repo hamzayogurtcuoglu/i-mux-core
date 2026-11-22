@@ -2180,6 +2180,23 @@ i-mux's `make ci` must pass with tmux exactly as before.
   differential tests here keep comparing this engine with tmux 3.8, which stays its reference
   for behaviour; i-mux itself no longer runs on tmux or tests on it.
 
+## Phase 11: Speed where starting a process is slow
+
+### [ ] C11.1 Commands inside the caller's process
+- **Goal:** i-mux asks the engine without starting an `imux-core` process for every query (E18).
+- **Details:**
+  - `engine.Command(ctx, args, stdout, stderr) (code int, handled bool)`: the global flags as
+    `Main` reads them, then a command client in this process: no tty in its Hello, no server
+    started (a line that would start one, or `__server`, is not handled), the context's deadline
+    on the connection and its end closing it, a panic reported as an error.
+  - Its stdout, stderr and exit code are the binary's for the same line, the "no server running"
+    message included, so i-mux reads them as before.
+- **Acceptance:**
+  - Unit tests: a command's output and exit code match the binary's; no server is started; a
+    line that starts one is not handled; a cancelled context ends a waiting command.
+  - Runs on Linux, macOS and Windows CI.
+- **Depends on:** none.
+
 ---
 
 ## Dependency overview
