@@ -1869,7 +1869,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** the owner signs off, or files issues.
 - **Depends on:** C8.8.
 
-### [ ] C8.10 Fixes from the first days on Windows
+### [x] C8.10 Fixes from the first days on Windows
 - **Goal:** what i-mux's first Windows user ran into (2026-11-22, Windows 11, i-mux attached
   in a classic console window, conhost) works as on macOS and Linux.
 - **Details:**

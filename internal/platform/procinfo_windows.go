@@ -5,6 +5,8 @@ package platform
 import (
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -21,12 +23,52 @@ const CwdFromScreen = true
 // maxJobProcesses bounds the process list read from a job.
 const maxJobProcesses = 256
 
+// fgFresh is how long ForegroundCommand's answer for a job is reused. Each answer takes a
+// snapshot of every process on the system (some 8 ms), and #{pane_current_command} is asked on
+// the server's loop for every frame's pane borders and window names: without it, switching
+// panes stalled the loop. A program that starts or ends shows at most this late.
+const fgFresh = 250 * time.Millisecond
+
+type fgEntry struct {
+	at   time.Time
+	name string
+}
+
+var (
+	fgMu    sync.Mutex
+	fgCache = map[int]fgEntry{}
+	// fgNow is the clock and readForeground the system's answer; tests replace them.
+	fgNow          = time.Now
+	readForeground = foregroundCommand
+)
+
 // ForegroundCommand returns the image name, without .exe, of the newest live process in the
 // job whose handle is job (a pane's program, or what it runs now), or "".
 func ForegroundCommand(job int) string {
 	if job <= 0 {
 		return ""
 	}
+	now := fgNow()
+	fgMu.Lock()
+	e, ok := fgCache[job]
+	fgMu.Unlock()
+	if ok && now.Sub(e.at) >= 0 && now.Sub(e.at) < fgFresh {
+		return e.name
+	}
+	name := readForeground(job)
+	fgMu.Lock()
+	for j, old := range fgCache {
+		if now.Sub(old.at) >= fgFresh {
+			delete(fgCache, j) // handles of panes gone
+		}
+	}
+	fgCache[job] = fgEntry{at: now, name: name}
+	fgMu.Unlock()
+	return name
+}
+
+// foregroundCommand is ForegroundCommand, read from the system.
+func foregroundCommand(job int) string {
 	pids := Tree(windows.Handle(job))
 	newest, name := int64(-1), ""
 	for _, pid := range pids {

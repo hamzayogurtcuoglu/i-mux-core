@@ -133,3 +133,12 @@ All notable changes to i-mux-core are listed here. The format follows
   2026-11-18): i-mux starts with about twenty engine commands, each a process Go starts slightly
   later than tmux's C, which a shared Linux CI runner turns into outliers under a relative
   target. The other five targets of ARCHITECTURE.md §10 are unchanged.
+
+### Fixed
+
+- `window-style`, `window-active-style` and `pane-colours` colour the panes, as in tmux, also
+  in panes already running when they change; OSC 10/11 queries are answered with them (C8.10).
+- A mouse motion the Windows console ends like a release (`ESC [ < 35 ; x ; y m`) is read as a
+  motion, so a `-M` menu no longer closes, or chooses, when the mouse moves over it (C8.10).
+- Windows: a pane's program name is read from the system at most every 250 ms, so frames no
+  longer stall the server on a snapshot of every process (C8.10).
