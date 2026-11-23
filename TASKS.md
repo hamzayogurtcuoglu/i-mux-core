@@ -2202,6 +2202,26 @@ i-mux's `make ci` must pass with tmux exactly as before.
   the in-process and binary output, errors and exit codes, and checks that no server starts,
   that a context ends a waiting `wait-for`, and 32 concurrent commands.
 
+## Phase 12: Fixes from i-mux's users
+
+### [ ] C12.1 A menu's item can open another menu by mouse
+- **Goal:** a confirmation an item opens (i-mux's Close agent…) stays open after the click (E19).
+- **Details:** in a `-O` menu a release inside the menu only moves the choice; a press chooses
+  as before. Without `-O`, a release still chooses.
+- **Acceptance:** a unit test: in a `-O` menu, a release over an item chooses nothing and the
+  menu stays; a press chooses. A menu without `-O` is chosen by a release as before.
+- **Depends on:** none.
+
+### [ ] C12.2 A theme a program cannot paint over
+- **Goal:** `allow-default-colours off` keeps a pane on `window-style` and `window-active-style`
+  when its program sets its own default colours (OSC 10/11), as GitHub Copilot CLI does (E19).
+- **Details:** a window and pane flag, on by default, the engine's own option (an entry after
+  tmux's table, in the contract's known options); off, OSC 10, 11, 110 and 111 that set or reset
+  colours are ignored (queries are answered as before); turning it off forgets what a program set.
+- **Acceptance:** unit tests: with it on, OSC 11 sets the pane's background as in tmux; off, the
+  pane keeps `window-style`'s, and setting it off clears a background a program set before.
+- **Depends on:** none.
+
 ---
 
 ## Dependency overview

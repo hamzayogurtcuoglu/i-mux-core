@@ -410,7 +410,9 @@ window-active-style pane-colours`. They are set with `set -g` and unset with `se
 in the default colours take `window-active-style`'s colours in the active pane and
 `window-style`'s elsewhere, unless the pane's program set its own (OSC 10/11), and
 `pane-colours` replaces the palette's entries; panes already running follow a change at once
-(C8.10).
+(C8.10). With the engine's own `allow-default-colours off` (E19, not in tmux) a program's OSC
+10/11 and 110/111 that set or reset those colours are ignored, so the theme stays; i-mux turns it
+off while a theme colours the panes.
 
 ## 6. Hooks
 
@@ -514,7 +516,10 @@ mouse) work with copy mode (C4.8, `testdata/diff/copymode.txt`), and the floatin
 `ControlN` border buttons) are not in i-mux's contract. One difference in timing: tmux queues a
 binding's commands, so a press and its release read together reach a menu the press opens only
 after the release; the engine runs the binding at once, so that release closes the menu as a
-later one would on tmux.
+later one would on tmux. A menu opened with `-O` is chosen only by a press (E19, C12.1): tmux
+3.8 chooses on a release too, so the release of the click that chose an item closes, unchosen,
+a menu that item opened (checked with the pinned tmux, 2026-11-23); in the engine that release
+only moves the choice.
 
 An SGR motion report that ends in `m` (`ESC [ < 35 ; x ; y m`, how the Windows console reports
 the mouse moving with no button held) is a motion, as if it ended in `M`, not a release: tmux
