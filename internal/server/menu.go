@@ -270,7 +270,10 @@ func (s *Server) menuKey(c *attachedClient, md *menu, ev *input.Event) bool {
 			if !move && release {
 				return chosen()
 			}
-		} else if !wheel && !drag {
+		} else if !wheel && !drag && !release {
+			// A -O menu is chosen by a press only (E19, C12.1): tmux 3.8 chooses on a
+			// release too, so the release of the click that chose an item in one menu
+			// closed, unchosen, the menu that item opened.
 			return chosen()
 		}
 		md.choice = y - (md.py + 1)

@@ -2204,13 +2204,16 @@ i-mux's `make ci` must pass with tmux exactly as before.
 
 ## Phase 12: Fixes from i-mux's users
 
-### [ ] C12.1 A menu's item can open another menu by mouse
+### [x] C12.1 A menu's item can open another menu by mouse
 - **Goal:** a confirmation an item opens (i-mux's Close agent…) stays open after the click (E19).
 - **Details:** in a `-O` menu a release inside the menu only moves the choice; a press chooses
   as before. Without `-O`, a release still chooses.
 - **Acceptance:** a unit test: in a `-O` menu, a release over an item chooses nothing and the
   menu stays; a press chooses. A menu without `-O` is chosen by a release as before.
 - **Depends on:** none.
+- **Status:** done. `menuKey` leaves a release in a `-O` menu to move the choice;
+  `TestMenuStayOpenIgnoresRelease` failed before. Checked against the pinned tmux 3.8 with a
+  pty client: a menu an item opens is closed there by the click's release too.
 
 ### [ ] C12.2 A theme a program cannot paint over
 - **Goal:** `allow-default-colours off` keeps a pane on `window-style` and `window-active-style`
