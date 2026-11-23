@@ -298,3 +298,29 @@ func TestExpireString(t *testing.T) {
 		t.Fatalf("after expiring: in string %v, cell %+v (the style resets, as tmux's input_reset)", term.InString(), c)
 	}
 }
+
+// With FixedDefaultColours (allow-default-colours off, E19) a program cannot set or reset the
+// default colours; queries are still answered.
+func TestOSCColoursFixed(t *testing.T) {
+	term := NewTerminal(20, 4, 10)
+	term.Palette.WindowBg = ColorJoinRGB(0x27, 0x2c, 0x36)
+	term.FixedDefaultColours = true
+	_, _ = term.Write([]byte("\x1b]10;#ffffff\x07\x1b]11;#000000\x07"))
+	if term.Palette.Fg != ColorDefault || term.Palette.Bg != ColorDefault {
+		t.Fatalf("set while fixed: fg=%v bg=%v", term.Palette.Fg, term.Palette.Bg)
+	}
+	_, _ = term.Write([]byte("\x1b]11;?\x07"))
+	if got, want := string(term.DrainReplies()), "\x1b]11;rgb:2727/2c2c/3636\x07"; got != want {
+		t.Fatalf("OSC 11 query while fixed = %q, want %q", got, want)
+	}
+	term.FixedDefaultColours = false
+	_, _ = term.Write([]byte("\x1b]11;#000000\x07"))
+	if term.Palette.Bg != ColorJoinRGB(0, 0, 0) {
+		t.Fatalf("set when not fixed: bg=%v", term.Palette.Bg)
+	}
+	term.FixedDefaultColours = true
+	_, _ = term.Write([]byte("\x1b]111;\x07"))
+	if term.Palette.Bg != ColorJoinRGB(0, 0, 0) {
+		t.Fatalf("reset while fixed changed bg to %v", term.Palette.Bg)
+	}
+}

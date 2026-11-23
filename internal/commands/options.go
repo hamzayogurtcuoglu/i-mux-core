@@ -381,6 +381,11 @@ func showAll(it *Item, st target.State, scope int, oo *options.Options) {
 			}
 			parent = true
 		}
+		// The engine's own options (E19) are listed only when set away from their
+		// default, so a listing matches tmux's.
+		if options.IsEngine(e) && o.Value.Num == e.DefaultNum {
+			continue
+		}
 		showPrint(it, st, o, "", false, parent)
 	}
 }

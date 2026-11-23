@@ -366,6 +366,9 @@ func (r *Report) addOption(cmd, opt string, has map[byte]string, global bool) {
 		scope = "session"
 	default:
 		scope = tmuxOptions[base]
+		if scope == "" {
+			scope = engineOptions[base]
+		}
 		switch scope {
 		case "":
 			r.Unknown.Add("option: " + base)

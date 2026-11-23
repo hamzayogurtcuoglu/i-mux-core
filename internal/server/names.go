@@ -103,12 +103,19 @@ func (s *Server) renamePane(p *model.Pane, name string) {
 	s.windowRenamed(w)
 }
 
-// applyPaneOptions gives a pane's screen the options its emulator reads (allow-set-title).
+// applyPaneOptions gives a pane's screen the options its emulator reads (allow-set-title,
+// and the engine's allow-default-colours, E19: turned off, it forgets the default colours the
+// program set).
 func (s *Server) applyPaneOptions(p *model.Pane) {
 	if p.Term == nil {
 		return
 	}
 	p.Mu.Lock()
 	p.Term.Screen.DisallowSetTitle = p.Options.GetNumber("allow-set-title") == 0
+	fixed := p.Options.GetNumber("allow-default-colours") == 0
+	if fixed && !p.Term.FixedDefaultColours {
+		p.Term.Palette.Fg, p.Term.Palette.Bg = vt.ColorDefault, vt.ColorDefault
+	}
+	p.Term.FixedDefaultColours = fixed
 	p.Mu.Unlock()
 }

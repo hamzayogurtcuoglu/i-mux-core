@@ -301,6 +301,9 @@ func (in *input) osc10(p string, bel bool) {
 		in.oscColourReply(10, 0, c, bel)
 		return
 	}
+	if in.t.FixedDefaultColours {
+		return
+	}
 	if c := ParseX11Color(p); c != -1 {
 		pal.Fg = c
 	}
@@ -314,6 +317,9 @@ func (in *input) osc11(p string, bel bool) {
 			c = pal.ClientBg
 		}
 		in.oscColourReply(11, 0, c, bel)
+		return
+	}
+	if in.t.FixedDefaultColours {
 		return
 	}
 	if c := ParseX11Color(p); c != -1 {
@@ -427,13 +433,13 @@ func (in *input) osc104(p string) {
 }
 
 func (in *input) osc110(p string) {
-	if p == "" {
+	if p == "" && !in.t.FixedDefaultColours {
 		in.t.Palette.Fg = ColorDefault
 	}
 }
 
 func (in *input) osc111(p string) {
-	if p == "" {
+	if p == "" && !in.t.FixedDefaultColours {
 		in.t.Palette.Bg = ColorDefault
 	}
 }

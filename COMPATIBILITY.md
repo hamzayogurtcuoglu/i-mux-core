@@ -412,7 +412,8 @@ in the default colours take `window-active-style`'s colours in the active pane a
 `pane-colours` replaces the palette's entries; panes already running follow a change at once
 (C8.10). With the engine's own `allow-default-colours off` (E19, not in tmux) a program's OSC
 10/11 and 110/111 that set or reset those colours are ignored, so the theme stays; i-mux turns it
-off while a theme colours the panes.
+off while a theme colours the panes. `show-options` lists it only when it is set away from its
+default (on), so a listing is tmux's.
 
 ## 6. Hooks
 

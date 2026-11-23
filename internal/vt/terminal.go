@@ -35,6 +35,9 @@ type Terminal struct {
 	Clipboard     []byte                      // the last OSC 52 taken
 	ClipboardName string                      // its selection targets (c, p, q, s, 0 to 7)
 	Rename        func(name string)           // called on ESC k … ST (the server applies allow-rename)
+	// FixedDefaultColours is the engine's allow-default-colours off (E19): a program's OSC
+	// 10, 11, 110 and 111 that set or reset the default colours are ignored.
+	FixedDefaultColours bool
 
 	// XPixel and YPixel are a cell's size in pixels, for CSI 14, 15 and 16 t (tmux's
 	// defaults until a client tells its own).

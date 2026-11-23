@@ -102,8 +102,9 @@ func (s *Server) OptionChanged(name string) {
 			s.applyPaneOptions(p)
 			s.applyPaneStyles(p)
 		}
-	case "window-style", "window-active-style", "pane-colours":
+	case "window-style", "window-active-style", "pane-colours", "allow-default-colours":
 		for _, p := range s.tree.Panes() {
+			s.applyPaneOptions(p)
 			s.applyPaneStyles(p)
 		}
 		s.updatePaneColours()

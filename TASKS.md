@@ -2215,7 +2215,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   `TestMenuStayOpenIgnoresRelease` failed before. Checked against the pinned tmux 3.8 with a
   pty client: a menu an item opens is closed there by the click's release too.
 
-### [ ] C12.2 A theme a program cannot paint over
+### [x] C12.2 A theme a program cannot paint over
 - **Goal:** `allow-default-colours off` keeps a pane on `window-style` and `window-active-style`
   when its program sets its own default colours (OSC 10/11), as GitHub Copilot CLI does (E19).
 - **Details:** a window and pane flag, on by default, the engine's own option (an entry after
@@ -2224,6 +2224,10 @@ i-mux's `make ci` must pass with tmux exactly as before.
 - **Acceptance:** unit tests: with it on, OSC 11 sets the pane's background as in tmux; off, the
   pane keeps `window-style`'s, and setting it off clears a background a program set before.
 - **Depends on:** none.
+- **Status:** done. `options.EngineTable` after tmux's table; `show` lists it only when it is
+  away from its default, so listings still match tmux's (`difftest` config and options);
+  `Terminal.FixedDefaultColours` guards OSC 10, 11, 110 and 111. Tests: `TestOSCColoursFixed`,
+  `TestAllowDefaultColours`.
 
 ---
 
