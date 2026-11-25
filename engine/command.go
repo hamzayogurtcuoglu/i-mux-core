@@ -17,3 +17,22 @@ import (
 func Command(ctx context.Context, args []string, stdout, stderr io.Writer) (code int, handled bool) {
 	return cli.Command(ctx, args, stdout, stderr)
 }
+
+// Terminal is the terminal an Attach client says it is: its name (#{client_name}) and size.
+type Terminal = cli.StreamTerminal
+
+// Client is an attached client whose terminal is a stream (Attach).
+type Client = cli.StreamClient
+
+// ErrNotAttached means the line ran but attached nothing.
+var ErrNotAttached = cli.ErrNotAttached
+
+// Attach runs an attach line (args as Main takes them, such as "-L", "imux", "attach-session",
+// "-t", "work") as an attached client of a running server inside the calling process, with a
+// stream for its terminal (ARCHITECTURE.md E19): the server's terminal output (for an
+// xterm-256color terminal of term's size) is written to out, and the returned client takes the
+// terminal's input (keys, pastes, mouse reports) and sizes. It starts no server and needs no
+// console, on every system. It returns once the server has attached the client.
+func Attach(ctx context.Context, args []string, term Terminal, out io.Writer) (*Client, error) {
+	return cli.Attach(ctx, args, term, out)
+}

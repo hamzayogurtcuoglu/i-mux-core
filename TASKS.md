@@ -2229,7 +2229,7 @@ i-mux's `make ci` must pass with tmux exactly as before.
   `Terminal.FixedDefaultColours` guards OSC 10, 11, 110 and 111. Tests: `TestOSCColoursFixed`,
   `TestAllowDefaultColours`.
 
-### [ ] C11.2 An attached client whose terminal is a stream
+### [x] C11.2 An attached client whose terminal is a stream
 - **Goal:** i-mux mirrors the workspace on a phone without a PTY (E19).
 - **Details:**
   - `engine.Attach(ctx, args, Terminal{Name, Cols, Rows}, out)` returns a client with
@@ -2241,6 +2241,8 @@ i-mux's `make ci` must pass with tmux exactly as before.
     the client's size; a detach ends `Wait` with its reason; Close ends it. Linux, macOS and
     Windows CI.
 - **Depends on:** C11.1.
+- **Status:** done. `cli.Attach` (`internal/cli/stream.go`) behind `engine.Attach`; a line that
+  would start a server finds none (`-N`), so nothing needs refusing by name.
 
 ---
 
