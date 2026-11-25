@@ -2229,6 +2229,19 @@ i-mux's `make ci` must pass with tmux exactly as before.
   `Terminal.FixedDefaultColours` guards OSC 10, 11, 110 and 111. Tests: `TestOSCColoursFixed`,
   `TestAllowDefaultColours`.
 
+### [ ] C11.2 An attached client whose terminal is a stream
+- **Goal:** i-mux mirrors the workspace on a phone without a PTY (E19).
+- **Details:**
+  - `engine.Attach(ctx, args, Terminal{Name, Cols, Rows}, out)` returns a client with
+    `Input`, `Resize`, `Close` and `Wait`; its Hello is a terminal's (the name, the size, the
+    built-in `xterm-256color`, UTF-8), and the server's output frames go to `out`.
+  - A line that would start a server, or that gets no attach, is an error.
+- **Acceptance:**
+  - Unit tests: the session's screen reaches `out`; input reaches the pane; a resize changes
+    the client's size; a detach ends `Wait` with its reason; Close ends it. Linux, macOS and
+    Windows CI.
+- **Depends on:** C11.1.
+
 ---
 
 ## Dependency overview
